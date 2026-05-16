@@ -324,7 +324,7 @@ function FloatingSentence({ sentence, onFadeOut }: { sentence: Sentence; onFadeO
       style.id = styleId;
       style.textContent = `
         @keyframes marquee {
-          0% { transform: translateX(0); }
+          0% { transform: translateX(0%); }
           100% { transform: translateX(-50%); }
         }
       `;
@@ -392,16 +392,16 @@ function FloatingSentence({ sentence, onFadeOut }: { sentence: Sentence; onFadeO
       }}
     >
       {isOverflowing ? (
-        <div className="overflow-hidden" style={{ maxWidth: '180px' }}>
+        <div className="overflow-hidden" style={{ maxWidth: '220px' }}>
           <div 
             style={{ 
               display: 'inline-block', 
               whiteSpace: 'nowrap', 
-              animation: 'marquee 10s linear infinite' 
+              animation: 'marquee 12s linear infinite' 
             }}
           >
-            <p ref={textRef} className="text-sm text-white/90 pr-8">{sentence.content}</p>
-            <span style={{ paddingRight: '2em' }}>{sentence.content}</span>
+            <span ref={textRef} className="text-sm text-white/90" style={{ paddingRight: '3em' }}>{sentence.content}</span>
+            <span className="text-sm text-white/90" style={{ paddingRight: '3em' }}>{sentence.content}</span>
           </div>
         </div>
       ) : (
@@ -449,6 +449,7 @@ function SilentRoom() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioUploadRef = useRef<HTMLInputElement>(null);
   const playerRef = useRef<HTMLAudioElement | null>(null);
+  const hasAutoPlayedRef = useRef(false);
 
   // 获取当前用户ID
   useEffect(() => {
@@ -667,7 +668,7 @@ function SilentRoom() {
     }
   }, [roomId, userId, currentStatus]);
 
-  // 音频播放控制 - 根据轨道列表播放
+  // 音频播放控制 - 根据轨道列表播放（创建新Audio从头播放）
   const playTrack = useCallback((trackUrl?: string) => {
     if (audioTracks.length === 0) return;
     
@@ -700,11 +701,7 @@ function SilentRoom() {
         // 列表循环
         const nextIndex = (currentTrackIndex + 1) % audioTracks.length;
         setCurrentTrackIndex(nextIndex);
-        if (nextIndex === 0 && !isPlaying) {
-          setIsPlaying(false);
-        } else {
-          playTrack(audioTracks[nextIndex].url);
-        }
+        playTrack(audioTracks[nextIndex].url);
       }
     };
     
@@ -716,8 +713,9 @@ function SilentRoom() {
     playerRef.current = audio;
     audio.play().catch(() => {});
     setIsPlaying(true);
-  }, [audioTracks, currentTrackIndex, playMode, isMuted, isPlaying]);
+  }, [audioTracks, currentTrackIndex, playMode, isMuted]);
 
+  // 暂停（保留Audio对象，可恢复播放）
   const pauseTrack = useCallback(() => {
     if (playerRef.current) {
       playerRef.current.pause();
@@ -725,19 +723,25 @@ function SilentRoom() {
     setIsPlaying(false);
   }, []);
 
+  // 恢复播放（不重新创建Audio，继续当前进度）
+  const resumeTrack = useCallback(() => {
+    if (playerRef.current) {
+      playerRef.current.volume = isMuted ? 0 : 0.5;
+      playerRef.current.play().catch(() => {});
+      setIsPlaying(true);
+    } else if (audioTracks.length > 0) {
+      // 没有Audio对象时才重新创建
+      playTrack();
+    }
+  }, [isMuted, audioTracks, playTrack]);
+
   const togglePlayPause = useCallback(() => {
     if (isPlaying) {
       pauseTrack();
     } else {
-      if (!playerRef.current && audioTracks.length > 0) {
-        playTrack();
-      } else if (playerRef.current) {
-        playerRef.current.volume = isMuted ? 0 : 0.5;
-        playerRef.current.play().catch(() => {});
-        setIsPlaying(true);
-      }
+      resumeTrack();
     }
-  }, [isPlaying, pauseTrack, playTrack, audioTracks, isMuted]);
+  }, [isPlaying, pauseTrack, resumeTrack]);
 
   const playPrevious = useCallback(() => {
     if (audioTracks.length === 0) return;
@@ -774,19 +778,14 @@ function SilentRoom() {
     }
   }, [isMuted]);
 
-  // 播放/暂停：真正控制播放状态
+  // 播放/暂停：真正控制播放状态（暂停后恢复不从头开始）
   const handlePlayPause = useCallback(() => {
     if (isPlaying) {
       pauseTrack();
     } else {
-      if (audioTracks.length > 0 && !playerRef.current) {
-        playTrack();
-      } else if (playerRef.current) {
-        playerRef.current.play().catch(() => {});
-        setIsPlaying(true);
-      }
+      resumeTrack();
     }
-  }, [isPlaying, pauseTrack, playTrack, audioTracks]);
+  }, [isPlaying, pauseTrack, resumeTrack]);
 
   // 拖动调整面板大小
   const handleDragStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
@@ -942,15 +941,17 @@ function SilentRoom() {
   }, [roomId, userId]);
 
   // 播放环境音 - 当房间数据加载时自动播放
+  // 初始自动播放（仅一次，不因暂停/播放状态变化而重复触发）
   useEffect(() => {
-    if (room && audioTracks.length > 0 && !isMuted) {
+    if (room && audioTracks.length > 0 && !isMuted && !hasAutoPlayedRef.current) {
+      hasAutoPlayedRef.current = true;
       try {
         playTrack();
       } catch (err) {
         console.error('Failed to play audio:', err);
       }
     }
-  }, [room, audioTracks.length, isMuted, playTrack]);
+  }, [room, audioTracks.length, isMuted]);
 
   // 同步房间在线人数到 rooms 表
   useEffect(() => {
@@ -1290,30 +1291,39 @@ function SilentRoom() {
         />
       ))}
 
-      {/* 歌词显示区域 - 在房间状态面板上方 - 即使没有歌词也显示 */}
+      {/* 歌词显示区域 - 在房间状态面板上方 - 即使没有歌词也显示歌名 */}
       {showLyrics && currentTrack && (
         <div className="absolute top-1/3 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-15 w-80 max-w-[90%] p-4 rounded-2xl text-center" 
-             style={{ backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }}>
-          <div className="text-white/80 text-sm font-medium mb-2">{currentTrack?.name}</div>
+             style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(12px)' }}>
+          <div className="text-white/90 text-sm font-medium mb-2">{currentTrack?.name || '未知曲目'}</div>
           {currentTrack?.lyrics ? (
-            <div className="text-white/50 text-xs whitespace-nowrap overflow-hidden">
-              <div style={{ animation: 'lyricsMarquee 20s linear infinite', display: 'inline-block', whiteSpace: 'nowrap' }}>
-                {currentTrack?.lyrics}
-              </div>
+            <div className="text-white/60 text-xs leading-relaxed whitespace-pre-line max-h-32 overflow-y-auto">
+              {currentTrack.lyrics}
             </div>
           ) : (
-            <div className="text-white/30 text-xs">
+            <div className="text-white/30 text-xs py-2">
               暂无歌词
               {room?.creator_id === userId && (
                 <button 
-                  onClick={() => setShowLyricsInput(currentTrack.id)}
-                  className="ml-2 text-rose-400 underline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (currentTrack?.id) {
+                      setShowLyricsInput(currentTrack.id);
+                    }
+                  }}
+                  className="block mx-auto mt-2 px-3 py-1 rounded-full text-rose-400 border border-rose-400/30 hover:bg-rose-400/10 transition-colors"
                 >
-                  添加歌词
+                  + 添加歌词
                 </button>
               )}
             </div>
           )}
+          <button 
+            onClick={() => setShowLyrics(false)}
+            className="absolute top-1 right-1 p-1 rounded-full hover:bg-white/10"
+          >
+            <X className="w-3 h-3 text-white/40" />
+          </button>
         </div>
       )}
 

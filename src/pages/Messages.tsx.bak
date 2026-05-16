@@ -1,0 +1,963 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { Search, Flame, MessageSquare, UserPlus, Bell, ChevronRight, Users, Plus, Loader2, Check, X, Bookmark } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import BottomNav from '../components/BottomNav';
+import { cachedFetch } from '../utils/apiCache';
+import RoomList from './RoomList';
+import CreateRoom from './CreateRoom';
+
+const PRIMARY_COLOR = '#E11D48';
+const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE';
+
+interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  type?: string;
+  is_pinned: boolean;
+  is_active: boolean;
+  status: string;
+  created_at: string;
+}
+
+interface GroupChat {
+  id: string;
+  title: string;
+  content: string;
+  tags: string[];
+  user_id: string;
+  heat_count: number;
+  created_at: string;
+  profiles?: {
+    username: string;
+    avatar_url: string;
+  };
+}
+
+// 好友相关接口
+interface FriendProfile {
+  id: string;
+  user_id: string;
+  username: string;
+  nickname: string | null;
+  avatar_url: string | null;
+  created_at: string;
+}
+
+// 收藏记录接口
+interface FavoriteRecord {
+  id: string;
+  user_id: string;
+  note_id: string;
+  created_at: string;
+  favoriter_username?: string;
+  favoriter_avatar_url?: string;
+  favoriter_nickname?: string;
+  note_title?: string;
+  note_type?: string;
+}
+
+// 统一消息类型
+type UnifiedMessage = {
+  id: string;
+  type: 'private' | 'group' | 'announcement' | 'notification';
+  title: string;
+  subtitle: string;
+  avatar?: string;
+  avatarType?: 'user' | 'group' | 'system';
+  time: string;
+  timeRaw: string;
+  isRead: boolean;
+  isPinned?: boolean;
+  badge?: number;
+  // 原始数据
+  rawData?: any;
+};
+
+function Messages() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('messages');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  
+  // 数据状态
+  const [friendsList, setFriendsList] = useState<FriendProfile[]>([]);
+  const [groupChats, setGroupChats] = useState<GroupChat[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [noteNotifications, setNoteNotifications] = useState<any[]>([]);
+  const [favoriteRecords, setFavoriteRecords] = useState<FavoriteRecord[]>([]);
+  
+  // 加载状态
+  const [isLoadingFriends, setIsLoadingFriends] = useState(false);
+  const [isLoadingGroups, setIsLoadingGroups] = useState(false);
+  const [isLoadingAnnouncements, setIsLoadingAnnouncements] = useState(false);
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
+  const [isLoadingFavorites, setIsLoadingFavorites] = useState(false);
+  
+  // 未读数统计
+  const [unreadAnnouncements, setUnreadAnnouncements] = useState(0);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [unreadFavorites, setUnreadFavorites] = useState(0);
+  
+  // 弹窗状态
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
+  const [showCreateRoom, setShowCreateRoom] = useState(false);
+
+  // 顶部图标分类
+  const messageCategories = [
+    { id: 'likes', label: t('messages.heat') || '热值', icon: Flame, count: 0 },
+    { id: 'comments', label: t('messages.comments') || '评论', icon: MessageSquare, count: 0 },
+    { id: 'follows', label: t('messages.follows') || '关注', icon: UserPlus, count: 0 },
+    { id: 'favorites', label: '收藏', icon: Bookmark, count: unreadFavorites },
+  ];
+
+  // 标签栏（合并后）
+  const tabs = [
+    { id: 'messages', label: '消息' },
+    { id: 'friends', label: '好友' },
+    { id: 'groups', label: '群聊' },
+    { id: 'rooms', label: '房间' },
+  ];
+
+  // 格式化时间
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return '刚刚';
+    if (minutes < 60) return `${minutes}分钟前`;
+    if (hours < 24) return `${hours}小时前`;
+    if (days < 7) return `${days}天前`;
+    return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+  };
+
+  // 加载好友列表
+  const loadFriendsList = async () => {
+    if (!currentUserId) return;
+    setIsLoadingFriends(true);
+    try {
+      const params = new URLSearchParams();
+      params.append('select', 'following_id,created_at');
+      params.append('follower_id', `eq.${currentUserId}`);
+      params.append('status', 'eq.active');
+      params.append('order', 'created_at.desc');
+
+      const res = await fetch(`/sb-api/rest/v1/follows?${params.toString()}`, {
+        headers: { 'apikey': SERVICE_ROLE_KEY, 'Authorization': `Bearer ${SERVICE_ROLE_KEY}` }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const friendIds = (data || []).map((r: any) => r.following_id);
+
+        if (friendIds.length === 0) {
+          setFriendsList([]);
+          return;
+        }
+
+        const profileParams = new URLSearchParams();
+        profileParams.append('select', 'id,user_id,username,nickname,avatar_url,created_at');
+        profileParams.append('user_id', `in.(${friendIds.join(',')})`);
+
+        const profileRes = await fetch(`/sb-api/rest/v1/profiles?${profileParams.toString()}`, {
+          headers: { 'apikey': SERVICE_ROLE_KEY, 'Authorization': `Bearer ${SERVICE_ROLE_KEY}` }
+        });
+
+        if (profileRes.ok) {
+          const profiles = await profileRes.json();
+          setFriendsList(profiles || []);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading friends list:', error);
+    } finally {
+      setIsLoadingFriends(false);
+    }
+  };
+
+  // 加载群聊列表
+  const loadGroupChats = async () => {
+    setIsLoadingGroups(true);
+    try {
+      const params = new URLSearchParams();
+      params.append('select', 'id,title,content,tags,user_id,heat_count,created_at');
+      params.append('status', 'eq.published');
+      params.append('order', 'heat_count.desc,created_at.desc');
+      params.append('limit', '100');
+
+      const data = await cachedFetch(`/sb-api/rest/v1/posts?${params.toString()}`, {
+        headers: {
+          'apikey': SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+        }
+      });
+      
+      if (Array.isArray(data)) {
+        const memberTag = currentUserId ? `member_${currentUserId}` : '';
+        const groupChatsData = data.filter((post: GroupChat) => {
+          if (!post.tags?.includes('__group_chat__')) return false;
+          if (memberTag && post.tags?.includes(memberTag)) return true;
+          return false;
+        });
+        setGroupChats(groupChatsData);
+      }
+    } catch (error) {
+      console.error('Error fetching group chats:', error);
+    } finally {
+      setIsLoadingGroups(false);
+    }
+  };
+
+  // 加载公告列表
+  const loadAnnouncements = async () => {
+    setIsLoadingAnnouncements(true);
+    try {
+      const params = new URLSearchParams();
+      params.append('select', 'id,title,content,type,is_pinned,is_active,created_at');
+      params.append('is_active', 'eq.true');
+      params.append('order', 'is_pinned.desc,created_at.desc');
+      params.append('limit', '50');
+
+      const data = await cachedFetch(`/sb-api/rest/v1/announcements?${params.toString()}`, {
+        headers: {
+          'apikey': SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+        }
+      });
+      
+      if (Array.isArray(data)) {
+        // 获取当前用户的身份标签过滤
+        const userInfo = localStorage.getItem('user_info');
+        let userFaithTag = '';
+        try {
+          if (userInfo) {
+            const parsed = JSON.parse(userInfo);
+            const profileRes = await fetch(`/sb-api/rest/v1/profiles?user_id=eq.${parsed.user_id || parsed.id}&select=faith_tag`, {
+              headers: { 'apikey': SERVICE_ROLE_KEY, 'Authorization': `Bearer ${SERVICE_ROLE_KEY}` }
+            });
+            if (profileRes.ok) {
+              const profileData = await profileRes.json();
+              if (profileData?.[0]?.faith_tag) {
+                userFaithTag = profileData[0].faith_tag;
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('[Announcements] Failed to get user faith_tag:', e);
+        }
+
+        const filtered = data.filter((a: any) => {
+          if (!a.target_tags || a.target_tags.length === 0) return true;
+          return userFaithTag && a.target_tags.includes(userFaithTag);
+        });
+
+        setAnnouncements(filtered);
+        
+        // 计算未读数
+        const lastReadId = localStorage.getItem('last_read_announcement_id');
+        const unread = filtered.filter((a: any) => a.id !== lastReadId).length;
+        setUnreadAnnouncements(unread);
+      }
+    } catch (error) {
+      console.error('Error fetching announcements:', error);
+    } finally {
+      setIsLoadingAnnouncements(false);
+    }
+  };
+
+  // 加载通知列表
+  const loadNoteNotifications = async () => {
+    const userId = localStorage.getItem('user_id');
+    if (!userId) return;
+    setIsLoadingNotifications(true);
+    try {
+      const params = new URLSearchParams();
+      params.append('select', 'id,type,title,content,is_read,created_at');
+      params.append('user_id', `eq.${userId}`);
+      params.append('order', 'created_at.desc');
+      params.append('limit', '50');
+
+      const res = await fetch(`/sb-api/rest/v1/notifications?${params.toString()}`, {
+        headers: {
+          'apikey': SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setNoteNotifications(Array.isArray(data) ? data : []);
+        setUnreadNotifications(Array.isArray(data) ? data.filter((n: any) => !n.is_read).length : 0);
+      }
+    } catch (error) {
+      console.error('Error fetching note notifications:', error);
+    } finally {
+      setIsLoadingNotifications(false);
+    }
+  };
+
+  // 加载收藏列表
+  const loadFavoriteRecords = async () => {
+    const userId = localStorage.getItem('user_id');
+    if (!userId) return;
+    setIsLoadingFavorites(true);
+    try {
+      // 尝试查询 favorites 表获取被收藏的记录
+      // 查询用户发布的笔记关联的收藏记录
+      const params = new URLSearchParams();
+      params.append('select', 'id,user_id,note_id,created_at');
+      params.append('order', 'created_at.desc');
+      params.append('limit', '100');
+
+      const res = await fetch(`/sb-api/rest/v1/favorites?${params.toString()}`, {
+        headers: {
+          'apikey': SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+        },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          // 获取收藏者信息和笔记信息
+          const favoriterIds = [...new Set(data.map((f: any) => f.user_id))];
+          const noteIds = [...new Set(data.map((f: any) => f.note_id))];
+          
+          // 获取收藏者信息
+          const profileParams = new URLSearchParams();
+          profileParams.append('select', 'id,user_id,username,nickname,avatar_url');
+          profileParams.append('user_id', `in.(${favoriterIds.join(',')})`);
+          
+          const profileRes = await fetch(`/sb-api/rest/v1/profiles?${profileParams.toString()}`, {
+            headers: { 'apikey': SERVICE_ROLE_KEY, 'Authorization': `Bearer ${SERVICE_ROLE_KEY}` }
+          });
+          const profiles = profileRes.ok ? await profileRes.json() : [];
+          
+          // 获取笔记信息
+          const noteParams = new URLSearchParams();
+          noteParams.append('select', 'id,title,user_id,type');
+          noteParams.append('id', `in.(${noteIds.join(',')})`);
+          
+          const noteRes = await fetch(`/sb-api/rest/v1/notes?${noteParams.toString()}`, {
+            headers: { 'apikey': SERVICE_ROLE_KEY, 'Authorization': `Bearer ${SERVICE_ROLE_KEY}` }
+          });
+          const notes = noteRes.ok ? await noteRes.json() : [];
+          
+          // 筛选出当前用户笔记的收藏
+          const myNoteIds = new Set(notes.filter((n: any) => n.user_id === userId).map((n: any) => n.id));
+          const userNotes = notes.filter((n: any) => n.user_id === userId);
+          const userNoteIds = new Set(userNotes.map((n: any) => n.id));
+          
+          // 筛选当前用户笔记被收藏的记录
+          const myFavorites = data.filter((f: any) => userNoteIds.has(f.note_id));
+          
+          // 合并数据
+          const enrichedFavorites: FavoriteRecord[] = myFavorites.map((f: any) => {
+            const favoriter = (profiles || []).find((p: any) => p.user_id === f.user_id);
+            const note = (notes || []).find((n: any) => n.id === f.note_id);
+            return {
+              id: f.id,
+              user_id: f.user_id,
+              note_id: f.note_id,
+              created_at: f.created_at,
+              favoriter_username: favoriter?.username,
+              favoriter_avatar_url: favoriter?.avatar_url,
+              favoriter_nickname: favoriter?.nickname,
+              note_title: note?.title,
+              note_type: note?.type,
+            };
+          });
+          
+          // 计算未读数（本地存储标记）
+          const lastReadFavorites = localStorage.getItem('last_read_favorites') || '';
+          const lastReadIds = lastReadFavorites ? lastReadFavorites.split(',') : [];
+          const unread = enrichedFavorites.filter((f: any) => !lastReadIds.includes(f.id)).length;
+          setUnreadFavorites(unread);
+          
+          setFavoriteRecords(enrichedFavorites);
+        } else {
+          setFavoriteRecords([]);
+          setUnreadFavorites(0);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading favorites:', error);
+      // 表不存在时显示空列表
+      setFavoriteRecords([]);
+      setUnreadFavorites(0);
+    } finally {
+      setIsLoadingFavorites(false);
+    }
+  };
+
+  // 初始化加载
+  useEffect(() => {
+    const userId = localStorage.getItem('user_id');
+    if (userId) {
+      setCurrentUserId(userId);
+    }
+    
+    // 预加载所有数据
+    loadAnnouncements();
+    loadNoteNotifications();
+    loadFavoriteRecords();
+  }, []);
+
+  // Tab 切换时加载数据
+  useEffect(() => {
+    if (activeTab === 'messages') {
+      loadFriendsList();
+      loadGroupChats();
+      loadAnnouncements();
+      loadNoteNotifications();
+    } else if (activeTab === 'favorites') {
+      loadFavoriteRecords();
+      // 标记收藏为已读
+      if (favoriteRecords.length > 0) {
+        const allIds = favoriteRecords.map(f => f.id).join(',');
+        localStorage.setItem('last_read_favorites', allIds);
+        setUnreadFavorites(0);
+      }
+    }
+  }, [activeTab, currentUserId]);
+
+  // 构建统一消息列表
+  const unifiedMessages = useMemo((): UnifiedMessage[] => {
+    const messages: UnifiedMessage[] = [];
+    
+    // 添加私聊消息
+    friendsList.forEach(friend => {
+      const userId = friend.user_id || friend.id;
+      messages.push({
+        id: `private_${userId}`,
+        type: 'private',
+        title: friend.nickname || friend.username || '未命名用户',
+        subtitle: '点击开始聊天',
+        avatar: friend.avatar_url || undefined,
+        avatarType: 'user',
+        time: formatTime(friend.created_at),
+        timeRaw: friend.created_at,
+        isRead: true,
+        rawData: friend,
+      });
+    });
+    
+    // 添加群聊消息
+    groupChats.forEach(group => {
+      messages.push({
+        id: `group_${group.id}`,
+        type: 'group',
+        title: group.title,
+        subtitle: group.content || '群聊',
+        avatarType: 'group',
+        time: formatTime(group.created_at),
+        timeRaw: group.created_at,
+        isRead: true,
+        badge: group.heat_count,
+        rawData: group,
+      });
+    });
+    
+    // 添加公告
+    const lastReadAnnouncementId = localStorage.getItem('last_read_announcement_id');
+    announcements.forEach(ann => {
+      messages.push({
+        id: `announcement_${ann.id}`,
+        type: 'announcement',
+        title: ann.title,
+        subtitle: ann.content,
+        avatarType: 'system',
+        time: formatTime(ann.created_at),
+        timeRaw: ann.created_at,
+        isRead: lastReadAnnouncementId === ann.id,
+        isPinned: ann.is_pinned,
+        rawData: ann,
+      });
+    });
+    
+    // 添加通知
+    noteNotifications.forEach(notif => {
+      messages.push({
+        id: `notification_${notif.id}`,
+        type: 'notification',
+        title: notif.title || '系统通知',
+        subtitle: notif.content || '',
+        avatarType: 'system',
+        time: formatTime(notif.created_at),
+        timeRaw: notif.created_at,
+        isRead: notif.is_read,
+        rawData: notif,
+      });
+    });
+    
+    // 按时间倒序排序
+    messages.sort((a, b) => new Date(b.timeRaw).getTime() - new Date(a.timeRaw).getTime());
+    
+    // 搜索过滤
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      return messages.filter(m => 
+        m.title.toLowerCase().includes(query) || 
+        m.subtitle.toLowerCase().includes(query)
+      );
+    }
+    
+    return messages;
+  }, [friendsList, groupChats, announcements, noteNotifications, searchQuery]);
+
+  // 处理收藏点击
+  const handleFavoriteClick = () => {
+    setActiveTab('favorites');
+    // 标记已读
+    if (favoriteRecords.length > 0) {
+      const allIds = favoriteRecords.map(f => f.id).join(',');
+      localStorage.setItem('last_read_favorites', allIds);
+      setUnreadFavorites(0);
+    }
+  };
+
+  // 分类点击处理
+  const handleCategoryClick = (categoryId: string) => {
+    if (categoryId === 'favorites') {
+      handleFavoriteClick();
+    }
+  };
+
+  // 点击消息条目
+  const handleMessageClick = (message: UnifiedMessage) => {
+    switch (message.type) {
+      case 'private':
+        const friendData = message.rawData;
+        navigate(`/chat/${friendData.user_id || friendData.id}`);
+        break;
+      case 'group':
+        navigate(`/group-chat/${message.rawData.id}`);
+        break;
+      case 'announcement':
+        setSelectedAnnouncement(message.rawData);
+        // 标记已读
+        localStorage.setItem('last_read_announcement_id', message.rawData.id);
+        setUnreadAnnouncements(prev => Math.max(0, prev - 1));
+        break;
+      case 'notification':
+        // 标记通知已读
+        markNotificationAsRead(message.rawData);
+        break;
+    }
+  };
+
+  // 标记通知已读
+  const markNotificationAsRead = async (notification: any) => {
+    if (notification.is_read) return;
+    try {
+      await fetch(`/sb-api/rest/v1/notifications?id=eq.${notification.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+        },
+        body: JSON.stringify({ is_read: true }),
+      });
+      setNoteNotifications(prev =>
+        prev.map(n => n.id === notification.id ? { ...n, is_read: true } : n)
+      );
+      setUnreadNotifications(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  // 点击收藏记录跳转到笔记详情
+  const handleFavoriteRecordClick = (record: FavoriteRecord) => {
+    // 标记已读
+    const lastReadFavorites = localStorage.getItem('last_read_favorites') || '';
+    const lastReadIds = lastReadFavorites ? lastReadFavorites.split(',') : [];
+    if (!lastReadIds.includes(record.id)) {
+      const newReadIds = [...lastReadIds, record.id].join(',');
+      localStorage.setItem('last_read_favorites', newReadIds);
+      setUnreadFavorites(prev => Math.max(0, prev - 1));
+    }
+    // 跳转到笔记详情
+    navigate(`/note/${record.note_id}`);
+  };
+
+  // 渲染消息列表
+  const renderMessagesTab = () => {
+    const isLoading = isLoadingFriends || isLoadingGroups || isLoadingAnnouncements || isLoadingNotifications;
+    
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center py-12">
+          <div className="w-6 h-6 border-2 border-[#E11D48] border-t-transparent rounded-full animate-spin" />
+        </div>
+      );
+    }
+
+    if (unifiedMessages.length === 0) {
+      return (
+        <div className="text-center py-12">
+          <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-30" style={{ color: 'var(--text-secondary)' }} />
+          <p className="mb-4" style={{ color: 'var(--text-secondary)' }}>暂无消息</p>
+          <button
+            onClick={() => setActiveTab('favorites')}
+            className="px-4 py-2 rounded-xl text-sm font-medium text-white"
+            style={{ backgroundColor: PRIMARY_COLOR }}
+          >
+            <Bookmark className="w-4 h-4 inline mr-1" />
+            查看收藏
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-2">
+        {unifiedMessages.map((message) => (
+          <button
+            key={message.id}
+            onClick={() => handleMessageClick(message)}
+            className="w-full text-left p-4 rounded-xl transition-colors hover:opacity-80"
+            style={{
+              backgroundColor: 'var(--bg-secondary)',
+              borderLeft: message.type === 'announcement' ? '3px solid #f59e0b' :
+                         message.type === 'notification' ? '3px solid #8b5cf6' : 'none'
+            }}
+          >
+            <div className="flex items-start gap-3">
+              {/* 未读指示器 */}
+              {!message.isRead && (
+                <div className="w-2 h-2 rounded-full mt-2 flex-shrink-0" style={{ backgroundColor: PRIMARY_COLOR }} />
+              )}
+              
+              {/* 头像 */}
+              <div
+                className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
+                style={{
+                  backgroundColor: message.type === 'announcement' ? '#fef3c7' :
+                                   message.type === 'notification' ? '#ede9fe' :
+                                   message.type === 'group' ? `${PRIMARY_COLOR}15` : `${PRIMARY_COLOR}20`
+                }}
+              >
+                {message.avatar ? (
+                  <img src={message.avatar} className="w-full h-full object-cover" alt="" />
+                ) : message.type === 'announcement' ? (
+                  <span className="text-lg">📢</span>
+                ) : message.type === 'notification' ? (
+                  <Bell className="w-5 h-5" style={{ color: '#8b5cf6' }} />
+                ) : message.type === 'group' ? (
+                  <Users className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />
+                ) : (
+                  <Users className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />
+                )}
+              </div>
+              
+              {/* 内容 */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-1">
+                  <span
+                    className="font-medium text-sm truncate"
+                    style={{
+                      color: 'var(--text-color)',
+                      fontWeight: message.type === 'announcement' ? '700' : '500'
+                    }}
+                  >
+                    {message.type === 'announcement' && '📢 '}
+                    {message.title}
+                  </span>
+                  {message.badge && message.badge > 0 && (
+                    <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                      🔥 {message.badge}
+                    </span>
+                  )}
+                </div>
+                <p
+                  className="text-xs line-clamp-1 mb-1"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  {message.subtitle}
+                </p>
+                <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                  {message.time}
+                </span>
+              </div>
+              
+              <ChevronRight className="w-4 h-4 flex-shrink-0 mt-1" style={{ color: 'var(--text-secondary)' }} />
+            </div>
+          </button>
+        ))}
+      </div>
+    );
+  };
+
+  // 渲染收藏列表
+  const renderFavoritesTab = () => {
+    if (isLoadingFavorites) {
+      return (
+        <div className="flex items-center justify-center py-12">
+          <div className="w-6 h-6 border-2 border-[#E11D48] border-t-transparent rounded-full animate-spin" />
+        </div>
+      );
+    }
+
+    if (favoriteRecords.length === 0) {
+      return (
+        <div className="text-center py-12">
+          <Bookmark className="w-12 h-12 mx-auto mb-3 opacity-30" style={{ color: 'var(--text-secondary)' }} />
+          <p className="mb-4" style={{ color: 'var(--text-secondary)' }}>暂无收藏记录</p>
+          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+            当有人收藏你的笔记时，会在这里显示
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-2">
+        {favoriteRecords.map((record) => (
+          <button
+            key={record.id}
+            onClick={() => handleFavoriteRecordClick(record)}
+            className="w-full text-left p-4 rounded-xl transition-colors hover:opacity-80"
+            style={{ backgroundColor: 'var(--bg-secondary)' }}
+          >
+            <div className="flex items-start gap-3">
+              {/* 收藏者头像 */}
+              <div
+                className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
+                style={{ backgroundColor: `${PRIMARY_COLOR}20` }}
+              >
+                {record.favoriter_avatar_url ? (
+                  <img
+                    src={record.favoriter_avatar_url}
+                    className="w-full h-full object-cover"
+                    alt=""
+                  />
+                ) : (
+                  <Users className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />
+                )}
+              </div>
+              
+              {/* 内容 */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span
+                    className="font-medium text-sm"
+                    style={{ color: 'var(--text-color)' }}
+                  >
+                    {record.favoriter_nickname || record.favoriter_username || '某用户'}
+                  </span>
+                  <span
+                    className="px-2 py-0.5 text-xs rounded-full"
+                    style={{ backgroundColor: `${PRIMARY_COLOR}15`, color: PRIMARY_COLOR }}
+                  >
+                    收藏了你的{record.note_type === 'plan' ? '计划' : '笔记'}
+                  </span>
+                </div>
+                <p
+                  className="text-xs line-clamp-1 mb-1"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  《{record.note_title || '未知内容'}》
+                </p>
+                <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                  {formatTime(record.created_at)}
+                </span>
+              </div>
+              
+              <ChevronRight className="w-4 h-4 flex-shrink-0 mt-1" style={{ color: 'var(--text-secondary)' }} />
+            </div>
+          </button>
+        ))}
+      </div>
+    );
+  };
+
+  // 渲染房间列表
+  const renderRoomsTab = () => (
+    <RoomList
+      onClose={() => setActiveTab('messages')}
+      onCreateRoom={() => setShowCreateRoom(true)}
+    />
+  );
+
+  return (
+    <div
+      className="min-h-screen pb-20 theme-transition"
+      style={{ backgroundColor: 'var(--bg-color)' }}
+    >
+      <header
+        className="sticky top-0 z-40 px-4 py-3 theme-transition"
+        style={{ backgroundColor: 'var(--bg-color)' }}
+      >
+        <div
+          className="flex items-center h-10 px-4 rounded-xl"
+          style={{ backgroundColor: 'var(--bg-secondary)' }}
+        >
+          <Search className="w-4 h-4 mr-2" style={{ color: 'var(--icon-color)' }} />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="搜索消息..."
+            className="flex-1 bg-transparent text-sm outline-none"
+            style={{ color: 'var(--text-color)' }}
+          />
+        </div>
+      </header>
+
+      {/* 顶部图标区域 */}
+      <div className="px-4 py-4">
+        <div className="grid grid-cols-4 gap-3">
+          {messageCategories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => handleCategoryClick(cat.id)}
+              className="flex flex-col items-center"
+            >
+              <div
+                className="relative w-14 h-14 rounded-full flex items-center justify-center mb-2"
+                style={{ backgroundColor: 'var(--bg-secondary)' }}
+              >
+                {cat.id === 'favorites' ? (
+                  <Bookmark className="w-6 h-6" style={{ color: PRIMARY_COLOR }} />
+                ) : (
+                  <cat.icon className="w-6 h-6" style={{ color: PRIMARY_COLOR }} />
+                )}
+                {cat.count > 0 && (
+                  <span
+                    className="absolute -top-1 -right-1 w-5 h-5 text-white text-xs rounded-full flex items-center justify-center min-w-[20px]"
+                    style={{ backgroundColor: PRIMARY_COLOR }}
+                  >
+                    {cat.count > 99 ? '99+' : cat.count}
+                  </span>
+                )}
+              </div>
+              <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                {cat.label}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 标签栏 */}
+      <div className="px-4 mb-4">
+        <div
+          className="flex items-center justify-center rounded-full p-1"
+          style={{ backgroundColor: 'var(--bg-secondary)' }}
+        >
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className="flex-1 py-2 text-xs font-medium rounded-full transition-colors"
+              style={{
+                backgroundColor: activeTab === tab.id ? PRIMARY_COLOR : 'transparent',
+                color: activeTab === tab.id ? '#FFFFFF' : 'var(--text-secondary)',
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tab 内容 */}
+      <div className="px-4">
+        {activeTab === 'messages' ? renderMessagesTab() :
+         activeTab === 'favorites' ? renderFavoritesTab() :
+         activeTab === 'rooms' ? renderRoomsTab() : null}
+      </div>
+
+      {/* 创建房间弹窗 */}
+      {showCreateRoom && (
+        <div className="fixed inset-0 z-50">
+          <CreateRoom onClose={() => setShowCreateRoom(false)} />
+        </div>
+      )}
+
+      {/* 公告详情弹窗 */}
+      {selectedAnnouncement && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          onClick={() => setSelectedAnnouncement(null)}
+        >
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div 
+            className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <Bell className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />
+                <h3 className="font-bold text-gray-900">{t('messages.announcementDetail') || '公告详情'}</h3>
+              </div>
+              <button 
+                onClick={() => setSelectedAnnouncement(null)}
+                className="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            
+            {/* Content */}
+            <div className="p-5">
+              <div className="flex items-center gap-2 mb-3">
+                {selectedAnnouncement.is_pinned && (
+                  <span 
+                    className="px-2 py-0.5 text-xs font-medium rounded-full"
+                    style={{ backgroundColor: `${PRIMARY_COLOR}15`, color: PRIMARY_COLOR }}
+                  >
+                    {t('messages.pinned') || '置顶'}
+                  </span>
+                )}
+              </div>
+              
+              <h4 className="text-lg font-bold text-gray-900 mb-3">
+                {selectedAnnouncement.title}
+              </h4>
+              
+              <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap max-h-64 overflow-y-auto">
+                {selectedAnnouncement.content}
+              </div>
+              
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <p className="text-xs text-gray-400">
+                  {new Date(selectedAnnouncement.created_at).toLocaleDateString('zh-CN', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </p>
+              </div>
+            </div>
+            
+            {/* Footer */}
+            <div className="px-5 pb-5">
+              <button
+                onClick={() => setSelectedAnnouncement(null)}
+                className="w-full py-3 rounded-xl font-medium text-white"
+                style={{ backgroundColor: PRIMARY_COLOR }}
+              >
+                {t('common.confirm') || '确定'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <BottomNav />
+    </div>
+  );
+}
+
+export default Messages;
