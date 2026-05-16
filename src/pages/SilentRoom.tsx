@@ -1133,7 +1133,7 @@ function SilentRoom() {
         </button>
         
         <div className="text-center">
-          <h1 className="text-white font-medium">{room?.name || '静默房间'}</h1>
+          <h1 className="text-white font-medium">{room?.name || '房间'}</h1>
           {room?.room_code && (
             <p className="text-white/40 text-xs">ID: {room.room_code}</p>
           )}

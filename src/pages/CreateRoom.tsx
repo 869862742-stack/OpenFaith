@@ -260,7 +260,7 @@ function CreateRoom({ onClose }: CreateRoomProps) {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: 'var(--text-color)' }}>
             <Moon className="w-5 h-5" style={{ color: 'var(--theme-primary)' }} />
-            创建静默房间
+            创建房间
           </h2>
           <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
             <X className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
