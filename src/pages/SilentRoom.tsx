@@ -1530,86 +1530,6 @@ function SilentRoom() {
         </div>
       )}
 
-      {/* 可拖动的音乐控制面板 - 仅房主可见 */}
-      {audioTracks.length > 0 && room?.creator_id === userId && (
-        <div
-          className="fixed z-30 flex items-center gap-1 px-3 py-2 rounded-full backdrop-blur-md"
-          style={{
-            backgroundColor: 'rgba(30, 30, 50, 0.9)',
-            left: panelPos.x,
-            top: panelPos.y,
-            cursor: isPanelDragging ? 'grabbing' : 'grab',
-          }}
-        >
-          {/* 拖动手柄 */}
-          <div
-            className="p-1 cursor-grab active:cursor-grabbing"
-            onMouseDown={handlePanelDragStart}
-            onTouchStart={handlePanelDragStart}
-            title="拖动面板"
-          >
-            <GripVertical className="w-4 h-4 text-white/50" />
-          </div>
-          
-          <div className="w-px h-5 bg-white/20" />
-          
-          {/* 上一首 */}
-          <button
-            onClick={playPrevious}
-            className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
-          >
-            <SkipBack className="w-4 h-4 text-white/70" />
-          </button>
-          
-          {/* 播放/暂停 */}
-          <button
-            onClick={handlePlayPause}
-            className="p-2 rounded-full"
-            style={{ backgroundColor: '#E11D48' }}
-          >
-            {isPlaying ? (
-              <Pause className="w-4 h-4 text-white" />
-            ) : (
-              <Play className="w-4 h-4 text-white" />
-            )}
-          </button>
-          
-          {/* 下一首 */}
-          <button
-            onClick={playNext}
-            className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
-          >
-            <SkipForward className="w-4 h-4 text-white/70" />
-          </button>
-          
-          <div className="w-px h-5 bg-white/20" />
-          
-          {/* 播放模式 */}
-          <button
-            onClick={cyclePlayMode}
-            className="flex items-center gap-1 px-2 py-1 rounded-full hover:bg-white/10 transition-colors"
-            title={playMode === 'list' ? '列表循环' : playMode === 'single' ? '单曲循环' : '随机播放'}
-          >
-            {getPlayModeIcon()}
-            <span className="text-xs text-white/70">
-              {playMode === 'list' ? '列表' : playMode === 'single' ? '单曲' : '随机'}
-            </span>
-          </button>
-          
-          <div className="w-px h-5 bg-white/20" />
-          
-          {/* 歌词开关 */}
-          <button
-            onClick={() => setShowLyrics(!showLyrics)}
-            className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
-            title={showLyrics ? '隐藏歌词' : '显示歌词'}
-            style={{ color: showLyrics ? 'var(--theme-primary)' : 'rgba(255,255,255,0.7)' }}
-          >
-            <Type className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
       {/* 解散房间确认对话框 */}
       {showDisbandConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
@@ -1662,6 +1582,84 @@ function SilentRoom() {
       {/* 底部操作栏 - 独立状态选择和轻语输入 */}
       <div className="absolute bottom-0 left-0 right-0 z-10 p-4 pb-8">
         <div className="max-w-md mx-auto">
+          {/* 音乐控制面板 - 在状态选择器上方 */}
+          {audioTracks.length > 0 && room?.creator_id === userId && (
+            <div
+              className="flex items-center justify-center gap-1 px-3 py-2 rounded-full backdrop-blur-md mb-4"
+              style={{
+                backgroundColor: 'rgba(30, 30, 50, 0.9)',
+                cursor: isPanelDragging ? 'grabbing' : 'grab',
+              }}
+            >
+              {/* 拖动手柄 */}
+              <div
+                className="p-1 cursor-grab active:cursor-grabbing"
+                onMouseDown={handlePanelDragStart}
+                onTouchStart={handlePanelDragStart}
+                title="拖动面板"
+              >
+                <GripVertical className="w-4 h-4 text-white/50" />
+              </div>
+              
+              <div className="w-px h-5 bg-white/20" />
+              
+              {/* 上一首 */}
+              <button
+                onClick={playPrevious}
+                className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
+              >
+                <SkipBack className="w-4 h-4 text-white/70" />
+              </button>
+              
+              {/* 播放/暂停 */}
+              <button
+                onClick={handlePlayPause}
+                className="p-2 rounded-full"
+                style={{ backgroundColor: '#E11D48' }}
+              >
+                {isPlaying ? (
+                  <Pause className="w-4 h-4 text-white" />
+                ) : (
+                  <Play className="w-4 h-4 text-white" />
+                )}
+              </button>
+              
+              {/* 下一首 */}
+              <button
+                onClick={playNext}
+                className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
+              >
+                <SkipForward className="w-4 h-4 text-white/70" />
+              </button>
+              
+              <div className="w-px h-5 bg-white/20" />
+              
+              {/* 播放模式 */}
+              <button
+                onClick={cyclePlayMode}
+                className="flex items-center gap-1 px-2 py-1 rounded-full hover:bg-white/10 transition-colors"
+                title={playMode === 'list' ? '列表循环' : playMode === 'single' ? '单曲循环' : '随机播放'}
+              >
+                {getPlayModeIcon()}
+                <span className="text-xs text-white/70">
+                  {playMode === 'list' ? '列表' : playMode === 'single' ? '单曲' : '随机'}
+                </span>
+              </button>
+              
+              <div className="w-px h-5 bg-white/20" />
+              
+              {/* 歌词开关 */}
+              <button
+                onClick={() => setShowLyrics(!showLyrics)}
+                className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
+                title={showLyrics ? '隐藏歌词' : '显示歌词'}
+                style={{ color: showLyrics ? 'var(--theme-primary)' : 'rgba(255,255,255,0.7)' }}
+              >
+                <Type className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+          
           {/* 状态选择器 - 只显示图标，不滑动 */}
           <div className="flex justify-center gap-3 mb-4">
             {STATUS_OPTIONS.map(status => (
