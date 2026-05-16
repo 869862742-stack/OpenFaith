@@ -1055,8 +1055,23 @@ function SilentRoom() {
   // 发送句子
   const sendSentence = async () => {
     if (!sentenceText.trim()) return;
-    if (!roomId) { console.warn('sendSentence: no roomId'); return; }
-    if (!userId) { console.warn('sendSentence: no userId'); return; }
+    
+    // 兜底获取userId
+    let uid = userId;
+    if (!uid) {
+      uid = localStorage.getItem('user_id') || '';
+      const userInfo = localStorage.getItem('user_info');
+      if (!uid && userInfo) {
+        try { const p = JSON.parse(userInfo); uid = p.user_id || p.id || ''; } catch {}
+      }
+      if (uid) setUserId(uid);
+    }
+    
+    if (!roomId || !uid) {
+      console.error('sendSentence: missing roomId or userId', { roomId, uid });
+      alert('发送失败：用户信息异常，请重新登录');
+      return;
+    }
     
     try {
       const res = await fetch('/sb-api/rest/v1/room_sentences', {
@@ -1068,7 +1083,7 @@ function SilentRoom() {
         },
         body: JSON.stringify({
           room_id: roomId,
-          user_id: userId,
+          user_id: uid,
           content: sentenceText.trim().slice(0, 60),
         }),
       });
@@ -1080,9 +1095,11 @@ function SilentRoom() {
       } else {
         const errText = await res.text();
         console.error('sendSentence failed:', res.status, errText);
+        alert('发送失败：' + res.status);
       }
     } catch (err) {
       console.error('Failed to send sentence:', err);
+      alert('发送失败：网络错误');
     }
   };
 
