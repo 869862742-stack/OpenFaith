@@ -275,11 +275,11 @@ function PrivateChat() {
     setError(null);
 
     try {
-      // 查询双方之间的所有消息
-      const orFilter = `or(sender_id.eq.${currentUserProfileId},receiver_id.eq.${currentUserProfileId}),or(sender_id.eq.${friendProfile.id},receiver_id.eq.${friendProfile.id})`;
+      // 查询双方之间的所有消息：(A发B) OR (B发A)
+      const orFilter = `(and(sender_id.eq.${currentUserProfileId},receiver_id.eq.${friendProfile.id}),and(sender_id.eq.${friendProfile.id},receiver_id.eq.${currentUserProfileId}))`;
       const params = new URLSearchParams();
       params.append('select', 'id,sender_id,receiver_id,content,message_type,is_read,created_at');
-      params.append('and', orFilter);
+      params.append('or', orFilter);
       params.append('order', 'created_at.asc');
       params.append('limit', '200');
 
