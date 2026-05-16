@@ -495,20 +495,41 @@ function SilentRoom() {
   const playerRef = useRef<HTMLAudioElement | null>(null);
   const hasAutoPlayedRef = useRef(false);
 
-  // 获取当前用户ID
+  // 获取当前用户ID（需要auth UUID，不是profiles.id）
   useEffect(() => {
-    // 优先从独立user_id key获取，再从user_info对象获取
-    const savedUserId = localStorage.getItem('user_id');
-    if (savedUserId) {
-      setUserId(savedUserId);
-      return;
-    }
+    // room_sentences等表的外键关联的是profiles.user_id（auth UUID），不是profiles.id
+    // 优先从user_info的session.user.id获取（这是auth UUID）
     const userInfo = localStorage.getItem('user_info');
     if (userInfo) {
       try {
         const parsed = JSON.parse(userInfo);
-        setUserId(parsed.user_id || parsed.id);
+        // session.user.id 是 auth UUID
+        if (parsed.id) {
+          setUserId(parsed.id);
+          return;
+        }
       } catch {}
+    }
+    // 兜底：localStorage的user_id可能是profiles.id，需要查profiles表转换
+    const savedUserId = localStorage.getItem('user_id');
+    if (savedUserId) {
+      // 查profiles表获取对应的auth UUID (user_id列)
+      fetch(`/sb-api/rest/v1/profiles?id=eq.${savedUserId}&select=user_id`, {
+        headers: {
+          'apikey': SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+        },
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (Array.isArray(data) && data.length > 0 && data[0].user_id) {
+            setUserId(data[0].user_id);
+          } else {
+            // 如果profiles.id查不到，可能user_id存的就是auth UUID
+            setUserId(savedUserId);
+          }
+        })
+        .catch(() => setUserId(savedUserId));
     }
   }, []);
 
@@ -1056,13 +1077,15 @@ function SilentRoom() {
   const sendSentence = async () => {
     if (!sentenceText.trim()) return;
     
-    // 兜底获取userId
+    // 兜底获取userId（需要auth UUID）
     let uid = userId;
     if (!uid) {
-      uid = localStorage.getItem('user_id') || '';
       const userInfo = localStorage.getItem('user_info');
-      if (!uid && userInfo) {
-        try { const p = JSON.parse(userInfo); uid = p.user_id || p.id || ''; } catch {}
+      if (userInfo) {
+        try { const p = JSON.parse(userInfo); uid = p.id || ''; } catch {}
+      }
+      if (!uid) {
+        uid = localStorage.getItem('user_id') || '';
       }
       if (uid) setUserId(uid);
     }
