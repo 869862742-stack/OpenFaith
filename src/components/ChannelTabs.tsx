@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Sparkles } from 'lucide-react';
 
 interface ChannelTabsProps {
   activeTab: string;
@@ -9,6 +10,7 @@ interface ChannelTabsProps {
 function ChannelTabs({ activeTab, onTabChange }: ChannelTabsProps) {
   const { t } = useTranslation();
   const primaryColor = '#E11D48';
+  const [showToast, setShowToast] = useState(false);
 
   const tabs = [
     { id: 'recommend', label: t('home.recommend') },
@@ -16,8 +18,13 @@ function ChannelTabs({ activeTab, onTabChange }: ChannelTabsProps) {
     { id: 'tags', label: t('home.addTag') },
   ];
 
+  const handleGongjing = () => {
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2000);
+  };
+
   return (
-    <div className="flex items-center gap-1 mt-3 overflow-x-auto scrollbar-hide">
+    <div className="flex items-center gap-1 mt-3 overflow-x-auto scrollbar-hide relative">
       {tabs.map((tab) => (
         <button
           key={tab.id}
@@ -30,6 +37,18 @@ function ChannelTabs({ activeTab, onTabChange }: ChannelTabsProps) {
           )}
         </button>
       ))}
+      <button
+        onClick={handleGongjing}
+        className="flex items-center gap-1 px-3 py-1.5 ml-1 text-sm font-medium whitespace-nowrap text-white bg-[#E11D48] rounded-full"
+      >
+        <Sparkles size={14} />
+        共境
+      </button>
+      {showToast && (
+        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-4 py-2 bg-gray-800 text-white text-sm rounded-lg shadow-lg z-50 animate-fade-in">
+          敬请期待 ✨
+        </div>
+      )}
     </div>
   );
 }
