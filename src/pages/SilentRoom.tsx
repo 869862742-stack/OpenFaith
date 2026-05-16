@@ -12,12 +12,16 @@ const extractLyricsFromFile = async (file: File): Promise<string> => {
   try {
     const metadata = await mm.parseBlob(file);
     // 尝试多种歌词字段
-    const lyrics = 
+    let lyrics: any = 
       metadata.native?.['ID3v2.3']?.find((tag: any) => tag.id === 'USLT')?.value?.lyrics
       || metadata.native?.['ID3v2.4']?.find((tag: any) => tag.id === 'USLT')?.value?.lyrics
       || metadata.common.lyrics?.[0]
       || '';
-    return lyrics;
+    // musicmetadata 可能返回对象 {text, language, variant} 而非纯字符串
+    if (lyrics && typeof lyrics === 'object') {
+      lyrics = lyrics.text || lyrics.lyrics || JSON.stringify(lyrics);
+    }
+    return typeof lyrics === 'string' ? lyrics : String(lyrics || '');
   } catch (err) {
     console.warn('Failed to parse audio metadata:', err);
     return '';
@@ -457,7 +461,7 @@ function SilentRoom() {
   
   // 新增状态
   const [showLyrics, setShowLyrics] = useState(false);
-  const [panelPos, setPanelPos] = useState({ x: Math.max(10, (window.innerWidth - 300) / 2), y: 280 });
+  const [panelPos, setPanelPos] = useState({ x: Math.max(10, (window.innerWidth - 300) / 2), y: Math.round(window.innerHeight * 0.35) });
   const [isPanelDragging, setIsPanelDragging] = useState(false);
   
   // 音频播放状态
