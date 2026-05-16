@@ -1372,9 +1372,9 @@ function SilentRoom() {
                   <input
                     type="text"
                     value={sentenceText}
-                    onChange={e => setSentenceText(e.target.value.slice(0, 30))}
+                    onChange={e => setSentenceText(e.target.value.slice(0, 60))}
                     placeholder="轻轻留下一句话..."
-                    maxLength={30}
+                    maxLength={60}
                     className="flex-1 h-12 px-4 rounded-full text-sm backdrop-blur-sm"
                     style={{ 
                       backgroundColor: 'rgba(255, 255, 255, 0.15)',
