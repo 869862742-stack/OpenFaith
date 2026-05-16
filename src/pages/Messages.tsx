@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Flame, MessageSquare, UserPlus, Bell, ChevronRight, Users, Plus, Loader2, Check, X, Bookmark } from 'lucide-react';
+import { Search, Flame, MessageSquare, UserPlus, Bell, ChevronRight, Users, Plus, Loader2, Check, X, Bookmark, Clock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import BottomNav from '../components/BottomNav';
@@ -104,6 +104,31 @@ function Messages() {
   // 弹窗状态
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [showCreateRoom, setShowCreateRoom] = useState(false);
+  
+  // 群聊相关状态
+  const [pendingGroupChats, setPendingGroupChats] = useState<GroupChat[]>([]);
+  
+  // 好友相关状态
+  const [friendSearchQuery, setFriendSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<FriendProfile[]>([]);
+  const [recommendedUsers, setRecommendedUsers] = useState<FriendProfile[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isLoadingRecommended, setIsLoadingRecommended] = useState(false);
+  const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
+  const [pendingRequests, setPendingRequests] = useState<Set<string>>(new Set());
+  const [sendingRequestId, setSendingRequestId] = useState<string | null>(null);
+  const [friendRequests, setFriendRequests] = useState<(FriendProfile & { message?: string; requestId?: string })[]>([]);
+  const [isLoadingRequests, setIsLoadingRequests] = useState(false);
+  const [processingRequestId, setProcessingRequestId] = useState<string | null>(null);
+  
+  // 打招呼弹窗
+  const [greetingModal, setGreetingModal] = useState<{
+    targetUser: FriendProfile;
+    message: string;
+  } | null>(null);
+  
+  // 收藏面板弹窗
+  const [showFavoritesModal, setShowFavoritesModal] = useState(false);
 
   // 顶部图标分类
   const messageCategories = [
@@ -116,7 +141,8 @@ function Messages() {
   // 标签栏（合并后）
   const tabs = [
     { id: 'messages', label: '消息' },
-    { id: 'favorites', label: '收藏' },
+    { id: 'friends', label: '好友' },
+    { id: 'groups', label: '群聊' },
     { id: 'rooms', label: '房间' },
   ];
 
@@ -180,13 +206,326 @@ function Messages() {
     }
   };
 
+  // 加载推荐用户
+  const loadRecommendedUsers = async () => {
+    setIsLoadingRecommended(true);
+    try {
+      const params = new URLSearchParams();
+      params.append('select', 'id,user_id,username,nickname,avatar_url,created_at');
+      params.append('order', 'created_at.desc');
+      params.append('limit', '20');
+
+      const res = await fetch(`/sb-api/rest/v1/profiles?${params.toString()}`, {
+        headers: {
+          'apikey': SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+        }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const filtered = (data || []).filter((u: FriendProfile) => (u.user_id || u.id) !== currentUserId);
+        setRecommendedUsers(filtered);
+        
+        if (currentUserId && filtered.length > 0) {
+          loadFollowingStatus(filtered.map((u: FriendProfile) => u.user_id || u.id));
+        }
+      }
+    } catch (error) {
+      console.error('Error loading recommended users:', error);
+    } finally {
+      setIsLoadingRecommended(false);
+    }
+  };
+
+  // 加载已关注状态
+  const loadFollowingStatus = async (userIds: string[]) => {
+    if (!currentUserId || userIds.length === 0) return;
+    
+    try {
+      const params = new URLSearchParams();
+      params.append('select', 'following_id,status');
+      params.append('follower_id', `eq.${currentUserId}`);
+      params.append('following_id', `in.(${userIds.join(',')})`);
+
+      const res = await fetch(`/sb-api/rest/v1/follows?${params.toString()}`, {
+        headers: {
+          'apikey': SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+        }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const following = new Set<string>();
+        const pending = new Set<string>();
+        
+        (data || []).forEach((record: FollowRecord) => {
+          if (record.status === 'active') {
+            following.add(record.following_id);
+          } else if (record.status === 'pending') {
+            pending.add(record.following_id);
+          }
+        });
+        
+        setFollowingIds(following);
+        setPendingRequests(pending);
+      }
+    } catch (error) {
+      console.error('Error loading following status:', error);
+    }
+  };
+
+  // 搜索用户
+  const handleFriendSearch = async () => {
+    if (!friendSearchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const query = friendSearchQuery.trim();
+      
+      const params1 = new URLSearchParams();
+      params1.append('select', 'id,user_id,username,nickname,avatar_url,created_at');
+      params1.append('username', `ilike.%${query}%`);
+      params1.append('order', 'created_at.desc');
+      params1.append('limit', '30');
+      
+      const params2 = new URLSearchParams();
+      params2.append('select', 'id,user_id,username,nickname,avatar_url,created_at');
+      params2.append('nickname', `ilike.%${query}%`);
+      params2.append('order', 'created_at.desc');
+      params2.append('limit', '30');
+
+      const [res1, res2] = await Promise.all([
+        fetch(`/sb-api/rest/v1/profiles?${params1.toString()}`, {
+          headers: {
+            'apikey': SERVICE_ROLE_KEY,
+            'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+          }
+        }),
+        fetch(`/sb-api/rest/v1/profiles?${params2.toString()}`, {
+          headers: {
+            'apikey': SERVICE_ROLE_KEY,
+            'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+          }
+        })
+      ]);
+
+      const data1 = res1.ok ? await res1.json() : [];
+      const data2 = res2.ok ? await res2.json() : [];
+      
+      const allResults = [...(data1 || []), ...(data2 || [])];
+      const uniqueMap = new Map();
+      allResults.forEach((u: FriendProfile) => uniqueMap.set(u.id, u));
+      const unique = Array.from(uniqueMap.values());
+      
+      const filtered = unique.filter((u: FriendProfile) => (u.user_id || u.id) !== currentUserId);
+      setSearchResults(filtered);
+      
+      if (filtered.length > 0) {
+        loadFollowingStatus(filtered.map((u: FriendProfile) => u.user_id || u.id));
+      }
+    } catch (error) {
+      console.error('Error searching users:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // 添加好友
+  const handleAddFriend = (user: FriendProfile) => {
+    if (!currentUserId) {
+      navigate('/login');
+      return;
+    }
+    
+    const currentUser = recommendedUsers.find(u => (u.user_id || u.id) === currentUserId);
+    const currentNickname = currentUser?.nickname || currentUser?.username || '用户';
+    const defaultMessage = `你好，我是${currentNickname}，希望能添加你为好友`;
+    
+    setGreetingModal({
+      targetUser: user,
+      message: defaultMessage,
+    });
+  };
+
+  // 发送好友请求
+  const sendFriendRequest = async () => {
+    if (!greetingModal || !currentUserId) return;
+    
+    const { targetUser, message } = greetingModal;
+    const targetUserId = targetUser.user_id || targetUser.id;
+    
+    setSendingRequestId(targetUserId);
+    try {
+      const followRecord = {
+        follower_id: currentUserId,
+        following_id: targetUserId,
+        status: 'pending',
+        created_at: new Date().toISOString(),
+        ...(message.trim() ? { message: message.trim() } : {}),
+      };
+
+      const res = await fetch('/sb-api/rest/v1/follows', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+          'Prefer': 'return=representation',
+        },
+        body: JSON.stringify(followRecord),
+      });
+
+      if (res.ok || res.status === 201) {
+        setPendingRequests(prev => new Set([...prev, targetUserId]));
+        setGreetingModal(null);
+      } else {
+        const errText = await res.text();
+        throw new Error(errText);
+      }
+    } catch (error) {
+      console.error('Error sending friend request:', error);
+      alert('发送好友请求失败');
+    } finally {
+      setSendingRequestId(null);
+    }
+  };
+
+  // 获取好友请求列表
+  const loadFriendRequests = async () => {
+    if (!currentUserId) return;
+    
+    setIsLoadingRequests(true);
+    try {
+      const params = new URLSearchParams();
+      params.append('select', 'follower_id,following_id,status,message,created_at');
+      params.append('following_id', `eq.${currentUserId}`);
+      params.append('status', 'eq.pending');
+      params.append('order', 'created_at.desc');
+      params.append('limit', '20');
+
+      const res = await fetch(`/sb-api/rest/v1/follows?${params.toString()}`, {
+        headers: {
+          'apikey': SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+        }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const followerIds = (data || []).map((r: FollowRecord) => r.follower_id);
+        
+        if (followerIds.length === 0) {
+          setFriendRequests([]);
+          return;
+        }
+
+        const profileParams = new URLSearchParams();
+        profileParams.append('select', 'id,user_id,username,nickname,avatar_url,created_at');
+        profileParams.append('user_id', `in.(${followerIds.join(',')})`);
+
+        const profileRes = await fetch(`/sb-api/rest/v1/profiles?${profileParams.toString()}`, {
+          headers: {
+            'apikey': SERVICE_ROLE_KEY,
+            'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+          }
+        });
+
+        if (profileRes.ok) {
+          const profiles = await profileRes.json();
+          const requestsWithProfiles = (data || []).map((request: any) => {
+            const profile = (profiles || []).find(
+              (p: FriendProfile) => p.user_id === request.follower_id
+            );
+            return {
+              ...(profile || {}),
+              message: request.message,
+              requestId: request.follower_id,
+            };
+          });
+          setFriendRequests(requestsWithProfiles);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading friend requests:', error);
+    } finally {
+      setIsLoadingRequests(false);
+    }
+  };
+
+  // 接受好友请求
+  const acceptFriendRequest = async (requesterId: string) => {
+    if (!currentUserId) return;
+    
+    setProcessingRequestId(requesterId);
+    try {
+      const params = new URLSearchParams();
+      params.append('follower_id', `eq.${requesterId}`);
+      params.append('following_id', `eq.${currentUserId}`);
+      params.append('status', 'eq.pending');
+
+      const res = await fetch(`/sb-api/rest/v1/follows?${params.toString()}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+        },
+        body: JSON.stringify({ status: 'active' }),
+      });
+
+      if (res.ok) {
+        setFriendRequests(prev => prev.filter(r => r.requestId !== requesterId));
+        setFollowingIds(prev => new Set([...prev, requesterId]));
+      }
+    } catch (error) {
+      console.error('Error accepting friend request:', error);
+      alert('接受请求失败');
+    } finally {
+      setProcessingRequestId(null);
+    }
+  };
+
+  // 拒绝好友请求
+  const rejectFriendRequest = async (requesterId: string) => {
+    if (!currentUserId) return;
+    
+    setProcessingRequestId(requesterId);
+    try {
+      const params = new URLSearchParams();
+      params.append('follower_id', `eq.${requesterId}`);
+      params.append('following_id', `eq.${currentUserId}`);
+      params.append('status', 'eq.pending');
+
+      const res = await fetch(`/sb-api/rest/v1/follows?${params.toString()}`, {
+        method: 'DELETE',
+        headers: {
+          'apikey': SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+        }
+      });
+
+      if (res.ok) {
+        setFriendRequests(prev => prev.filter(r => r.requestId !== requesterId));
+      }
+    } catch (error) {
+      console.error('Error rejecting friend request:', error);
+      alert('拒绝请求失败');
+    } finally {
+      setProcessingRequestId(null);
+    }
+  };
+
   // 加载群聊列表
   const loadGroupChats = async () => {
     setIsLoadingGroups(true);
     try {
       const params = new URLSearchParams();
-      params.append('select', 'id,title,content,tags,user_id,heat_count,created_at');
-      params.append('status', 'eq.published');
+      params.append('select', 'id,title,content,tags,user_id,heat_count,status,created_at');
       params.append('order', 'heat_count.desc,created_at.desc');
       params.append('limit', '100');
 
@@ -201,10 +540,20 @@ function Messages() {
         const memberTag = currentUserId ? `member_${currentUserId}` : '';
         const groupChatsData = data.filter((post: GroupChat) => {
           if (!post.tags?.includes('__group_chat__')) return false;
+          if (post.status !== 'published') return false;
           if (memberTag && post.tags?.includes(memberTag)) return true;
           return false;
         });
         setGroupChats(groupChatsData);
+        
+        // 加载待审核的群聊
+        const pendingData = data.filter((post: GroupChat) => {
+          if (!post.tags?.includes('__group_chat__')) return false;
+          if (post.status === 'published') return false;
+          if (memberTag && post.tags?.includes(memberTag)) return true;
+          return false;
+        });
+        setPendingGroupChats(pendingData);
       }
     } catch (error) {
       console.error('Error fetching group chats:', error);
@@ -422,6 +771,12 @@ function Messages() {
         localStorage.setItem('last_read_favorites', allIds);
         setUnreadFavorites(0);
       }
+    } else if (activeTab === 'friends') {
+      loadFriendsList();
+      loadFriendRequests();
+      loadRecommendedUsers();
+    } else if (activeTab === 'groups') {
+      loadGroupChats();
     }
   }, [activeTab, currentUserId]);
 
@@ -511,7 +866,8 @@ function Messages() {
 
   // 处理收藏点击
   const handleFavoriteClick = () => {
-    setActiveTab('favorites');
+    setShowFavoritesModal(true);
+    loadFavoriteRecords();
     // 标记已读
     if (favoriteRecords.length > 0) {
       const allIds = favoriteRecords.map(f => f.id).join(',');
@@ -785,6 +1141,475 @@ function Messages() {
     />
   );
 
+  // 渲染群聊Tab
+  const renderGroupsTab = () => {
+    if (isLoadingGroups) {
+      return (
+        <div className="flex items-center justify-center py-12">
+          <div className="w-6 h-6 border-2 border-[#E11D48] border-t-transparent rounded-full animate-spin" />
+        </div>
+      );
+    }
+
+    if (groupChats.length === 0 && pendingGroupChats.length === 0) {
+      return (
+        <div className="text-center py-12">
+          <Users className="w-12 h-12 mx-auto mb-3 opacity-30" style={{ color: 'var(--text-secondary)' }} />
+          <p className="mb-4" style={{ color: 'var(--text-secondary)' }}>暂无群聊</p>
+          <button
+            onClick={() => navigate('/add/group')}
+            className="px-4 py-2 rounded-xl text-sm font-medium text-white"
+            style={{ backgroundColor: PRIMARY_COLOR }}
+          >
+            <Plus className="w-4 h-4 inline mr-1" />
+            创建群聊
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-3">
+        {/* 待审核群聊区域 */}
+        {pendingGroupChats.length > 0 && (
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Clock className="w-4 h-4" style={{ color: '#f59e0b' }} />
+              <span className="text-sm font-medium" style={{ color: '#f59e0b' }}>
+                待审核群聊 ({pendingGroupChats.length})
+              </span>
+            </div>
+            <div className="space-y-2">
+              {pendingGroupChats.map((group) => (
+                <div
+                  key={group.id}
+                  className="p-4 rounded-xl"
+                  style={{ backgroundColor: 'var(--bg-secondary)', borderLeft: '3px solid #f59e0b' }}
+                >
+                  <div className="flex items-start gap-3">
+                    <div 
+                      className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{ backgroundColor: `${PRIMARY_COLOR}15` }}
+                    >
+                      <Users className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <span 
+                          className="font-medium text-sm truncate"
+                          style={{ color: 'var(--text-color)' }}
+                        >
+                          {group.title}
+                        </span>
+                        <span 
+                          className="px-2 py-0.5 text-xs rounded-full"
+                          style={{ 
+                            backgroundColor: group.status === 'pending' ? '#fef3c7' : '#fee2e2',
+                            color: group.status === 'pending' ? '#d97706' : '#dc2626'
+                          }}
+                        >
+                          {group.status === 'pending' ? '待审核' : '已拒绝'}
+                        </span>
+                      </div>
+                      {group.content && (
+                        <p 
+                          className="text-xs line-clamp-1 mb-2"
+                          style={{ color: 'var(--text-secondary)' }}
+                        >
+                          {group.content}
+                        </p>
+                      )}
+                      <div className="flex flex-wrap gap-1">
+                        {group.tags?.filter(tag => tag !== '__group_chat__').slice(0, 3).map((tag) => (
+                          <span 
+                            key={tag} 
+                            className="px-2 py-0.5 text-xs rounded-full"
+                            style={{ backgroundColor: `${PRIMARY_COLOR}15`, color: PRIMARY_COLOR }}
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                      <p className="text-xs mt-2" style={{ color: 'var(--text-secondary)' }}>
+                        提交时间: {formatTime(group.created_at)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 已通过群聊列表 */}
+        {groupChats.map((group) => (
+          <button
+            key={group.id}
+            onClick={() => navigate(`/group/${group.id}`)}
+            className="w-full text-left p-4 rounded-xl transition-colors hover:opacity-80"
+            style={{ backgroundColor: 'var(--bg-secondary)' }}
+          >
+            <div className="flex items-start gap-3">
+              <div 
+                className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: `${PRIMARY_COLOR}15` }}
+              >
+                <Users className="w-6 h-6" style={{ color: PRIMARY_COLOR }} />
+              </div>
+              
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-1">
+                  <span 
+                    className="font-medium text-sm truncate"
+                    style={{ color: 'var(--text-color)' }}
+                  >
+                    {group.title}
+                  </span>
+                  {group.heat_count > 0 && (
+                    <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                      🔥 {group.heat_count}
+                    </span>
+                  )}
+                </div>
+                {group.content && (
+                  <p 
+                    className="text-xs line-clamp-1 mb-2"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    {group.content}
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-1">
+                  {group.tags?.filter(tag => tag !== '__group_chat__').slice(0, 3).map((tag) => (
+                    <span 
+                      key={tag} 
+                      className="px-2 py-0.5 text-xs rounded-full"
+                      style={{ backgroundColor: `${PRIMARY_COLOR}15`, color: PRIMARY_COLOR }}
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              
+              <ChevronRight className="w-4 h-4 flex-shrink-0 mt-1" style={{ color: 'var(--text-secondary)' }} />
+            </div>
+          </button>
+        ))}
+        
+        {/* 创建群聊入口 */}
+        <button
+          onClick={() => navigate('/add/group')}
+          className="w-full flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed transition-colors hover:opacity-80"
+          style={{ borderColor: 'var(--border-color)' }}
+        >
+          <Plus className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
+          <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>创建新群聊</span>
+        </button>
+      </div>
+    );
+  };
+
+  // 渲染好友Tab
+  const renderFriendsTab = () => {
+    const displayUsers = friendSearchQuery.trim() ? searchResults : recommendedUsers;
+    const friendUserIds = new Set(friendsList.map(f => f.user_id || f.id));
+    const displayUsersFiltered = displayUsers.filter((u: FriendProfile) => !friendUserIds.has(u.user_id || u.id));
+
+    const renderUserCard = (user: FriendProfile) => {
+      const userId = user.user_id || user.id;
+      const isFollowing = followingIds.has(userId);
+      const isPending = pendingRequests.has(userId);
+      const isSending = sendingRequestId === userId;
+
+      return (
+        <div
+          key={user.id}
+          className="flex items-center gap-3 p-3 rounded-xl theme-transition"
+          style={{ backgroundColor: 'var(--bg-secondary)' }}
+        >
+          <div 
+            className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
+            style={{ backgroundColor: `${PRIMARY_COLOR}20` }}
+          >
+            {user.avatar_url ? (
+              <img 
+                src={user.avatar_url} 
+                alt={user.username}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <Users className="w-6 h-6" style={{ color: PRIMARY_COLOR }} />
+            )}
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-sm truncate" style={{ color: 'var(--text-color)' }}>
+              {user.nickname || user.username || '未命名用户'}
+            </p>
+            <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
+              ID: {userId.slice(0, 8)}...
+            </p>
+          </div>
+
+          <div className="flex-shrink-0">
+            {isFollowing ? (
+              <button
+                disabled
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium"
+                style={{ backgroundColor: `${PRIMARY_COLOR}15`, color: PRIMARY_COLOR }}
+              >
+                <Check className="w-3 h-3" />
+                已添加
+              </button>
+            ) : isPending || isSending ? (
+              <button
+                disabled
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium"
+                style={{ backgroundColor: `var(--text-secondary)20`, color: 'var(--text-secondary)' }}
+              >
+                <Loader2 className="w-3 h-3 animate-spin" />
+                待确认
+              </button>
+            ) : (
+              <button
+                onClick={() => handleAddFriend(user)}
+                disabled={isSending}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-white"
+                style={{ backgroundColor: PRIMARY_COLOR }}
+              >
+                <UserPlus className="w-3 h-3" />
+                添加
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    return (
+      <div className="space-y-4">
+        {/* 好友请求区域 */}
+        {currentUserId && (
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Bell className="w-4 h-4" style={{ color: PRIMARY_COLOR }} />
+              <span className="text-sm font-medium" style={{ color: PRIMARY_COLOR }}>
+                好友请求 ({friendRequests.length})
+              </span>
+            </div>
+            
+            {isLoadingRequests ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="w-5 h-5 animate-spin" style={{ color: PRIMARY_COLOR }} />
+              </div>
+            ) : friendRequests.length > 0 ? (
+              <div className="space-y-2">
+                {friendRequests.map((request) => (
+                  <div
+                    key={request.requestId}
+                    className="p-3 rounded-xl"
+                    style={{ backgroundColor: 'var(--bg-secondary)' }}
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      <div 
+                        className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
+                        style={{ backgroundColor: `${PRIMARY_COLOR}20` }}
+                      >
+                        {request.avatar_url ? (
+                          <img 
+                            src={request.avatar_url} 
+                            alt={request.username}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Users className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />
+                        )}
+                      </div>
+                      
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate" style={{ color: 'var(--text-color)' }}>
+                          {request.nickname || request.username || '未命名用户'}
+                        </p>
+                        {request.message && (
+                          <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
+                            {request.message}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 mt-2">
+                      <button
+                        onClick={() => acceptFriendRequest(request.requestId!)}
+                        disabled={processingRequestId === request.requestId}
+                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg text-xs font-medium text-white"
+                        style={{ backgroundColor: PRIMARY_COLOR }}
+                      >
+                        <Check className="w-3 h-3" />
+                        {processingRequestId === request.requestId ? '处理中...' : '接受'}
+                      </button>
+                      <button
+                        onClick={() => rejectFriendRequest(request.requestId!)}
+                        disabled={processingRequestId === request.requestId}
+                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg text-xs font-medium"
+                        style={{ backgroundColor: 'var(--bg-color)', color: 'var(--text-secondary)' }}
+                      >
+                        <X className="w-3 h-3" />
+                        拒绝
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-center py-2" style={{ color: 'var(--text-secondary)' }}>
+                暂无好友请求
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* 我的好友列表 */}
+        {currentUserId && (
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Users className="w-4 h-4" style={{ color: PRIMARY_COLOR }} />
+              <span className="text-sm font-medium" style={{ color: PRIMARY_COLOR }}>
+                我的好友 ({friendsList.length})
+              </span>
+            </div>
+
+            {isLoadingFriends ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="w-5 h-5 animate-spin" style={{ color: PRIMARY_COLOR }} />
+              </div>
+            ) : friendsList.length > 0 ? (
+              <div className="space-y-2">
+                {friendsList.map((friend) => (
+                  <div
+                    key={friend.id}
+                    className="flex items-center gap-3 p-3 rounded-xl theme-transition cursor-pointer"
+                    style={{ backgroundColor: 'var(--bg-secondary)' }}
+                    onClick={() => navigate(`/chat/${friend.user_id}`)}
+                  >
+                    <div
+                      className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
+                      style={{ backgroundColor: `${PRIMARY_COLOR}20` }}
+                    >
+                      {friend.avatar_url ? (
+                        <img
+                          src={friend.avatar_url}
+                          alt={friend.username}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Users className="w-6 h-6" style={{ color: PRIMARY_COLOR }} />
+                      )}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate" style={{ color: 'var(--text-color)' }}>
+                        {friend.nickname || friend.username || '未命名用户'}
+                      </p>
+                      <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
+                        ID: {(friend.user_id || friend.id).slice(0, 8)}
+                      </p>
+                    </div>
+
+                    <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-secondary)' }} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-center py-2" style={{ color: 'var(--text-secondary)' }}>
+                暂无好友，快去添加吧
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* 搜索框 */}
+        <div className="flex items-center gap-2">
+          <div 
+            className="flex-1 flex items-center h-11 px-4 rounded-xl theme-transition" 
+            style={{ backgroundColor: 'var(--bg-secondary)' }}
+          >
+            <Search className="w-4 h-4 mr-2 theme-transition" style={{ color: 'var(--text-secondary)' }} />
+            <input
+              type="text"
+              value={friendSearchQuery}
+              onChange={(e) => setFriendSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleFriendSearch()}
+              placeholder="搜索昵称、ID..."
+              className="flex-1 bg-transparent text-sm outline-none theme-transition"
+              style={{ color: 'var(--text-color)' }}
+            />
+            {friendSearchQuery && (
+              <button 
+                onClick={() => setFriendSearchQuery('')}
+                className="p-1"
+              >
+                <X className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+              </button>
+            )}
+          </div>
+          <button
+            onClick={handleFriendSearch}
+            disabled={isSearching}
+            className="px-5 h-11 rounded-xl text-sm font-medium text-white flex items-center"
+            style={{ backgroundColor: PRIMARY_COLOR }}
+          >
+            {isSearching ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              '搜索'
+            )}
+          </button>
+        </div>
+
+        {/* 加载状态 */}
+        {isSearching || isLoadingRecommended ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-6 h-6 animate-spin" style={{ color: PRIMARY_COLOR }} />
+          </div>
+        ) : displayUsersFiltered.length > 0 ? (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 mb-4">
+              <Users className="w-4 h-4" style={{ color: PRIMARY_COLOR }} />
+              <span className="text-sm font-medium theme-transition" style={{ color: PRIMARY_COLOR }}>
+                {friendSearchQuery.trim() 
+                  ? `搜索结果 (${displayUsersFiltered.length})`
+                  : `推荐用户 (${displayUsersFiltered.length})`
+                }
+              </span>
+            </div>
+            {displayUsersFiltered.map(renderUserCard)}
+            
+            {friendSearchQuery.trim() && searchResults.length === 0 && (
+              <div className="text-center py-8">
+                <Users className="w-12 h-12 mx-auto mb-3 opacity-30" style={{ color: 'var(--text-secondary)' }} />
+                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  未找到匹配的用户
+                </p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <Users className="w-12 h-12 mx-auto mb-3 opacity-30" style={{ color: 'var(--text-secondary)' }} />
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+              {friendSearchQuery.trim() 
+                ? '未找到匹配的用户'
+                : '暂无推荐用户'
+              }
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div
       className="min-h-screen pb-20 theme-transition"
@@ -870,9 +1695,158 @@ function Messages() {
       {/* Tab 内容 */}
       <div className="px-4">
         {activeTab === 'messages' ? renderMessagesTab() :
-         activeTab === 'favorites' ? renderFavoritesTab() :
+         activeTab === 'friends' ? renderFriendsTab() :
+         activeTab === 'groups' ? renderGroupsTab() :
          activeTab === 'rooms' ? renderRoomsTab() : null}
       </div>
+
+      {/* 收藏面板弹窗 */}
+      {showFavoritesModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          onClick={() => setShowFavoritesModal(false)}
+        >
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div 
+            className="relative w-full max-w-md max-h-[80vh] rounded-2xl overflow-hidden"
+            style={{ backgroundColor: 'var(--bg-color)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3" style={{ backgroundColor: 'var(--bg-color)' }}>
+              <h2 className="text-lg font-semibold" style={{ color: 'var(--text-color)' }}>我的收藏</h2>
+              <button
+                onClick={() => setShowFavoritesModal(false)}
+                className="p-2 rounded-full transition-colors hover:opacity-80"
+                style={{ backgroundColor: 'var(--bg-secondary)' }}
+              >
+                <X className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
+              </button>
+            </div>
+            <div className="overflow-y-auto max-h-[calc(80vh-60px)] p-4">
+              {isLoadingFavorites ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin" style={{ color: PRIMARY_COLOR }} />
+                </div>
+              ) : favoriteRecords.length > 0 ? (
+                <div className="space-y-3">
+                  {favoriteRecords.map((record) => (
+                    <div
+                      key={record.id}
+                      className="p-4 rounded-xl cursor-pointer transition-colors hover:opacity-80"
+                      style={{ backgroundColor: 'var(--bg-secondary)' }}
+                      onClick={() => {
+                        if (record.note_id) {
+                          navigate(`/note/${record.note_id}`);
+                          setShowFavoritesModal(false);
+                        }
+                      }}
+                    >
+                      <div className="flex items-start gap-3">
+                        <Bookmark className="w-5 h-5 flex-shrink-0" style={{ color: PRIMARY_COLOR }} />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate" style={{ color: 'var(--text-color)' }}>
+                            {record.note_title || '收藏的笔记'}
+                          </p>
+                          <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                            {formatTime(record.created_at)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <Bookmark className="w-12 h-12 mx-auto mb-3 opacity-30" style={{ color: 'var(--text-secondary)' }} />
+                  <p style={{ color: 'var(--text-secondary)' }}>暂无收藏</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 打招呼弹窗 */}
+      {greetingModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          onClick={() => setGreetingModal(null)}
+        >
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div 
+            className="relative w-full max-w-md rounded-2xl overflow-hidden"
+            style={{ backgroundColor: 'var(--bg-color)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 py-3" style={{ backgroundColor: 'var(--bg-color)' }}>
+              <h2 className="text-lg font-semibold" style={{ color: 'var(--text-color)' }}>添加好友</h2>
+              <button
+                onClick={() => setGreetingModal(null)}
+                className="p-2 rounded-full transition-colors hover:opacity-80"
+                style={{ backgroundColor: 'var(--bg-secondary)' }}
+              >
+                <X className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
+              </button>
+            </div>
+            <div className="p-4">
+              <div className="flex items-center gap-3 mb-4 p-3 rounded-xl" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                <div 
+                  className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
+                  style={{ backgroundColor: `${PRIMARY_COLOR}20` }}
+                >
+                  {greetingModal.targetUser.avatar_url ? (
+                    <img 
+                      src={greetingModal.targetUser.avatar_url} 
+                      alt={greetingModal.targetUser.username}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <Users className="w-6 h-6" style={{ color: PRIMARY_COLOR }} />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate" style={{ color: 'var(--text-color)' }}>
+                    {greetingModal.targetUser.nickname || greetingModal.targetUser.username || '未命名用户'}
+                  </p>
+                  <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
+                    ID: {(greetingModal.targetUser.user_id || greetingModal.targetUser.id).slice(0, 8)}...
+                  </p>
+                </div>
+              </div>
+              
+              <textarea
+                value={greetingModal.message}
+                onChange={(e) => setGreetingModal({ ...greetingModal, message: e.target.value })}
+                placeholder="添加好友时发送的招呼语..."
+                className="w-full h-24 p-3 rounded-xl resize-none text-sm outline-none"
+                style={{ 
+                  backgroundColor: 'var(--bg-secondary)', 
+                  color: 'var(--text-color)',
+                  border: 'none'
+                }}
+              />
+              
+              <div className="flex gap-3 mt-4">
+                <button
+                  onClick={() => setGreetingModal(null)}
+                  className="flex-1 py-3 rounded-xl text-sm font-medium transition-colors"
+                  style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
+                >
+                  取消
+                </button>
+                <button
+                  onClick={sendFriendRequest}
+                  disabled={sendingRequestId !== null}
+                  className="flex-1 py-3 rounded-xl text-sm font-medium text-white transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: PRIMARY_COLOR }}
+                >
+                  {sendingRequestId !== null ? '发送中...' : '发送请求'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 创建房间弹窗 */}
       {showCreateRoom && (
