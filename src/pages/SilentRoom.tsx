@@ -1077,24 +1077,33 @@ function SilentRoom() {
   const sendSentence = async () => {
     if (!sentenceText.trim()) return;
     
-    // 兜底获取userId（需要auth UUID）
+    // 获取auth UUID（room_sentences外键需要）
     let uid = userId;
     if (!uid) {
+      // 从user_info获取（格式: {id: authUUID, email: "..."}）
       const userInfo = localStorage.getItem('user_info');
       if (userInfo) {
         try { const p = JSON.parse(userInfo); uid = p.id || ''; } catch {}
       }
-      if (!uid) {
-        uid = localStorage.getItem('user_id') || '';
-      }
-      if (uid) setUserId(uid);
     }
+    if (!uid) {
+      uid = localStorage.getItem('user_id') || '';
+    }
+    if (uid) setUserId(uid);
+    
+    console.log('[sendSentence] uid:', uid, 'roomId:', roomId);
     
     if (!roomId || !uid) {
-      console.error('sendSentence: missing roomId or userId', { roomId, uid });
-      alert('发送失败：用户信息异常，请重新登录');
+      alert('发送失败：用户信息异常 (uid=' + uid + ', roomId=' + roomId + ')，请重新登录');
       return;
     }
+    
+    const body = JSON.stringify({
+      room_id: roomId,
+      user_id: uid,
+      content: sentenceText.trim().slice(0, 60),
+    });
+    console.log('[sendSentence] request body:', body);
     
     try {
       const res = await fetch('/sb-api/rest/v1/room_sentences', {
@@ -1103,13 +1112,12 @@ function SilentRoom() {
           'apikey': SERVICE_ROLE_KEY,
           'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
           'Content-Type': 'application/json',
+          'Prefer': 'return=minimal',
         },
-        body: JSON.stringify({
-          room_id: roomId,
-          user_id: uid,
-          content: sentenceText.trim().slice(0, 60),
-        }),
+        body,
       });
+      
+      console.log('[sendSentence] response status:', res.status);
       
       if (res.ok) {
         setSentenceText('');
@@ -1117,12 +1125,12 @@ function SilentRoom() {
         fetchSentences();
       } else {
         const errText = await res.text();
-        console.error('sendSentence failed:', res.status, errText);
-        alert('发送失败：' + res.status);
+        console.error('[sendSentence] failed:', res.status, errText);
+        alert('发送失败 ' + res.status + ': ' + errText.slice(0, 200));
       }
     } catch (err) {
-      console.error('Failed to send sentence:', err);
-      alert('发送失败：网络错误');
+      console.error('[sendSentence] network error:', err);
+      alert('发送失败：网络错误 ' + String(err));
     }
   };
 
