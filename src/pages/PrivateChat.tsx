@@ -5,7 +5,10 @@ import {
   ArrowLeft, Send, Loader2, Mic, Smile, Plus, 
   Image, Camera, FileText, BookOpen,
   X, ChevronDown, Volume2, Heart, Laugh, Frown, Angry, Sun, Moon, CloudRain, Wind, Star, ThumbsUp, Flame, MessageCircle, Sparkles,
-  Landmark, Bird, Award, HeartHandshake, Mountain, Compass, Shield, GitBranch, Handshake
+  Landmark, Bird, Award, HeartHandshake, Mountain, Compass, Shield, GitBranch, Handshake,
+  Cross, Church, Feather, Scroll, Footprints, Globe, Eye, Lightbulb, Key, 
+  Sunrise, CloudSun, CloudMoon, Snowflake, Flower2, TreePine, Scale, Waves,
+  Signpost, Gift, Route, Flag
 } from 'lucide-react';
 
 const PRIMARY_COLOR = '#E11D48';
@@ -21,29 +24,53 @@ const EMOJI_ICONS = [
   { icon: <Heart className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '❤️', label: '爱心' },
   { icon: <Angry className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '😡', label: '义怒' },
   
-  // OpenFaith 主题
+  // ✝️ 信仰核心
+  { icon: <Cross className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '✝️', label: '十字架' },
+  { icon: <Church className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '⛪', label: '教堂' },
   { icon: <BookOpen className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '📖', label: '经文' },
-  { icon: <Landmark className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '⛪', label: '教堂' },
-  { icon: <Sparkles className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '✨', label: '恩典' },
-  { icon: <Sun className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '☀️', label: '光明' },
-  { icon: <Moon className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🌙', label: '沉思' },
-  { icon: <Bird className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🕊️', label: '和平' },
-  { icon: <HeartHandshake className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🤝', label: '和解' },
-  { icon: <Flame className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🔥', label: '热忱' },
-  { icon: <Star className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '⭐', label: '希望' },
-  { icon: <MessageCircle className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '💬', label: '对话' },
-  { icon: <CloudRain className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🌧️', label: '试炼' },
-  { icon: <Wind className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '💨', label: '圣灵' },
-  { icon: <Mountain className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '⛰️', label: '坚定' },
-  { icon: <Compass className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🧭', label: '指引' },
-  { icon: <HeartHandshake className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🫶', label: '关怀' },
-  { icon: <Shield className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🛡️', label: '庇护' },
-  { icon: <Award className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '👑', label: '荣耀' },
+  { icon: <Scroll className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '📜', label: '卷轴' },
+  { icon: <Feather className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🪶', label: '笔录' },
+  { icon: <Key className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🔑', label: '天国钥匙' },
   
-  // 额外常用表情
-  { icon: <Heart className="w-5 h-5" style={{ color: PRIMARY_COLOR, fill: PRIMARY_COLOR }} />, emoji: '💕', label: '双心' },
-  { icon: <Sun className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🌈', label: '彩虹' },
-  { icon: <Flame className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🎉', label: '庆祝' },
+  // 🕊️ 灵性体验
+  { icon: <Bird className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🕊️', label: '和平' },
+  { icon: <Sparkles className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '✨', label: '恩典' },
+  { icon: <Flame className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🔥', label: '圣火' },
+  { icon: <Wind className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '💨', label: '圣灵' },
+  { icon: <Lightbulb className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '💡', label: '启示' },
+  { icon: <Eye className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '👁️', label: '看见' },
+  { icon: <Waves className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🌊', label: '活水' },
+  
+  // 🌿 生命与自然
+  { icon: <Sun className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '☀️', label: '真光' },
+  { icon: <Sunrise className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🌅', label: '新生' },
+  { icon: <Moon className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🌙', label: '沉思' },
+  { icon: <CloudSun className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🌤️', label: '应许' },
+  { icon: <CloudMoon className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🌥️', label: '守望' },
+  { icon: <Star className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '⭐', label: '引导星' },
+  { icon: <Flower2 className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🌸', label: '绽放' },
+  { icon: <TreePine className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🌲', label: '生命树' },
+  { icon: <Snowflake className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '❄️', label: '纯净' },
+  { icon: <CloudRain className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🌧️', label: '试炼' },
+  
+  // 🤝 关系与使命
+  { icon: <HeartHandshake className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🤝', label: '和解' },
+  { icon: <Handshake className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🫱', label: '团契' },
+  { icon: <MessageCircle className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '💬', label: '对话' },
+  { icon: <Globe className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🌍', label: '普世' },
+  { icon: <Scale className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '⚖️', label: '公义' },
+  { icon: <Shield className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🛡️', label: '庇护' },
+  { icon: <Gift className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🎁', label: '恩赐' },
+  
+  // 🏔️ 旅途与成长
+  { icon: <Footprints className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '👣', label: '足迹' },
+  { icon: <Mountain className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '⛰️', label: '坚定' },
+  { icon: <Route className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🛤️', label: '天路' },
+  { icon: <Compass className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🧭', label: '指引' },
+  { icon: <Signpost className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🪧', label: '方向' },
+  { icon: <Flag className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🚩', label: '旗帜' },
+  { icon: <Award className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '👑', label: '冠冕' },
+  { icon: <Landmark className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🏛️', label: '圣殿' },
 ];
 
 interface Message {
@@ -418,9 +445,10 @@ function PrivateChat() {
     }
   };
 
-  // 发送快捷表情
+  // 快捷表情：添加到输入框（不直接发送）
   const handleQuickEmoji = (emoji: string) => {
-    handleSendMessage(emoji, 'text');
+    setInputText(prev => prev + emoji);
+    inputRef.current?.focus();
   };
 
   // ========== 图片上传 ==========
@@ -924,21 +952,22 @@ function PrivateChat() {
         )}
       </div>
 
-      {/* 快捷表情栏 - 简笔画风格主题色 */}
+      {/* 快捷表情栏 - 主题色图标+标签，可滚动 */}
       {showEmojiPicker && (
         <div 
-          className="px-4 py-3 border-t"
+          className="px-3 py-3 border-t max-h-[40vh] overflow-y-auto"
           style={{ backgroundColor: cardBg, borderColor }}
         >
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2">
             {quickEmojis.map((item, index) => (
               <button
                 key={index}
                 onClick={() => handleQuickEmoji(item.emoji)}
-                className="w-9 h-9 flex items-center justify-center hover:scale-125 transition-transform rounded-full hover:bg-gray-100"
-                style={{ color: PRIMARY_COLOR }}
+                className="flex flex-col items-center justify-center w-12 py-1 hover:scale-110 transition-transform rounded-lg hover:bg-black/5"
+                title={item.label}
               >
-                {item.icon}
+                <span style={{ color: PRIMARY_COLOR }}>{item.icon}</span>
+                <span className="text-[9px] mt-0.5 truncate w-full text-center" style={{ color: textSecondary }}>{item.label}</span>
               </button>
             ))}
           </div>
