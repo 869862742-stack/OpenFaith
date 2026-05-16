@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Sparkles } from 'lucide-react';
+
 
 interface ChannelTabsProps {
   activeTab: string;
@@ -41,7 +41,6 @@ function ChannelTabs({ activeTab, onTabChange }: ChannelTabsProps) {
         onClick={handleGongjing}
         className="flex items-center gap-1 px-3 py-1.5 ml-1 text-sm font-medium whitespace-nowrap text-white bg-[#E11D48] rounded-full"
       >
-        <Sparkles size={14} />
         共境
       </button>
       {showToast && (
