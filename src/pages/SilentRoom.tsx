@@ -408,122 +408,48 @@ function FloatingAvatar({
 }
 
 // 漂浮句子组件
+// 注入 float-up CSS 动画样式
+const FLOAT_UP_STYLE_ID = 'float-up-keyframes-style';
+if (typeof document !== 'undefined' && !document.getElementById(FLOAT_UP_STYLE_ID)) {
+  const style = document.createElement('style');
+  style.id = FLOAT_UP_STYLE_ID;
+  style.textContent = `
+    @keyframes float-up {
+      0% { transform: translateX(-50%) translateY(0); opacity: 0; }
+      5% { opacity: 1; }
+      95% { opacity: 1; }
+      100% { transform: translateX(-50%) translateY(-200px); opacity: 0; }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 function FloatingSentence({ sentence, onFadeOut }: { sentence: Sentence; onFadeOut: () => void }) {
-  const [opacity, setOpacity] = useState(0);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [isOverflowing, setIsOverflowing] = useState(false);
-  const sentenceRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  
-  // 检测文字是否溢出（基于容器宽度）
-  useEffect(() => {
-    if (containerRef.current) {
-      const timer = setTimeout(() => {
-        if (containerRef.current) {
-          const isOverflow = containerRef.current.scrollWidth > containerRef.current.clientWidth;
-          setIsOverflowing(isOverflow);
-        }
-      }, 150);
-      return () => clearTimeout(timer);
-    }
-  }, [sentence.content]);
-
-  // 注入 marquee 动画样式
-  useEffect(() => {
-    const styleId = 'marquee-keyframes-style';
-    if (!document.getElementById(styleId)) {
-      const style = document.createElement('style');
-      style.id = styleId;
-      style.textContent = `
-        @keyframes marquee {
-          0% { transform: translateX(0%); }
-          100% { transform: translateX(-50%); }
-        }
-      `;
-      document.head.appendChild(style);
-    }
-  }, []);
-  
-  useEffect(() => {
-    // 淡入
-    const fadeInTimer = setTimeout(() => setOpacity(1), 100);
-    
-    // 初始位置
-    setPosition({
-      x: Math.random() * (window.innerWidth - 200) + 100,
-      y: window.innerHeight * 0.6 + Math.random() * 100,
-    });
-
-    // 30秒后淡出
-    const fadeOutTimer = setTimeout(() => {
-      setOpacity(0);
-      setTimeout(onFadeOut, 1000);
-    }, 30000);
-
-    return () => {
-      clearTimeout(fadeInTimer);
-      clearTimeout(fadeOutTimer);
-    };
-  }, [onFadeOut]);
-
-  // 缓慢上升
-  useEffect(() => {
-    if (opacity === 0) return;
-    
-    let animationId: number;
-    let y = position.y;
-    
-    const animate = () => {
-      y -= 0.1;
-      if (y < -50) y = window.innerHeight + 50;
-      setPosition(prev => ({ ...prev, y }));
-      animationId = requestAnimationFrame(animate);
-    };
-    
-    animationId = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animationId);
-  }, [opacity]);
+  // 只在mount时计算一次位置，避免播放音乐时气泡跳动
+  const [position] = useState(() => ({
+    x: Math.random() * (window.innerWidth - 240) + 120,
+    y: window.innerHeight * 0.55 + Math.random() * 100,
+  }));
 
   const username = sentence.profiles?.username || '匿名';
 
   return (
     <div
-      ref={sentenceRef}
       className="absolute px-4 py-2 rounded-2xl backdrop-blur-sm"
       style={{
         left: position.x,
         top: position.y,
-        transform: 'translateX(-50%)',
-        opacity,
+        maxWidth: '300px',
         backgroundColor: 'rgba(255, 255, 255, 0.08)',
         border: '1px solid rgba(255, 255, 255, 0.1)',
-        transition: 'opacity 1s ease-in-out',
-        maxWidth: '260px',
+        animation: 'float-up 30s linear forwards',
       }}
+      onAnimationEnd={onFadeOut}
     >
-      {/* 隐藏的测量容器：用于检测文字是否溢出 */}
-      <div 
-        ref={containerRef}
-        className="text-sm text-white/90 whitespace-nowrap overflow-hidden"
-        style={{ visibility: isOverflowing ? 'hidden' : 'visible', height: isOverflowing ? 0 : 'auto', position: isOverflowing ? 'absolute' : 'relative' }}
-      >
+      <div className="text-xs text-white/40 mb-1">{username}</div>
+      <div className="text-sm text-white/90 leading-relaxed overflow-y-auto" style={{ maxHeight: '100px' }}>
         {sentence.content}
       </div>
-      
-      {isOverflowing ? (
-        <div className="overflow-hidden" style={{ maxWidth: '260px' }}>
-          <div 
-            style={{ 
-              display: 'inline-block', 
-              whiteSpace: 'nowrap', 
-              animation: 'marquee 12s linear infinite' 
-            }}
-          >
-            <span className="text-sm text-white/90" style={{ paddingRight: '3em' }}>{sentence.content}</span>
-            <span className="text-sm text-white/90" style={{ paddingRight: '3em' }}>{sentence.content}</span>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -1133,7 +1059,7 @@ function SilentRoom() {
         body: JSON.stringify({
           room_id: roomId,
           user_id: userId,
-          content: sentenceText.trim().slice(0, 30),
+          content: sentenceText.trim().slice(0, 60),
         }),
       });
       
