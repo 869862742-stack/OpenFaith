@@ -14,64 +14,70 @@ import {
 const PRIMARY_COLOR = '#E11D48';
 const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE';
 
-// 表情列表（简笔画风格，使用 lucide 图标 + 主题色）
+// 表情列表（简笔画风格，发送 [emoji:label] 格式，消息中渲染为主题色lucide图标）
 const EMOJI_ICONS = [
   // 基础情感
-  { icon: <Smile className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '😊', label: '微笑' },
-  { icon: <Laugh className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '😂', label: '大笑' },
-  { icon: <Frown className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '😢', label: '难过' },
-  { icon: <ThumbsUp className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '👍', label: '赞同' },
-  { icon: <Heart className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '❤️', label: '爱心' },
-  { icon: <Angry className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '😡', label: '义怒' },
+  { icon: <Smile className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'smile', label: '微笑' },
+  { icon: <Laugh className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'laugh', label: '大笑' },
+  { icon: <Frown className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'frown', label: '难过' },
+  { icon: <ThumbsUp className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'thumbsup', label: '赞同' },
+  { icon: <Heart className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'heart', label: '爱心' },
+  { icon: <Angry className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'angry', label: '义怒' },
   
   // ✝️ 信仰核心
-  { icon: <Cross className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '✝️', label: '十字架' },
-  { icon: <Church className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '⛪', label: '教堂' },
-  { icon: <BookOpen className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '📖', label: '经文' },
-  { icon: <Scroll className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '📜', label: '卷轴' },
-  { icon: <Feather className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🪶', label: '笔录' },
-  { icon: <Key className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🔑', label: '天国钥匙' },
+  { icon: <Cross className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'cross', label: '十字架' },
+  { icon: <Church className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'church', label: '教堂' },
+  { icon: <BookOpen className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'bookopen', label: '经文' },
+  { icon: <Scroll className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'scroll', label: '卷轴' },
+  { icon: <Feather className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'feather', label: '笔录' },
+  { icon: <Key className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'key', label: '天国钥匙' },
   
   // 🕊️ 灵性体验
-  { icon: <Bird className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🕊️', label: '和平' },
-  { icon: <Sparkles className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '✨', label: '恩典' },
-  { icon: <Flame className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🔥', label: '圣火' },
-  { icon: <Wind className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '💨', label: '圣灵' },
-  { icon: <Lightbulb className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '💡', label: '启示' },
-  { icon: <Eye className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '👁️', label: '看见' },
-  { icon: <Waves className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🌊', label: '活水' },
+  { icon: <Bird className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'bird', label: '和平' },
+  { icon: <Sparkles className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'sparkles', label: '恩典' },
+  { icon: <Flame className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'flame', label: '圣火' },
+  { icon: <Wind className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'wind', label: '圣灵' },
+  { icon: <Lightbulb className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'lightbulb', label: '启示' },
+  { icon: <Eye className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'eye', label: '看见' },
+  { icon: <Waves className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'waves', label: '活水' },
   
   // 🌿 生命与自然
-  { icon: <Sun className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '☀️', label: '真光' },
-  { icon: <Sunrise className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🌅', label: '新生' },
-  { icon: <Moon className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🌙', label: '沉思' },
-  { icon: <CloudSun className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🌤️', label: '应许' },
-  { icon: <CloudMoon className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🌥️', label: '守望' },
-  { icon: <Star className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '⭐', label: '引导星' },
-  { icon: <Flower2 className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🌸', label: '绽放' },
-  { icon: <TreePine className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🌲', label: '生命树' },
-  { icon: <Snowflake className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '❄️', label: '纯净' },
-  { icon: <CloudRain className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🌧️', label: '试炼' },
+  { icon: <Sun className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'sun', label: '真光' },
+  { icon: <Sunrise className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'sunrise', label: '新生' },
+  { icon: <Moon className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'moon', label: '沉思' },
+  { icon: <CloudSun className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'cloudsun', label: '应许' },
+  { icon: <CloudMoon className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'cloudmoon', label: '守望' },
+  { icon: <Star className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'star', label: '引导星' },
+  { icon: <Flower2 className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'flower', label: '绽放' },
+  { icon: <TreePine className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'treepine', label: '生命树' },
+  { icon: <Snowflake className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'snowflake', label: '纯净' },
+  { icon: <CloudRain className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'cloudrain', label: '试炼' },
   
   // 🤝 关系与使命
-  { icon: <HeartHandshake className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🤝', label: '和解' },
-  { icon: <HeartHandshake className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🫱', label: '团契' },
-  { icon: <MessageCircle className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '💬', label: '对话' },
-  { icon: <Globe className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🌍', label: '普世' },
-  { icon: <Scale className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '⚖️', label: '公义' },
-  { icon: <Shield className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🛡️', label: '庇护' },
-  { icon: <Gift className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🎁', label: '恩赐' },
+  { icon: <HeartHandshake className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'hearthandshake', label: '和解' },
+  { icon: <HeartHandshake className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'fellowship', label: '团契' },
+  { icon: <MessageCircle className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'message', label: '对话' },
+  { icon: <Globe className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'globe', label: '普世' },
+  { icon: <Scale className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'scale', label: '公义' },
+  { icon: <Shield className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'shield', label: '庇护' },
+  { icon: <Gift className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'gift', label: '恩赐' },
   
   // 🏔️ 旅途与成长
-  { icon: <Footprints className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '👣', label: '足迹' },
-  { icon: <Mountain className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '⛰️', label: '坚定' },
-  { icon: <Route className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🛤️', label: '天路' },
-  { icon: <Compass className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🧭', label: '指引' },
-  { icon: <Signpost className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🪧', label: '方向' },
-  { icon: <Flag className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🚩', label: '旗帜' },
-  { icon: <Award className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '👑', label: '冠冕' },
-  { icon: <Landmark className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🏛️', label: '圣殿' },
+  { icon: <Footprints className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'footprints', label: '足迹' },
+  { icon: <Mountain className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'mountain', label: '坚定' },
+  { icon: <Route className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'route', label: '天路' },
+  { icon: <Compass className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'compass', label: '指引' },
+  { icon: <Signpost className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'signpost', label: '方向' },
+  { icon: <Flag className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'flag', label: '旗帜' },
+  { icon: <Award className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'award', label: '冠冕' },
+  { icon: <Landmark className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, code: 'landmark', label: '圣殿' },
 ];
+
+// 表情code到lucide组件的映射
+const EMOJI_ICON_MAP: Record<string, React.ReactNode> = {};
+EMOJI_ICONS.forEach(item => {
+  EMOJI_ICON_MAP[item.code] = item.icon;
+});
 
 interface Message {
   id: string;
@@ -347,12 +353,42 @@ function PrivateChat() {
     }
   }, [userId, currentUserProfileId, friendProfile?.id]);
 
-  // 消息轮询（每5秒检查新消息）
+  // 消息轮询（每5秒检查新消息，仅在有变化时更新，避免闪烁）
   useEffect(() => {
     if (!currentUserProfileId || !friendProfile?.id || !tableExists) return;
     
-    pollingRef.current = setInterval(() => {
-      loadMessages();
+    pollingRef.current = setInterval(async () => {
+      // 静默加载，不设 isLoading，避免UI闪烁
+      try {
+        const orFilter = `(and(sender_id.eq.${currentUserProfileId},receiver_id.eq.${friendProfile.id}),and(sender_id.eq.${friendProfile.id},receiver_id.eq.${currentUserProfileId}))`;
+        const params = new URLSearchParams();
+        params.append('select', 'id,sender_id,receiver_id,content,message_type,is_read,created_at');
+        params.append('or', orFilter);
+        params.append('order', 'created_at.asc');
+        params.append('limit', '200');
+
+        const res = await fetch(`/sb-api/rest/v1/private_messages?${params.toString()}`, {
+          headers: {
+            'apikey': SERVICE_ROLE_KEY,
+            'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+          }
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            // 只在有新消息时更新
+            setMessages(prev => {
+              if (prev.length === data.length && prev.length > 0 && prev[prev.length - 1]?.id === data[data.length - 1]?.id) {
+                return prev; // 无变化，返回原引用避免re-render
+              }
+              return data;
+            });
+          }
+        }
+      } catch (err) {
+        // 静默忽略轮询错误
+      }
     }, 5000);
     
     return () => {
@@ -445,9 +481,9 @@ function PrivateChat() {
     }
   };
 
-  // 快捷表情：添加到输入框（不直接发送）
-  const handleQuickEmoji = (emoji: string) => {
-    setInputText(prev => prev + emoji);
+  // 快捷表情：添加 [emoji:code] 到输入框
+  const handleQuickEmoji = (code: string) => {
+    setInputText(prev => prev + `[emoji:${code}]`);
     inputRef.current?.focus();
   };
 
@@ -702,7 +738,7 @@ function PrivateChat() {
       }
     }
     
-    // 文本消息中的链接渲染
+    // 文本消息：渲染 [emoji:code] 为主题色lucide图标
     const content = message.content;
     const parts = content.split('\n');
     return (
@@ -731,7 +767,29 @@ function PrivateChat() {
               );
             }
           }
-          return <span key={i}>{part}{i < parts.length - 1 ? '\n' : ''}</span>;
+          // 渲染 [emoji:code] 为主题色图标
+          const emojiRegex = /\[emoji:(\w+)\]/g;
+          const fragments: React.ReactNode[] = [];
+          let lastIndex = 0;
+          let match;
+          while ((match = emojiRegex.exec(part)) !== null) {
+            if (match.index > lastIndex) {
+              fragments.push(part.substring(lastIndex, match.index));
+            }
+            const iconNode = EMOJI_ICON_MAP[match[1]];
+            if (iconNode) {
+              fragments.push(<span key={`e${i}-${match.index}`} className="inline-flex items-center align-middle mx-0.5">{iconNode}</span>);
+            } else {
+              fragments.push(match[0]);
+            }
+            lastIndex = match.index + match[0].length;
+          }
+          if (lastIndex < part.length) {
+            fragments.push(part.substring(lastIndex));
+          }
+          // 如果整条消息只有emoji，放大显示
+          const isOnlyEmoji = /^\[emoji:\w+\]$/.test(part);
+          return <span key={i} className={isOnlyEmoji ? 'text-3xl' : ''}>{fragments}{i < parts.length - 1 ? '\n' : ''}</span>;
         })}
       </div>
     );
@@ -962,7 +1020,7 @@ function PrivateChat() {
             {quickEmojis.map((item, index) => (
               <button
                 key={index}
-                onClick={() => handleQuickEmoji(item.emoji)}
+                onClick={() => handleQuickEmoji(item.code)}
                 className="flex flex-col items-center justify-center w-12 py-1 hover:scale-110 transition-transform rounded-lg hover:bg-black/5"
                 title={item.label}
               >
