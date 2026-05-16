@@ -52,6 +52,36 @@ function RoomList({ onClose, onCreateRoom }: RoomListProps) {
 
   useEffect(() => {
     fetchRooms();
+    // 清理超时空房间（1小时无人）
+    const cleanupStaleRooms = async () => {
+      try {
+        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+        const res = await fetch(
+          `/sb-api/rest/v1/rooms?user_count=eq.0&last_activity_at=lt.${oneHourAgo}&select=id`,
+          {
+            headers: {
+              'apikey': SERVICE_ROLE_KEY,
+              'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+            },
+          }
+        );
+        const staleRooms = await res.json();
+        if (Array.isArray(staleRooms) && staleRooms.length > 0) {
+          for (const room of staleRooms) {
+            try {
+              await fetch(`/sb-api/rest/v1/room_participants?room_id=eq.${room.id}`, { method: 'DELETE', headers: { 'apikey': SERVICE_ROLE_KEY, 'Authorization': `Bearer ${SERVICE_ROLE_KEY}` } });
+              await fetch(`/sb-api/rest/v1/room_sentences?room_id=eq.${room.id}`, { method: 'DELETE', headers: { 'apikey': SERVICE_ROLE_KEY, 'Authorization': `Bearer ${SERVICE_ROLE_KEY}` } });
+              await fetch(`/sb-api/rest/v1/rooms?id=eq.${room.id}`, { method: 'DELETE', headers: { 'apikey': SERVICE_ROLE_KEY, 'Authorization': `Bearer ${SERVICE_ROLE_KEY}` } });
+            } catch {}
+          }
+          // 刷新房间列表
+          fetchRooms();
+        }
+      } catch (err) {
+        console.error('Failed to cleanup stale rooms:', err);
+      }
+    };
+    cleanupStaleRooms();
   }, []);
 
   // 过滤房间

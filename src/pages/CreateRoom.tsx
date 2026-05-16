@@ -1,7 +1,7 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { X, Upload, Music, Moon, VolumeX, CloudRain, Waves, TreePine, Wind, Piano, Play, Square } from 'lucide-react';
+import { X, Upload, Music, Moon } from 'lucide-react';
 
 // Service Role Key
 const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE';
@@ -15,212 +15,9 @@ const RELIGION_TAGS = [
   '雅兹迪', '曼达安', '玛雅/阿兹特克', '毛利宗教', '天理教', '天道教', '高台教'
 ];
 
-// 环境音选项
-const AMBIENT_SOUNDS = [
-  { value: 'silence', label: '静音', Icon: VolumeX },
-  { value: 'rain', label: '雨声', Icon: CloudRain },
-  { value: 'ocean', label: '海浪', Icon: Waves },
-  { value: 'forest', label: '森林', Icon: TreePine },
-  { value: 'wind', label: '风声', Icon: Wind },
-  { value: 'piano', label: '钢琴', Icon: Piano },
-];
 
-// 环境音预听 - 使用 Web Audio API 合成
-function createAmbientPreview(type: string): { start: () => void; stop: () => void } {
-  const ctx = new AudioContext();
-  let nodes: AudioNode[] = [];
-  let oscillators: OscillatorNode[] = [];
-  let timeout: ReturnType<typeof setTimeout> | null = null;
 
-  const stop = () => {
-    if (timeout) { clearTimeout(timeout); timeout = null; }
-    oscillators.forEach(o => { try { o.stop(); } catch {} });
-    nodes.forEach(n => { try { (n as any).disconnect(); } catch {} });
-    oscillators = [];
-    nodes = [];
-    try { ctx.close(); } catch {}
-  };
 
-  const start = () => {
-    stop(); // 清理之前的
-    const newCtx = new AudioContext();
-    (ctx as any) = newCtx;
-    const gain = newCtx.createGain();
-    gain.gain.value = 0.3;
-    gain.connect(newCtx.destination);
-    nodes.push(gain);
-
-    switch (type) {
-      case 'rain': {
-        // 白噪声 + 带通滤波 → 雨声
-        const bufferSize = newCtx.sampleRate * 5;
-        const buffer = newCtx.createBuffer(1, bufferSize, newCtx.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-        const source = newCtx.createBufferSource();
-        source.buffer = buffer;
-        const filter = newCtx.createBiquadFilter();
-        filter.type = 'bandpass';
-        filter.frequency.value = 3000;
-        filter.Q.value = 0.5;
-        source.connect(filter);
-        filter.connect(gain);
-        source.start();
-        // 淡入淡出
-        gain.gain.setValueAtTime(0, newCtx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.3, newCtx.currentTime + 0.3);
-        gain.gain.linearRampToValueAtTime(0, newCtx.currentTime + 4.7);
-        nodes.push(source, filter);
-        break;
-      }
-      case 'ocean': {
-        // 低频噪声 + LFO 调制 → 海浪
-        const bufferSize = newCtx.sampleRate * 5;
-        const buffer = newCtx.createBuffer(1, bufferSize, newCtx.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-        const source = newCtx.createBufferSource();
-        source.buffer = buffer;
-        const filter = newCtx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.value = 800;
-        const lfoGain = newCtx.createGain();
-        lfoGain.gain.value = 0.15;
-        const lfo = newCtx.createOscillator();
-        lfo.frequency.value = 0.15; // 缓慢起伏
-        lfo.connect(lfoGain);
-        lfoGain.connect(gain.gain);
-        source.connect(filter);
-        filter.connect(gain);
-        lfo.start();
-        source.start();
-        gain.gain.setValueAtTime(0.15, newCtx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.35, newCtx.currentTime + 0.5);
-        gain.gain.linearRampToValueAtTime(0.15, newCtx.currentTime + 4.5);
-        oscillators.push(lfo);
-        nodes.push(source, filter, lfoGain);
-        break;
-      }
-      case 'forest': {
-        // 中高频噪声（树叶）+ 鸟鸣感的高频脉冲
-        const bufferSize = newCtx.sampleRate * 5;
-        const buffer = newCtx.createBuffer(1, bufferSize, newCtx.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-        const source = newCtx.createBufferSource();
-        source.buffer = buffer;
-        const filter = newCtx.createBiquadFilter();
-        filter.type = 'bandpass';
-        filter.frequency.value = 2000;
-        filter.Q.value = 1;
-        const subGain = newCtx.createGain();
-        subGain.gain.value = 0.15;
-        source.connect(filter);
-        filter.connect(subGain);
-        subGain.connect(gain);
-        source.start();
-        // 鸟鸣：几个短促高频音
-        const birdTimes = [0.8, 1.6, 2.3, 3.1, 3.9];
-        birdTimes.forEach(t => {
-          const osc = newCtx.createOscillator();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(2200 + Math.random() * 800, newCtx.currentTime + t);
-          osc.frequency.linearRampToValueAtTime(1800 + Math.random() * 600, newCtx.currentTime + t + 0.08);
-          const birdGain = newCtx.createGain();
-          birdGain.gain.setValueAtTime(0, newCtx.currentTime + t);
-          birdGain.gain.linearRampToValueAtTime(0.12, newCtx.currentTime + t + 0.02);
-          birdGain.gain.linearRampToValueAtTime(0, newCtx.currentTime + t + 0.1);
-          osc.connect(birdGain);
-          birdGain.connect(gain);
-          osc.start(newCtx.currentTime + t);
-          osc.stop(newCtx.currentTime + t + 0.12);
-          oscillators.push(osc);
-          nodes.push(birdGain);
-        });
-        gain.gain.setValueAtTime(0.2, newCtx.currentTime);
-        nodes.push(source, filter, subGain);
-        break;
-      }
-      case 'wind': {
-        // 棕色噪声 + 低频调制 → 风声
-        const bufferSize = newCtx.sampleRate * 5;
-        const buffer = newCtx.createBuffer(1, bufferSize, newCtx.sampleRate);
-        const data = buffer.getChannelData(0);
-        let lastOut = 0;
-        for (let i = 0; i < bufferSize; i++) {
-          const white = Math.random() * 2 - 1;
-          data[i] = (lastOut + 0.02 * white) / 1.02;
-          lastOut = data[i];
-          data[i] *= 3.5;
-        }
-        const source = newCtx.createBufferSource();
-        source.buffer = buffer;
-        const filter = newCtx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.value = 500;
-        const lfoGain = newCtx.createGain();
-        lfoGain.gain.value = 0.1;
-        const lfo = newCtx.createOscillator();
-        lfo.frequency.value = 0.2;
-        lfo.connect(lfoGain);
-        lfoGain.connect(gain.gain);
-        source.connect(filter);
-        filter.connect(gain);
-        lfo.start();
-        source.start();
-        gain.gain.setValueAtTime(0.2, newCtx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.4, newCtx.currentTime + 1);
-        gain.gain.linearRampToValueAtTime(0.2, newCtx.currentTime + 4);
-        oscillators.push(lfo);
-        nodes.push(source, filter, lfoGain);
-        break;
-      }
-      case 'piano': {
-        // 简单和弦 C-E-G
-        const freqs = [261.63, 329.63, 392.00];
-        freqs.forEach(freq => {
-          const osc = newCtx.createOscillator();
-          osc.type = 'sine';
-          osc.frequency.value = freq;
-          const oscGain = newCtx.createGain();
-          oscGain.gain.setValueAtTime(0, newCtx.currentTime);
-          oscGain.gain.linearRampToValueAtTime(0.12, newCtx.currentTime + 0.05);
-          oscGain.gain.exponentialRampToValueAtTime(0.01, newCtx.currentTime + 4.5);
-          osc.connect(oscGain);
-          oscGain.connect(gain);
-          osc.start();
-          oscillators.push(osc);
-          nodes.push(oscGain);
-        });
-        // 二组和弦 A3-C4-E4 延迟进入
-        setTimeout(() => {
-          if (oscillators.length === 0) return;
-          const freqs2 = [220.00, 261.63, 329.63];
-          freqs2.forEach(freq => {
-            const osc = newCtx.createOscillator();
-            osc.type = 'sine';
-            osc.frequency.value = freq;
-            const oscGain = newCtx.createGain();
-            oscGain.gain.setValueAtTime(0, newCtx.currentTime);
-            oscGain.gain.linearRampToValueAtTime(0.08, newCtx.currentTime + 0.05);
-            oscGain.gain.exponentialRampToValueAtTime(0.01, newCtx.currentTime + 3);
-            osc.connect(oscGain);
-            oscGain.connect(gain);
-            osc.start();
-            oscillators.push(osc);
-            nodes.push(oscGain);
-          });
-        }, 2500);
-        gain.gain.setValueAtTime(0.5, newCtx.currentTime);
-        break;
-      }
-    }
-    // 5秒后自动停止
-    timeout = setTimeout(stop, 5200);
-  };
-
-  return { start, stop };
-}
 
 interface CreateRoomProps {
   onClose: () => void;
@@ -233,16 +30,12 @@ function CreateRoom({ onClose }: CreateRoomProps) {
   
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [ambientSound, setAmbientSound] = useState('silence');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [customTag, setCustomTag] = useState('');
   const [customAudio, setCustomAudio] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
-  const [previewingSound, setPreviewingSound] = useState<string | null>(null);
-  const previewRef = useRef<{ start: () => void; stop: () => void } | null>(null);
   const customAudioRef = useRef<HTMLAudioElement | null>(null);
-  const customPreviewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 切换标签选择
   const toggleTag = (tag: string) => {
@@ -251,55 +44,9 @@ function CreateRoom({ onClose }: CreateRoomProps) {
     );
   };
 
-  // 停止所有预听
-  const stopPreview = useCallback(() => {
-    if (previewRef.current) {
-      previewRef.current.stop();
-      previewRef.current = null;
-    }
-    if (customAudioRef.current) {
-      customAudioRef.current.pause();
-      customAudioRef.current.currentTime = 0;
-      customAudioRef.current = null;
-    }
-    if (customPreviewTimer.current) {
-      clearTimeout(customPreviewTimer.current);
-      customPreviewTimer.current = null;
-    }
-    setPreviewingSound(null);
-  }, []);
 
-  // 预听环境音
-  const togglePreview = useCallback((soundType: string) => {
-    stopPreview();
-    if (previewingSound === soundType) {
-      // 正在播放同一个，停止
-      return;
-    }
-    if (soundType === 'silence') return; // 静音没有声音
-    if (soundType === 'custom') {
-      if (!customAudio) return;
-      const url = URL.createObjectURL(customAudio);
-      const audio = new Audio(url);
-      customAudioRef.current = audio;
-      audio.currentTime = 0;
-      audio.volume = 0.5;
-      audio.play().catch(() => {});
-      setPreviewingSound('custom');
-      customPreviewTimer.current = setTimeout(() => {
-        audio.pause();
-        audio.currentTime = 0;
-        URL.revokeObjectURL(url);
-        customAudioRef.current = null;
-        setPreviewingSound(null);
-      }, 5000);
-      return;
-    }
-    const preview = createAmbientPreview(soundType);
-    previewRef.current = preview;
-    preview.start();
-    setPreviewingSound(soundType);
-  }, [previewingSound, customAudio, stopPreview]);
+
+
 
   // 添加自定义标签
   const addCustomTag = () => {
@@ -322,7 +69,6 @@ function CreateRoom({ onClose }: CreateRoomProps) {
         return;
       }
       setCustomAudio(file);
-      setAmbientSound('custom');
       setError('');
     }
   };
@@ -426,7 +172,7 @@ function CreateRoom({ onClose }: CreateRoomProps) {
         name: name.trim(),
         description: description.trim(),
         creator_id: userId,
-        ambient_sound: ambientSound,
+        ambient_sound: 'custom',
         custom_audio_url: customAudioUrl || null,
         tags: selectedTags,
         user_count: 1,
@@ -503,11 +249,6 @@ function CreateRoom({ onClose }: CreateRoomProps) {
     }
   };
 
-  // 组件卸载时停止预听
-  React.useEffect(() => {
-    return () => { stopPreview(); };
-  }, [stopPreview]);
-
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div 
@@ -579,56 +320,22 @@ function CreateRoom({ onClose }: CreateRoomProps) {
           </p>
         </div>
 
-        {/* 环境音选择 */}
+        {/* 音频上传说明 */}
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-color)' }}>
             <Music className="inline w-4 h-4 mr-1" />
-            环境音
+            音频（可选）
           </label>
-          <div className="grid grid-cols-3 gap-2">
-            {AMBIENT_SOUNDS.map(sound => (
-              <button
-                key={sound.value}
-                onClick={() => {
-                  setAmbientSound(sound.value);
-                  if (sound.value !== 'custom') {
-                    setCustomAudio(null);
-                  }
-                }}
-                className="p-3 rounded-xl border-2 text-sm flex flex-col items-center gap-1 transition-all relative"
-                style={{
-                  backgroundColor: ambientSound === sound.value ? 'var(--theme-primary)15' : 'var(--bg-secondary)',
-                  borderColor: ambientSound === sound.value ? 'var(--theme-primary)' : 'var(--border-color)',
-                  color: ambientSound === sound.value ? 'var(--theme-primary)' : 'var(--text-color)',
-                }}
-              >
-                <div className="flex items-center gap-1">
-                  <sound.Icon className="w-6 h-6" style={{ color: ambientSound === sound.value ? 'var(--theme-primary)' : 'var(--text-color)' }} />
-                  {sound.value !== 'silence' && (
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); togglePreview(sound.value); }}
-                      className="w-5 h-5 rounded-full flex items-center justify-center transition-all"
-                      style={{
-                        backgroundColor: previewingSound === sound.value ? 'var(--theme-primary)' : 'var(--bg-secondary)',
-                        color: previewingSound === sound.value ? 'white' : 'var(--text-secondary)',
-                      }}
-                    >
-                      {previewingSound === sound.value ? <Square className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5" />}
-                    </button>
-                  )}
-                </div>
-                <span>{sound.label}</span>
-              </button>
-            ))}
-          </div>
+          <p className="text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>
+            可以在创建房间后上传音频文件到播放列表
+          </p>
         </div>
 
-        {/* 自定义音频上传 */}
+        {/* 自定义音频上传（保留可选功能） */}
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-color)' }}>
             <Upload className="inline w-4 h-4 mr-1" />
-            自定义音频（可选）
+            上传初始音频（可选）
           </label>
           <input
             ref={fileInputRef}
@@ -649,19 +356,7 @@ function CreateRoom({ onClose }: CreateRoomProps) {
               <div className="flex items-center gap-2 w-full">
                 <Music className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--theme-primary)' }} />
                 <span className="text-sm flex-1 truncate" style={{ color: 'var(--text-color)' }}>{customAudio.name}</span>
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); togglePreview('custom'); }}
-                  className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all"
-                  style={{
-                    backgroundColor: previewingSound === 'custom' ? 'var(--theme-primary)' : 'var(--bg-secondary)',
-                    color: previewingSound === 'custom' ? 'white' : 'var(--theme-primary)',
-                    border: '1px solid var(--theme-primary)',
-                  }}
-                >
-                  {previewingSound === 'custom' ? <Square className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-                </button>
-                <span className="text-xs flex-shrink-0" style={{ color: 'var(--text-secondary)' }}>换</span>
+                <span className="text-xs flex-shrink-0" style={{ color: 'var(--text-secondary)' }}>已选择</span>
               </div>
             ) : (
               <>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Share2, Volume2, VolumeX, Moon, CloudRain, Waves, TreePine, Wind, Piano, Music, BookOpen, Brain, Flower2, HeartHandshake, Sparkles, Upload, X, Power } from 'lucide-react';
+import { ArrowLeft, Share2, Volume2, VolumeX, Moon, CloudRain, Waves, TreePine, Wind, Piano, Music, BookOpen, Brain, Flower2, HeartHandshake, Sparkles, Upload, X, Power, SkipBack, SkipForward, Play, Pause, Repeat, Shuffle, ListMusic, Trash2 } from 'lucide-react';
 
 // Service Role Key
 const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE';
@@ -16,16 +16,15 @@ const STATUS_OPTIONS = [
   { value: 'grateful', label: '感恩中', Icon: Sparkles },
 ];
 
-// 环境音配置
-const AMBIENT_SOUNDS: Record<string, { label: string; Icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; url?: string }> = {
-  silence: { label: '静音', Icon: VolumeX },
-  rain: { label: '雨声', Icon: CloudRain, url: '' },
-  ocean: { label: '海浪', Icon: Waves, url: '' },
-  forest: { label: '森林', Icon: TreePine, url: '' },
-  wind: { label: '风声', Icon: Wind, url: '' },
-  piano: { label: '钢琴', Icon: Piano, url: '' },
-  custom: { label: '自定义', Icon: Music },
-};
+// 音频轨道类型定义
+interface AudioTrack {
+  id: string;
+  name: string;
+  url: string;
+  duration?: number;
+  lyrics?: string;
+  uploaded_at: string;
+}
 
 interface Participant {
   id: string;
@@ -62,232 +61,8 @@ interface Room {
   max_display_sentences: number;
   creator_id: string;
   room_code?: number;
-}
-
-// 星空 Canvas 组件
-
-// 房间环境音合成 - 重新设计，更安静、柔和、舒适
-function createRoomAmbientSound(type: string): { start: () => void; stop: () => void } {
-  let ctx: AudioContext | null = null;
-  let nodes: AudioNode[] = [];
-  let oscillators: OscillatorNode[] = [];
-  let stopped = false;
-
-  const stop = () => {
-    stopped = true;
-    oscillators.forEach(o => { try { o.stop(); } catch {} });
-    nodes.forEach(n => { try { (n as any).disconnect(); } catch {} });
-    oscillators = [];
-    nodes = [];
-    if (ctx) { try { ctx.close(); } catch {} ctx = null; }
-  };
-
-  // 生成棕噪声（更柔和温暖）
-  const createBrownNoise = (ctx: AudioContext, bufferSize: number): AudioBufferSourceNode => {
-    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    let lastOut = 0;
-    for (let i = 0; i < bufferSize; i++) {
-      const white = Math.random() * 2 - 1;
-      data[i] = (lastOut + 0.02 * white) / 1.02;
-      lastOut = data[i];
-      data[i] *= 1.5;
-    }
-    const source = ctx.createBufferSource();
-    source.buffer = buffer;
-    source.loop = true;
-    return source;
-  };
-
-  // 生成粉红噪声（比白噪声更柔和）
-  const createPinkNoise = (ctx: AudioContext, bufferSize: number): AudioBufferSourceNode => {
-    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
-    for (let i = 0; i < bufferSize; i++) {
-      const white = Math.random() * 2 - 1;
-      b0 = 0.99886 * b0 + white * 0.0555179;
-      b1 = 0.99332 * b1 + white * 0.0750759;
-      b2 = 0.96900 * b2 + white * 0.1538520;
-      b3 = 0.86650 * b3 + white * 0.3104856;
-      b4 = 0.55000 * b4 + white * 0.5329522;
-      b5 = -0.7616 * b5 - white * 0.0168980;
-      data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
-      b6 = white * 0.115926;
-    }
-    const source = ctx.createBufferSource();
-    source.buffer = buffer;
-    source.loop = true;
-    return source;
-  };
-
-  const start = () => {
-    if (stopped) return;
-    ctx = new AudioContext();
-    const gain = ctx.createGain();
-    gain.gain.value = 0.0;
-    gain.connect(ctx.destination);
-    nodes.push(gain);
-
-    switch (type) {
-      case 'rain': {
-        // 棕噪声 + 低通滤波 → 远处温柔的淅沥雨声
-        const bufferSize = ctx.sampleRate * 10;
-        const source = createBrownNoise(ctx, bufferSize);
-        const filter = ctx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.value = 300; // 切掉高频，变成远处温柔的雨声
-        filter.Q.value = 0.3;
-        
-        // 极慢的音量起伏，模拟远处的阵雨
-        const lfoGain = ctx.createGain();
-        lfoGain.gain.value = 0.02;
-        const lfo = ctx.createOscillator();
-        lfo.type = 'sine';
-        lfo.frequency.value = 0.05; // 极慢 LFO
-        lfo.connect(lfoGain);
-        lfoGain.connect(gain.gain);
-        
-        source.connect(filter);
-        filter.connect(gain);
-        source.start();
-        lfo.start();
-        gain.gain.setValueAtTime(0.06, ctx.currentTime); // 极低音量
-        oscillators.push(lfo);
-        nodes.push(source, filter, lfo, lfoGain);
-        break;
-      }
-      case 'ocean': {
-        // 棕噪声 + 低通滤波 → 远处温柔的潮汐
-        const bufferSize = ctx.sampleRate * 10;
-        const source = createBrownNoise(ctx, bufferSize);
-        const filter = ctx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.value = 350;
-        filter.Q.value = 0.3;
-        
-        // 极慢的音量起伏，模拟远处温柔的潮汐
-        const lfoGain = ctx.createGain();
-        lfoGain.gain.value = 0.02;
-        const lfo = ctx.createOscillator();
-        lfo.type = 'sine';
-        lfo.frequency.value = 0.04; // 更慢的LFO
-        lfo.connect(lfoGain);
-        lfoGain.connect(gain.gain);
-        
-        source.connect(filter);
-        filter.connect(gain);
-        source.start();
-        lfo.start();
-        gain.gain.setValueAtTime(0.05, ctx.currentTime); // 极低音量
-        oscillators.push(lfo);
-        nodes.push(source, filter, lfo, lfoGain);
-        break;
-      }
-      case 'forest': {
-        // 极轻的棕噪声底噪模拟树叶沙沙
-        const bufferSize = ctx.sampleRate * 10;
-        const source = createBrownNoise(ctx, bufferSize);
-        const filter = ctx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.value = 600;
-        filter.Q.value = 0.5;
-        const subGain = ctx.createGain();
-        subGain.gain.value = 0.03; // 极低音量
-        source.connect(filter);
-        filter.connect(subGain);
-        subGain.connect(gain);
-        source.start();
-        
-        // 偶尔播放一个极柔和的单音（像远处的风铃）
-        const playChime = () => {
-          if (stopped || !ctx) return;
-          const osc = ctx.createOscillator();
-          osc.type = 'sine';
-          const freq = 600 + Math.random() * 300; // 600-900Hz，柔和的音高
-          osc.frequency.value = freq;
-          const chimeGain = ctx.createGain();
-          chimeGain.gain.setValueAtTime(0, ctx.currentTime);
-          chimeGain.gain.linearRampToValueAtTime(0.02, ctx.currentTime + 0.5); // 极低音量
-          chimeGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 2); // 8秒缓慢衰减
-          osc.connect(chimeGain);
-          chimeGain.connect(gain);
-          osc.start();
-          osc.stop(ctx.currentTime + 2);
-          // 8-15秒后再次播放
-          setTimeout(playChime, 8000 + Math.random() * 7000);
-        };
-        setTimeout(playChime, 2000);
-        gain.gain.setValueAtTime(0.03, ctx.currentTime);
-        nodes.push(source, filter, subGain);
-        break;
-      }
-      case 'wind': {
-        // 粉红噪声 + 极低低通滤波
-        const bufferSize = ctx.sampleRate * 10;
-        const source = createPinkNoise(ctx, bufferSize);
-        const filter = ctx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.value = 200; // 极低截止频率
-        filter.Q.value = 0.3;
-        
-        // 极慢的呼吸感
-        const lfoGain = ctx.createGain();
-        lfoGain.gain.value = 0.02;
-        const lfo = ctx.createOscillator();
-        lfo.type = 'sine';
-        lfo.frequency.value = 0.03; // 极慢LFO
-        lfo.connect(lfoGain);
-        lfoGain.connect(gain.gain);
-        
-        source.connect(filter);
-        filter.connect(gain);
-        source.start();
-        lfo.start();
-        gain.gain.setValueAtTime(0.05, ctx.currentTime); // 极低音量
-        oscillators.push(lfo);
-        nodes.push(source, filter, lfo, lfoGain);
-        break;
-      }
-      case 'piano': {
-        // 更安静的钢琴设计：低八度和弦 + 三角波 + 极慢衰减
-        const playChord = () => {
-          if (stopped || !ctx) return;
-          // 使用小调和弦营造安静冥想感（降低八度）
-          const chords = [
-            [130.81, 164.81, 196.00],  // C3/E3/G3 - Am chord 低八度
-            [146.83, 174.61, 220.00],  // D3/F3/A3 - Dm chord
-            [164.81, 196.00, 246.94],  // E3/G3/B3 - Em chord
-            [174.61, 220.00, 261.63],  // F3/A3/C4 - Fm chord (用F大调感觉)
-          ];
-          const chordIdx = Math.floor(Math.random() * chords.length);
-          const freqs = chords[chordIdx];
-          freqs.forEach(freq => {
-            const osc = ctx!.createOscillator();
-            osc.type = 'triangle'; // 三角波更温暖
-            osc.frequency.value = freq;
-            const oscGain = ctx!.createGain();
-            oscGain.gain.setValueAtTime(0, ctx!.currentTime);
-            oscGain.gain.linearRampToValueAtTime(0.03, ctx!.currentTime + 0.5); // 慢起
-            oscGain.gain.exponentialRampToValueAtTime(0.001, ctx!.currentTime + 8); // 8秒衰减
-            osc.connect(oscGain);
-            oscGain.connect(gain);
-            osc.start();
-            osc.stop(ctx!.currentTime + 8.5);
-            oscillators.push(osc);
-            nodes.push(oscGain);
-          });
-          // 和弦间隔拉长到8-12秒
-          setTimeout(playChord, 8000 + Math.random() * 4000);
-        };
-        playChord();
-        gain.gain.setValueAtTime(0.03, ctx.currentTime); // 极低音量
-        break;
-      }
-    }
-  };
-
-  return { start, stop };
+  audio_tracks?: AudioTrack[];
+  last_activity_at?: string;
 }
 
 // 星空 Canvas 组件
@@ -647,7 +422,6 @@ function SilentRoom() {
   const [showSentenceInput, setShowSentenceInput] = useState(false);
   const [sentenceText, setSentenceText] = useState('');
   const [isMuted, setIsMuted] = useState(false);
-  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [userId, setUserId] = useState<string | null>(null);
@@ -655,10 +429,19 @@ function SilentRoom() {
   const [showDisbandConfirm, setShowDisbandConfirm] = useState(false);
   const [isDisbanding, setIsDisbanding] = useState(false);
   const [uploadingAudio, setUploadingAudio] = useState(false);
-  const audioUploadRef = useRef<HTMLInputElement>(null);
+  const [uploadProgress, setUploadProgress] = useState<string>('');
+  const [showLyricsInput, setShowLyricsInput] = useState<string | null>(null);
+  const [lyricsText, setLyricsText] = useState('');
+  
+  // 音频播放状态
+  const [audioTracks, setAudioTracks] = useState<AudioTrack[]>([]);
+  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playMode, setPlayMode] = useState<'list' | 'single' | 'shuffle'>('list');
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const ambientNodesRef = useRef<{ start: () => void; stop: () => void } | null>(null);
+  const audioUploadRef = useRef<HTMLInputElement>(null);
+  const playerRef = useRef<HTMLAudioElement | null>(null);
 
   // 获取当前用户ID
   useEffect(() => {
@@ -685,7 +468,12 @@ function SilentRoom() {
       if (!res.ok) throw new Error('房间不存在');
       const data = await res.json();
       if (data.length === 0) throw new Error('房间不存在');
-      setRoom(data[0]);
+      const roomData = data[0];
+      setRoom(roomData);
+      // 设置音频轨道
+      if (roomData.audio_tracks && Array.isArray(roomData.audio_tracks)) {
+        setAudioTracks(roomData.audio_tracks);
+      }
     } catch (err: any) {
       setError(err.message);
     }
@@ -861,36 +649,110 @@ function SilentRoom() {
     }
   }, [roomId, userId, currentStatus]);
 
-  // 播放环境音 - 使用 Web Audio API 合成 + 循环播放
-  const playAmbientSound = useCallback((soundType: string, customUrl?: string) => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
+  // 音频播放控制 - 根据轨道列表播放
+  const playTrack = useCallback((trackUrl?: string) => {
+    if (isMuted || audioTracks.length === 0) return;
+    
+    const url = trackUrl || audioTracks[currentTrackIndex]?.url;
+    if (!url) return;
+    
+    // 停止之前的播放
+    if (playerRef.current) {
+      playerRef.current.pause();
+      playerRef.current = null;
     }
-    // 停止之前的合成音
-    if (ambientNodesRef.current) {
-      try { ambientNodesRef.current.stop(); } catch {}
-      ambientNodesRef.current = null;
+    
+    const audio = new Audio(url);
+    audio.volume = 0.5;
+    
+    audio.onended = () => {
+      if (playMode === 'single') {
+        // 单曲循环
+        playTrack(url);
+      } else if (playMode === 'shuffle') {
+        // 随机播放下一首
+        let nextIndex = Math.floor(Math.random() * audioTracks.length);
+        if (nextIndex === currentTrackIndex && audioTracks.length > 1) {
+          nextIndex = (nextIndex + 1) % audioTracks.length;
+        }
+        setCurrentTrackIndex(nextIndex);
+        playTrack(audioTracks[nextIndex].url);
+      } else {
+        // 列表循环
+        const nextIndex = (currentTrackIndex + 1) % audioTracks.length;
+        setCurrentTrackIndex(nextIndex);
+        if (nextIndex === 0 && !isPlaying) {
+          setIsPlaying(false);
+        } else {
+          playTrack(audioTracks[nextIndex].url);
+        }
+      }
+    };
+    
+    audio.onerror = () => {
+      console.error('Audio playback error');
+      setIsPlaying(false);
+    };
+    
+    playerRef.current = audio;
+    audio.play().catch(() => {});
+    setIsPlaying(true);
+  }, [isMuted, audioTracks, currentTrackIndex, playMode, isPlaying]);
+
+  const pauseTrack = useCallback(() => {
+    if (playerRef.current) {
+      playerRef.current.pause();
+      setIsPlaying(false);
     }
+  }, []);
 
-    if (soundType === 'silence' || isMuted) return;
-
-    // 自定义音频：使用 HTML Audio 元素播放
-    if (soundType === 'custom' && customUrl) {
-      const audio = new Audio(customUrl);
-      audio.loop = true; // 单曲循环
-      audio.volume = 0.3;
-      audio.play().catch(() => {});
-      audioRef.current = audio;
-      setCurrentAudio(audio);
-      return;
+  const togglePlayPause = useCallback(() => {
+    if (isPlaying) {
+      pauseTrack();
+    } else {
+      if (audioTracks.length > 0 && !playerRef.current) {
+        playTrack();
+      } else if (playerRef.current) {
+        playerRef.current.play().catch(() => {});
+        setIsPlaying(true);
+      }
     }
+  }, [isPlaying, pauseTrack, playTrack, audioTracks]);
 
-    // 内置音效：使用 Web Audio API 合成（无限循环直到离开房间）
-    const preview = createRoomAmbientSound(soundType);
-    ambientNodesRef.current = preview;
-    preview.start();
-  }, [isMuted]);
+  const playPrevious = useCallback(() => {
+    if (audioTracks.length === 0) return;
+    const newIndex = currentTrackIndex === 0 ? audioTracks.length - 1 : currentTrackIndex - 1;
+    setCurrentTrackIndex(newIndex);
+    if (isPlaying) {
+      setTimeout(() => playTrack(audioTracks[newIndex].url), 100);
+    }
+  }, [audioTracks, currentTrackIndex, isPlaying, playTrack]);
+
+  const playNext = useCallback(() => {
+    if (audioTracks.length === 0) return;
+    const newIndex = (currentTrackIndex + 1) % audioTracks.length;
+    setCurrentTrackIndex(newIndex);
+    if (isPlaying) {
+      setTimeout(() => playTrack(audioTracks[newIndex].url), 100);
+    }
+  }, [audioTracks, currentTrackIndex, isPlaying, playTrack]);
+
+  const cyclePlayMode = useCallback(() => {
+    setPlayMode(prev => {
+      if (prev === 'list') return 'single';
+      if (prev === 'single') return 'shuffle';
+      return 'list';
+    });
+  }, []);
+
+  // 播放环境音 - 简化为静音控制
+  const playAmbientSound = useCallback(() => {
+    if (isMuted) {
+      pauseTrack();
+    } else if (audioTracks.length > 0) {
+      playTrack();
+    }
+  }, [isMuted, pauseTrack, playTrack, audioTracks.length]);
 
   // 初始化
   useEffect(() => {
@@ -914,8 +776,38 @@ function SilentRoom() {
       fetchSentences();
     }, 10000);
 
-    // 每60秒心跳
-    const heartbeatInterval = setInterval(sendHeartbeat, 60000);
+    // 每60秒心跳 + 检查房间是否应解散
+    const heartbeatInterval = setInterval(async () => {
+      sendHeartbeat();
+      
+      // 检查房间是否应该解散（1小时无人）
+      try {
+        const res = await fetch(
+          `/sb-api/rest/v1/rooms?id=eq.${roomId}&select=last_activity_at,user_count`,
+          {
+            headers: {
+              'apikey': SERVICE_ROLE_KEY,
+              'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+            },
+          }
+        );
+        const rooms = await res.json();
+        if (rooms.length > 0) {
+          const roomData = rooms[0];
+          const lastActivity = roomData.last_activity_at ? new Date(roomData.last_activity_at).getTime() : 0;
+          const oneHourAgo = Date.now() - 60 * 60 * 1000;
+          if (roomData.user_count === 0 && lastActivity < oneHourAgo) {
+            // 解散房间
+            await fetch(`/sb-api/rest/v1/room_participants?room_id=eq.${roomId}`, { method: 'DELETE', headers: { 'apikey': SERVICE_ROLE_KEY, 'Authorization': `Bearer ${SERVICE_ROLE_KEY}` } });
+            await fetch(`/sb-api/rest/v1/room_sentences?room_id=eq.${roomId}`, { method: 'DELETE', headers: { 'apikey': SERVICE_ROLE_KEY, 'Authorization': `Bearer ${SERVICE_ROLE_KEY}` } });
+            await fetch(`/sb-api/rest/v1/rooms?id=eq.${roomId}`, { method: 'DELETE', headers: { 'apikey': SERVICE_ROLE_KEY, 'Authorization': `Bearer ${SERVICE_ROLE_KEY}` } });
+            navigate('/');
+          }
+        }
+      } catch (err) {
+        console.error('Failed to check room cleanup:', err);
+      }
+    }, 60000);
 
     // 页面关闭/刷新时离开房间
     const handleBeforeUnload = () => {
@@ -939,25 +831,23 @@ function SilentRoom() {
       clearInterval(dataInterval);
       clearInterval(heartbeatInterval);
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-      if (ambientNodesRef.current) {
-        ambientNodesRef.current.stop();
+      if (playerRef.current) {
+        playerRef.current.pause();
+        playerRef.current = null;
       }
     };
   }, [roomId, userId]);
 
-  // 播放环境音
+  // 播放环境音 - 当房间数据加载时自动播放
   useEffect(() => {
-    if (room) {
+    if (room && audioTracks.length > 0 && !isMuted) {
       try {
-        playAmbientSound(room.ambient_sound, room.custom_audio_url);
+        playTrack();
       } catch (err) {
-        console.error('Failed to play ambient sound:', err);
+        console.error('Failed to play audio:', err);
       }
     }
-  }, [room, playAmbientSound]);
+  }, [room, audioTracks.length, isMuted, playTrack]);
 
   // 同步房间在线人数到 rooms 表
   useEffect(() => {
@@ -1035,71 +925,163 @@ function SilentRoom() {
     });
   };
 
-  // 切换房间环境音（房主专属）
-  const changeRoomSound = async (soundType: string, customUrl?: string) => {
+  // 上传自定义音频（支持多文件）
+  const handleAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !roomId || room?.creator_id !== userId) return;
+    
+    // 检查文件大小
+    for (const file of files) {
+      if (file.size > 20 * 1024 * 1024) {
+        alert(`文件 ${file.name} 超过20MB限制`);
+        return;
+      }
+      if (!file.type.startsWith('audio/')) {
+        alert(`文件 ${file.name} 不是音频文件`);
+        return;
+      }
+    }
+    
+    setUploadingAudio(true);
+    setUploadProgress(`上传中 0/${files.length}...`);
+    
+    const newTracks: AudioTrack[] = [];
+    
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        setUploadProgress(`上传中 ${i + 1}/${files.length}...`);
+        
+        const arrayBuffer = await file.arrayBuffer();
+        const fileName = `${Date.now()}_${file.name}`;
+        
+        const uploadRes = await fetch(
+          `/sb-storage/v1/object/room-audio/${roomId}/${fileName}`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+              'Content-Type': file.type || 'audio/mpeg',
+              'x-upsert': 'true',
+            },
+            body: arrayBuffer,
+          }
+        );
+
+        if (!uploadRes.ok) {
+          console.error('Failed to upload:', file.name);
+          continue;
+        }
+
+        const audioUrl = `${SUPABASE_URL}/storage/v1/object/public/room-audio/${roomId}/${fileName}`;
+        
+        // 获取音频时长
+        const duration = await new Promise<number>((resolve) => {
+          const audio = new Audio(audioUrl);
+          audio.onloadedmetadata = () => resolve(audio.duration);
+          audio.onerror = () => resolve(0);
+        });
+        
+        newTracks.push({
+          id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          name: file.name.replace(/\.[^/.]+$/, ''),
+          url: audioUrl,
+          duration: duration || undefined,
+          uploaded_at: new Date().toISOString(),
+        });
+      }
+      
+      if (newTracks.length > 0) {
+        // 更新音频轨道列表
+        const updatedTracks = [...audioTracks, ...newTracks];
+        setAudioTracks(updatedTracks);
+        
+        // 更新数据库
+        await updateAudioTracksInRoom(updatedTracks);
+        
+        // 如果是第一个轨道，自动播放
+        if (audioTracks.length === 0) {
+          setCurrentTrackIndex(0);
+          setIsPlaying(true);
+          playTrack(newTracks[0].url);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to upload audio:', err);
+      alert('音频上传失败');
+    } finally {
+      setUploadingAudio(false);
+      setUploadProgress('');
+      // 清空 input 以便重新选择同一文件
+      if (audioUploadRef.current) {
+        audioUploadRef.current.value = '';
+      }
+    }
+  };
+  
+  // 更新房间的 audio_tracks 字段
+  const updateAudioTracksInRoom = async (tracks: AudioTrack[]) => {
     if (!roomId || room?.creator_id !== userId) return;
     
     try {
-      await fetch(`/sb-api/rest/v1/rooms?id=eq.${roomId}`, {
+      const res = await fetch(`/sb-api/rest/v1/rooms?id=eq.${roomId}`, {
         method: 'PATCH',
         headers: {
           'apikey': SERVICE_ROLE_KEY,
           'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ambient_sound: soundType,
-          custom_audio_url: customUrl || null,
-        }),
+        body: JSON.stringify({ audio_tracks: tracks }),
       });
       
-      setRoom(prev => prev ? { ...prev, ambient_sound: soundType, custom_audio_url: customUrl || null } : null);
-      setShowSoundPanel(false);
+      if (res.ok) {
+        setRoom(prev => prev ? { ...prev, audio_tracks: tracks } : null);
+      } else {
+        // audio_tracks 列可能不存在，忽略错误
+        console.warn('audio_tracks update failed, column may not exist');
+      }
     } catch (err) {
-      console.error('Failed to change room sound:', err);
+      console.error('Failed to update audio tracks:', err);
     }
   };
-
-  // 上传自定义音频
-  const handleAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !roomId || room?.creator_id !== userId) return;
+  
+  // 删除音频轨道
+  const deleteAudioTrack = async (trackId: string) => {
+    if (!roomId || room?.creator_id !== userId) return;
     
-    if (file.size > 10 * 1024 * 1024) {
-      alert('音频文件不能超过10MB');
-      return;
-    }
+    const updatedTracks = audioTracks.filter(t => t.id !== trackId);
+    setAudioTracks(updatedTracks);
     
-    setUploadingAudio(true);
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      const fileName = `${Date.now()}_${file.name}`;
-      
-      const uploadRes = await fetch(
-        `/sb-storage/v1/object/room-audio/${roomId}/${fileName}`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
-            'Content-Type': file.type || 'audio/mpeg',
-            'x-upsert': 'true',
-          },
-          body: arrayBuffer,
+    // 如果删除的是当前播放的曲目
+    const deletedIndex = audioTracks.findIndex(t => t.id === trackId);
+    if (deletedIndex !== -1) {
+      if (deletedIndex < currentTrackIndex) {
+        setCurrentTrackIndex(prev => prev - 1);
+      } else if (deletedIndex === currentTrackIndex) {
+        pauseTrack();
+        if (updatedTracks.length > 0) {
+          const newIndex = Math.min(currentTrackIndex, updatedTracks.length - 1);
+          setCurrentTrackIndex(newIndex);
+        } else {
+          setCurrentTrackIndex(0);
         }
-      );
-
-      if (!uploadRes.ok) {
-        throw new Error('音频上传失败');
       }
-
-      const customAudioUrl = `${SUPABASE_URL}/storage/v1/object/public/room-audio/${roomId}/${fileName}`;
-      await changeRoomSound('custom', customAudioUrl);
-    } catch (err) {
-      console.error('Failed to upload audio:', err);
-      alert('音频上传失败');
-    } finally {
-      setUploadingAudio(false);
     }
+    
+    await updateAudioTracksInRoom(updatedTracks);
+  };
+  
+  // 添加歌词
+  const addLyricsToTrack = async (trackId: string, lyrics: string) => {
+    if (!roomId || room?.creator_id !== userId) return;
+    
+    const updatedTracks = audioTracks.map(t => 
+      t.id === trackId ? { ...t, lyrics } : t
+    );
+    setAudioTracks(updatedTracks);
+    await updateAudioTracksInRoom(updatedTracks);
+    setShowLyricsInput(null);
+    setLyricsText('');
   };
 
   // 移除过期的句子
@@ -1215,10 +1197,17 @@ function SilentRoom() {
       {showSoundPanel && (
         <div className="absolute top-28 right-4 z-20 w-72 p-4 rounded-2xl backdrop-blur-md" style={{ backgroundColor: 'rgba(30, 30, 50, 0.95)' }}>
           {/* 顶部静音切换 */}
+          {/* 静音控制 */}
           <div className="flex items-center justify-between mb-4">
-            <span className="text-white/80 text-sm">声音</span>
+            <span className="text-white/80 text-sm">音频播放</span>
             <button
-              onClick={() => setIsMuted(!isMuted)}
+              onClick={() => {
+                if (!isMuted && playerRef.current) {
+                  pauseTrack();
+                } else {
+                  togglePlayPause();
+                }
+              }}
               className="flex items-center gap-2 px-3 py-1.5 rounded-full transition-all"
               style={{
                 backgroundColor: isMuted ? 'rgba(255, 255, 255, 0.1)' : 'rgba(225, 29, 72, 0.3)',
@@ -1226,63 +1215,109 @@ function SilentRoom() {
             >
               {isMuted ? (
                 <VolumeX className="w-4 h-4 text-white/60" />
-              ) : (
+              ) : isPlaying ? (
                 <Volume2 className="w-4 h-4 text-white" />
+              ) : (
+                <Volume2 className="w-4 h-4 text-white/60" />
               )}
-              <span className="text-xs text-white/70">{isMuted ? '静音' : '开启'}</span>
+              <span className="text-xs text-white/70">
+                {isMuted ? '静音' : isPlaying ? '播放中' : '已暂停'}
+              </span>
             </button>
           </div>
           
-          {/* 房主专属功能 */}
+          {/* 播放列表 */}
+          <div className="border-t border-white/10 pt-3 mb-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-white/50 text-xs font-medium flex items-center gap-1">
+                <ListMusic className="w-3.5 h-3.5" />
+                播放列表
+              </div>
+              <span className="text-white/30 text-xs">{audioTracks.length} 首</span>
+            </div>
+            
+            {audioTracks.length === 0 ? (
+              <div className="text-white/30 text-xs text-center py-4">
+                暂无音频，上传音频开始播放
+              </div>
+            ) : (
+              <div className="max-h-40 overflow-y-auto space-y-1">
+                {audioTracks.map((track, index) => (
+                  <div
+                    key={track.id}
+                    className="flex items-center gap-2 p-2 rounded-lg transition-all"
+                    style={{
+                      backgroundColor: currentTrackIndex === index && isPlaying 
+                        ? 'rgba(225, 29, 72, 0.2)' 
+                        : 'rgba(255, 255, 255, 0.05)',
+                      border: currentTrackIndex === index ? '1px solid rgba(225, 29, 72, 0.5)' : '1px solid transparent',
+                    }}
+                  >
+                    <button
+                      onClick={() => {
+                        setCurrentTrackIndex(index);
+                        if (!isMuted) {
+                          playTrack(track.url);
+                        }
+                      }}
+                      className="flex-1 text-left"
+                    >
+                      <div className="text-xs text-white/80 truncate">{track.name}</div>
+                      {track.duration && (
+                        <div className="text-xs text-white/40">
+                          {Math.floor(track.duration / 60)}:{String(Math.floor(track.duration % 60)).padStart(2, '0')}
+                        </div>
+                      )}
+                    </button>
+                    {room?.creator_id === userId && (
+                      <>
+                        <button
+                          onClick={() => setShowLyricsInput(track.id)}
+                          className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                          title="添加歌词"
+                        >
+                          <Music className="w-3.5 h-3.5 text-white/40" />
+                        </button>
+                        <button
+                          onClick={() => deleteAudioTrack(track.id)}
+                          className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                          title="删除"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-white/40" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          {/* 房主专属：上传音频 */}
           {room?.creator_id === userId && (
             <>
-              <div className="border-t border-white/10 pt-3 mb-3">
-                <div className="text-white/50 text-xs mb-2 font-medium">选择环境音</div>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { value: 'silence', label: '静音', Icon: VolumeX },
-                    { value: 'rain', label: '雨声', Icon: CloudRain },
-                    { value: 'ocean', label: '海浪', Icon: Waves },
-                    { value: 'forest', label: '森林', Icon: TreePine },
-                    { value: 'wind', label: '风声', Icon: Wind },
-                    { value: 'piano', label: '钢琴', Icon: Piano },
-                  ].map(sound => (
-                    <button
-                      key={sound.value}
-                      onClick={() => changeRoomSound(sound.value)}
-                      className="flex flex-col items-center gap-1 p-2 rounded-xl transition-all"
-                      style={{
-                        backgroundColor: room.ambient_sound === sound.value ? 'rgba(225, 29, 72, 0.3)' : 'rgba(255, 255, 255, 0.1)',
-                        border: room.ambient_sound === sound.value ? '1px solid #E11D48' : '1px solid transparent',
-                      }}
-                    >
-                      <sound.Icon className="w-5 h-5 text-white" />
-                      <span className="text-xs text-white/70">{sound.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              
               <div className="border-t border-white/10 pt-3 mb-3">
                 <input
                   type="file"
                   ref={audioUploadRef}
                   accept="audio/*"
+                  multiple
                   onChange={handleAudioUpload}
                   className="hidden"
                 />
                 <button
                   onClick={() => audioUploadRef.current?.click()}
                   disabled={uploadingAudio}
-                  className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-sm transition-all"
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm transition-all"
                   style={{
-                    backgroundColor: room.ambient_sound === 'custom' ? 'rgba(225, 29, 72, 0.3)' : 'rgba(255, 255, 255, 0.1)',
-                    border: room.ambient_sound === 'custom' ? '1px solid #E11D48' : '1px solid transparent',
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
                     opacity: uploadingAudio ? 0.6 : 1,
                   }}
                 >
                   <Upload className="w-4 h-4 text-white" />
-                  <span className="text-white/70">{uploadingAudio ? '上传中...' : '上传自定义音频'}</span>
+                  <span className="text-white/70">
+                    {uploadingAudio ? uploadProgress || '上传中...' : '上传音频文件'}
+                  </span>
                 </button>
               </div>
               
@@ -1296,6 +1331,47 @@ function SilentRoom() {
                 </button>
               </div>
             </>
+          )}
+          
+          {/* 歌词输入弹窗 */}
+          {showLyricsInput && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+              <div className="w-80 p-4 rounded-2xl" style={{ backgroundColor: 'rgba(30, 30, 50, 0.98)' }}>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-white text-sm font-medium">添加歌词</span>
+                  <button onClick={() => { setShowLyricsInput(null); setLyricsText(''); }}>
+                    <X className="w-4 h-4 text-white/40" />
+                  </button>
+                </div>
+                <textarea
+                  value={lyricsText}
+                  onChange={e => setLyricsText(e.target.value)}
+                  placeholder="粘贴歌词文本..."
+                  className="w-full h-32 p-2 rounded-lg text-sm resize-none"
+                  style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    color: 'white',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                  }}
+                />
+                <div className="flex gap-2 mt-3">
+                  <button
+                    onClick={() => { setShowLyricsInput(null); setLyricsText(''); }}
+                    className="flex-1 py-2 rounded-lg text-sm text-white/60"
+                    style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={() => addLyricsToTrack(showLyricsInput, lyricsText)}
+                    className="flex-1 py-2 rounded-lg text-sm text-white"
+                    style={{ backgroundColor: '#E11D48' }}
+                  >
+                    保存
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
           
           {/* 关闭按钮 */}
@@ -1342,6 +1418,73 @@ function SilentRoom() {
         </div>
       )}
 
+      {/* 迷你播放控制栏 - 仅房主可见 */}
+      {audioTracks.length > 0 && room?.creator_id === userId && (
+        <div className="absolute bottom-36 left-0 right-0 z-10 px-4">
+          <div className="max-w-md mx-auto">
+            {/* 歌词显示区域 */}
+            {audioTracks[currentTrackIndex]?.lyrics && (
+              <div className="mb-2 px-4 py-1 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}>
+                <div className="overflow-hidden whitespace-nowrap">
+                  <span className="text-xs text-white/60 animate-marquee inline-block">
+                    {audioTracks[currentTrackIndex].lyrics}
+                  </span>
+                </div>
+              </div>
+            )}
+            {/* 播放控制栏 */}
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full" style={{ backgroundColor: 'rgba(30, 30, 50, 0.9)' }}>
+              <button
+                onClick={playPrevious}
+                className="p-2 rounded-full hover:bg-white/10 transition-colors"
+              >
+                <SkipBack className="w-4 h-4 text-white/70" />
+              </button>
+              <button
+                onClick={togglePlayPause}
+                className="p-3 rounded-full" 
+                style={{ backgroundColor: '#E11D48' }}
+              >
+                {isPlaying ? (
+                  <Pause className="w-5 h-5 text-white" />
+                ) : (
+                  <Play className="w-5 h-5 text-white" />
+                )}
+              </button>
+              <button
+                onClick={playNext}
+                className="p-2 rounded-full hover:bg-white/10 transition-colors"
+              >
+                <SkipForward className="w-4 h-4 text-white/70" />
+              </button>
+              <div className="flex-1 px-2 min-w-0">
+                <div className="text-xs text-white/90 truncate">{audioTracks[currentTrackIndex]?.name || '未选择'}</div>
+              </div>
+              <button
+                onClick={cyclePlayMode}
+                className="p-2 rounded-full hover:bg-white/10 transition-colors"
+                title={playMode === 'list' ? '列表循环' : playMode === 'single' ? '单曲循环' : '随机播放'}
+              >
+                {playMode === 'list' && <Repeat className="w-4 h-4 text-white/50" />}
+                {playMode === 'single' && <Repeat className="w-4 h-4 text-white" style={{ transform: 'scale(1.2)' }} />}
+                {playMode === 'shuffle' && <Shuffle className="w-4 h-4 text-white" />}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* 歌词 marquee 动画样式 */}
+      <style>{`
+        @keyframes marquee {
+          0% { transform: translateX(100%); }
+          100% { transform: translateX(-100%); }
+        }
+        .animate-marquee {
+          animation: marquee 20s linear infinite;
+        }
+      `}</style>
+
       {/* 底部操作栏 */}
       <div className="absolute bottom-0 left-0 right-0 z-10 p-4 pb-8">
         <div className="max-w-md mx-auto">
@@ -1379,7 +1522,7 @@ function SilentRoom() {
                     style={{ 
                       backgroundColor: 'rgba(255, 255, 255, 0.15)',
                       color: 'white',
-                      border: sentenceText.length >= 30 ? '2px solid #ef4444' : '2px solid transparent',
+                      border: sentenceText.length >= 60 ? '2px solid #ef4444' : '2px solid transparent',
                     }}
                     autoFocus
                     onKeyDown={e => e.key === 'Enter' && sendSentence()}
@@ -1404,11 +1547,11 @@ function SilentRoom() {
                   <span 
                     className="text-xs px-2 py-0.5 rounded-full backdrop-blur-sm"
                     style={{ 
-                      backgroundColor: sentenceText.length >= 30 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255, 255, 255, 0.1)',
-                      color: sentenceText.length >= 30 ? '#fca5a5' : 'rgba(255, 255, 255, 0.5)',
+                      backgroundColor: sentenceText.length >= 60 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+                      color: sentenceText.length >= 60 ? '#fca5a5' : 'rgba(255, 255, 255, 0.5)',
                     }}
                   >
-                    {sentenceText.length}/30
+                    {sentenceText.length}/60
                   </span>
                 </div>
               </div>
