@@ -5,7 +5,7 @@ import {
   ArrowLeft, Send, Loader2, Mic, Smile, Plus, 
   Image, Camera, FileText, BookOpen,
   X, ChevronDown, Volume2, Heart, Laugh, Frown, Angry, Sun, Moon, CloudRain, Wind, Star, ThumbsUp, Flame, MessageCircle, Sparkles,
-  Landmark, Bird, Award, HeartHandshake, Mountain, Compass, Shield, GitBranch, Handshake,
+  Landmark, Bird, Award, HeartHandshake, Mountain, Compass, Shield, GitBranch,
   Cross, Church, Feather, Scroll, Footprints, Globe, Eye, Lightbulb, Key, 
   Sunrise, CloudSun, CloudMoon, Snowflake, Flower2, TreePine, Scale, Waves,
   Signpost, Gift, Route, Flag
@@ -55,7 +55,7 @@ const EMOJI_ICONS = [
   
   // 🤝 关系与使命
   { icon: <HeartHandshake className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🤝', label: '和解' },
-  { icon: <Handshake className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🫱', label: '团契' },
+  { icon: <HeartHandshake className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🫱', label: '团契' },
   { icon: <MessageCircle className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '💬', label: '对话' },
   { icon: <Globe className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🌍', label: '普世' },
   { icon: <Scale className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '⚖️', label: '公义' },
@@ -819,7 +819,7 @@ function PrivateChat() {
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full">
-            <div className="mb-4"><Handshake className="w-10 h-10" style={{ color: PRIMARY_COLOR }} /></div>
+            <div className="mb-4"><HeartHandshake className="w-10 h-10" style={{ color: PRIMARY_COLOR }} /></div>
             <p className="text-base" style={{ color: textSecondary }}>
               You are already friends, let's start chatting
             </p>
