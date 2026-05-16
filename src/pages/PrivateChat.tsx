@@ -5,7 +5,7 @@ import {
   ArrowLeft, Send, Loader2, Mic, Smile, Plus, 
   Image, Camera, FileText, BookOpen,
   X, ChevronDown, Volume2, Heart, Laugh, Frown, Angry, Sun, Moon, CloudRain, Wind, Star, ThumbsUp, Flame, MessageCircle, Sparkles,
-  Landmark, Bird, Award, HeartHandshake, Mountain, Compass, Shield, GitBranch
+  Landmark, Bird, Award, HeartHandshake, Mountain, Compass, Shield, GitBranch, Handshake
 } from 'lucide-react';
 
 const PRIMARY_COLOR = '#E11D48';
@@ -791,9 +791,9 @@ function PrivateChat() {
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full">
-            <div className="text-4xl mb-4">👋</div>
+            <div className="mb-4"><Handshake className="w-10 h-10" style={{ color: PRIMARY_COLOR }} /></div>
             <p className="text-base" style={{ color: textSecondary }}>
-              还没有消息，开始聊天吧
+              You are already friends, let's start chatting
             </p>
           </div>
         ) : (
