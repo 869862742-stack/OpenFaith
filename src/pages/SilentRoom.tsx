@@ -331,7 +331,7 @@ function FloatingSentence({ sentence, onFadeOut }: { sentence: Sentence; onFadeO
     y: window.innerHeight * 0.55 + Math.random() * 100,
   }));
 
-  const username = sentence.profiles?.username || '匿名';
+  const username = '';
 
   return (
     <div
@@ -346,7 +346,6 @@ function FloatingSentence({ sentence, onFadeOut }: { sentence: Sentence; onFadeO
       }}
       onAnimationEnd={onFadeOut}
     >
-      <div className="text-xs text-white/40 mb-1">{username}</div>
       <div className="text-sm text-white/90 leading-relaxed overflow-y-auto" style={{ maxHeight: '100px' }}>
         {sentence.content}
       </div>
@@ -379,7 +378,7 @@ function SilentRoom() {
   // 新增状态
   const [showLyrics, setShowLyrics] = useState(false);
   const [currentPlayTime, setCurrentPlayTime] = useState(0);
-  const [panelPos, setPanelPos] = useState({ x: Math.max(10, (window.innerWidth - 300) / 2), y: Math.round(window.innerHeight - 220) });
+  const [panelPos, setPanelPos] = useState({ x: Math.round((window.innerWidth - 360) / 2), y: Math.round(window.innerHeight - 280) });
   const [isPanelDragging, setIsPanelDragging] = useState(false);
   const [isSearchingLyrics, setIsSearchingLyrics] = useState(false);
   const [lyricsSearchFailed, setLyricsSearchFailed] = useState(false);
@@ -1387,49 +1386,24 @@ function SilentRoom() {
         </button>
       </div>
 
-      {/* 在线用户头像行 */}
-      <div className="absolute z-20" style={{ bottom: '200px', left: 0, right: 0 }}>
-        <div className={`flex items-center justify-center gap-2 px-4 ${participants.length > 5 ? 'overflow-hidden' : ''}`}>
-          {participants.length > 5 ? (
-            // 跑马灯滚动
-            <div className="flex animate-marquee-horizontal hover:[animation-play-state:paused]">
-              {[...participants, ...participants].map((p, i) => {
-                const statusConfig = STATUS_OPTIONS.find(s => s.value === p.status) || STATUS_OPTIONS[0];
-                return (
-                  <div key={i} className="flex flex-col items-center mx-1 shrink-0">
-                    <div className="w-8 h-8 rounded-full overflow-hidden border-2" style={{ borderColor: '#E11D48' }}>
-                      <img 
-                        src={p.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.user_id}`} 
-                        className="w-full h-full object-cover"
-                        onError={(e) => { e.currentTarget.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.user_id}`; }}
-                      />
-                    </div>
-                    <statusConfig.Icon className="w-3 h-3 text-white/60 mt-0.5" />
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="flex items-center justify-center gap-2">
-              {participants.map(p => {
-                const statusConfig = STATUS_OPTIONS.find(s => s.value === p.status) || STATUS_OPTIONS[0];
-                return (
-                  <div key={p.id} className="flex flex-col items-center">
-                    <div className="w-8 h-8 rounded-full overflow-hidden border-2" style={{ borderColor: '#E11D48' }}>
-                      <img 
-                        src={p.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.user_id}`} 
-                        className="w-full h-full object-cover"
-                        onError={(e) => { e.currentTarget.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.user_id}`; }}
-                      />
-                    </div>
-                    <statusConfig.Icon className="w-3 h-3 text-white/60 mt-0.5" />
-                  </div>
-                );
-              })}
-            </div>
-          )}
+      {/* 在线用户头像行 - 渐入渐出从左往右循环 */}
+      {participants.length > 0 && (
+        <div className="absolute z-20 overflow-hidden" style={{ bottom: '180px', left: 0, right: 0, maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)' }}>
+          <div className="flex animate-marquee-horizontal">
+            {[...participants, ...participants, ...participants].map((p, i) => (
+              <div key={i} className="flex flex-col items-center mx-2 shrink-0">
+                <div className="w-8 h-8 rounded-full overflow-hidden border-2" style={{ borderColor: '#E11D48' }}>
+                  <img 
+                    src={p.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.user_id}`} 
+                    className="w-full h-full object-cover"
+                    onError={(e) => { e.currentTarget.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.user_id}`; }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 漂浮句子 */}
       {sentences.map(sentence => (
@@ -1802,28 +1776,9 @@ function SilentRoom() {
         }
       `}</style>
 
-      {/* 底部操作栏 - 独立状态选择和轻语输入 */}
+      {/* 底部操作栏 - 轻语输入 */}
       <div className="absolute bottom-0 left-0 right-0 z-10 p-4 pb-8">
         <div className="max-w-md mx-auto">
-          {/* 状态选择器 - 只显示图标，不滑动 */}
-          <div className="flex justify-center gap-3 mb-4">
-            {STATUS_OPTIONS.map(status => (
-              <button
-                key={status.value}
-                onClick={() => updateStatus(status.value)}
-                className="w-10 h-10 rounded-full transition-all flex items-center justify-center"
-                title={status.label}
-                style={{
-                  backgroundColor: currentStatus === status.value ? 'color-mix(in srgb, var(--theme-primary) 20%, transparent)' : 'rgba(255, 255, 255, 0.1)',
-                  color: currentStatus === status.value ? 'var(--theme-primary)' : 'rgba(255, 255, 255, 0.6)',
-                  border: currentStatus === status.value ? '1.5px solid var(--theme-primary)' : '1.5px solid transparent',
-                }}
-              >
-                <status.Icon className="w-4 h-4" />
-              </button>
-            ))}
-          </div>
-
           {/* 独立的轻语输入面板 */}
           <div className="w-full">
             {showSentenceInput ? (
