@@ -11,12 +11,35 @@ const SUPABASE_URL = 'https://rdhwmeittgdosmkxtpak.supabase.co';
 const extractLyricsFromFile = async (file: File): Promise<string> => {
   try {
     const metadata = await mm.parseBlob(file);
-    // 尝试多种歌词字段
+    
+    // 1. 优先尝试SYLT标签（同步歌词，带时间戳）
+    const syltTag3 = metadata.native?.['ID3v2.3']?.find((tag: any) => tag.id === 'SYLT');
+    const syltTag4 = metadata.native?.['ID3v2.4']?.find((tag: any) => tag.id === 'SYLT');
+    const syltTag = syltTag3 || syltTag4;
+    
+    if (syltTag?.value) {
+      // SYLT格式: [{text, time}...] 转为LRC格式
+      const syltData = syltTag.value;
+      if (Array.isArray(syltData) && syltData.length > 0) {
+        const lrcLines = syltData.map((item: any) => {
+          const seconds = item.time || 0;
+          const mins = Math.floor(seconds / 60);
+          const secs = Math.floor(seconds % 60);
+          const ms = Math.floor((seconds % 1) * 100);
+          const text = item.text || '';
+          return `[${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(ms).padStart(2, '0')}]${text}`;
+        });
+        return lrcLines.join('\n');
+      }
+    }
+    
+    // 2. 尝试USLT标签
     let lyrics: any = 
       metadata.native?.['ID3v2.3']?.find((tag: any) => tag.id === 'USLT')?.value?.lyrics
       || metadata.native?.['ID3v2.4']?.find((tag: any) => tag.id === 'USLT')?.value?.lyrics
       || metadata.common.lyrics?.[0]
       || '';
+    
     // musicmetadata 可能返回对象 {text, language, variant} 而非纯字符串
     if (lyrics && typeof lyrics === 'object') {
       lyrics = lyrics.text || lyrics.lyrics || JSON.stringify(lyrics);
@@ -26,6 +49,35 @@ const extractLyricsFromFile = async (file: File): Promise<string> => {
     console.warn('Failed to parse audio metadata:', err);
     return '';
   }
+};
+
+// 从Python dict格式字符串中提取text字段
+const extractTextFromDictFormat = (text: string): string => {
+  if (!text || typeof text !== 'string') return text;
+  
+  // 检查是否是Python dict格式: {'text': "...", 'language': 'eng', ...}
+  const dictPattern = /\{'text':\s*'([\s\S]*?)'(?:,\s*'language'|\s*\})/;
+  const match = text.match(dictPattern);
+  
+  if (match && match[1]) {
+    // 将Python转义字符转换为正常字符
+    return match[1]
+      .replace(/\\n/g, '\n')
+      .replace(/\\'/g, "'")
+      .replace(/\\"/g, '"')
+      .replace(/\\\\/g, '\\');
+  }
+  
+  // 也检查双引号格式: {"text": "...", ...}
+  const jsonPattern = /\{"text":\s*"([\s\S]*?)"(?:,\s*"language"|\s*\})/;
+  const jsonMatch = text.match(jsonPattern);
+  if (jsonMatch && jsonMatch[1]) {
+    return jsonMatch[1]
+      .replace(/\\n/g, '\n')
+      .replace(/\\"/g, '"');
+  }
+  
+  return text;
 };
 
 // LRC歌词行类型
@@ -83,6 +135,7 @@ interface AudioTrack {
   url: string;
   duration?: number;
   lyrics?: string;
+  cachedLrc?: string | null; // 缓存的在线LRC歌词
   uploaded_at: string;
 }
 
@@ -502,6 +555,8 @@ function SilentRoom() {
   const [currentPlayTime, setCurrentPlayTime] = useState(0);
   const [panelPos, setPanelPos] = useState({ x: Math.max(10, (window.innerWidth - 300) / 2), y: Math.round(window.innerHeight - 220) });
   const [isPanelDragging, setIsPanelDragging] = useState(false);
+  const [isSearchingLyrics, setIsSearchingLyrics] = useState(false);
+  const [lyricsSearchFailed, setLyricsSearchFailed] = useState(false);
   
   // 音频播放状态
   const [audioTracks, setAudioTracks] = useState<AudioTrack[]>([]);
@@ -1224,6 +1279,83 @@ function SilentRoom() {
     }
   };
 
+  // 搜索在线LRC歌词 (LRCLIB API)
+  const searchLrcLyrics = useCallback(async (trackName: string, trackId?: string) => {
+    if (!trackName || isSearchingLyrics) return;
+    
+    setIsSearchingLyrics(true);
+    setLyricsSearchFailed(false);
+    
+    try {
+      // 清理曲名用于搜索
+      const searchQuery = trackName
+        .replace(/\.(mp3|flac|wav|m4a|ogg)$/i, '') // 移除文件扩展名
+        .replace(/\[.*?\]/g, '') // 移除方括号内容
+        .replace(/\(.*?\)/g, '') // 移除括号内容
+        .trim();
+      
+      if (!searchQuery) {
+        setIsSearchingLyrics(false);
+        return;
+      }
+      
+      // 使用LRCLIB API搜索
+      const response = await fetch(
+        `https://lrclib.net/api/search?q=${encodeURIComponent(searchQuery)}`,
+        {
+          headers: {
+            'User-Agent': 'OpenFaith/1.0',
+          },
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error('Search failed');
+      }
+      
+      const results = await response.json();
+      
+      if (Array.isArray(results) && results.length > 0) {
+        // 优先选择完全匹配的结果，否则选择第一个
+        const bestMatch = results.find((r: any) => 
+          r.track_name?.toLowerCase() === searchQuery.toLowerCase()
+        ) || results[0];
+        
+        // 优先使用syncedLyrics，否则使用plainLyrics
+        const lrcText = bestMatch.syncedLyrics || bestMatch.plainLyrics;
+        
+        if (lrcText) {
+          // 更新对应track的cachedLrc
+          const targetTrackId = trackId || currentTrack?.id;
+          if (targetTrackId) {
+            setAudioTracks(prev => prev.map(track => 
+              track.id === targetTrackId 
+                ? { ...track, cachedLrc: lrcText }
+                : track
+            ));
+          }
+          setIsSearchingLyrics(false);
+          return;
+        }
+      }
+      
+      // 没有找到同步歌词
+      setLyricsSearchFailed(true);
+      setIsSearchingLyrics(false);
+    } catch (error) {
+      console.warn('Failed to search lyrics:', error);
+      setLyricsSearchFailed(true);
+      setIsSearchingLyrics(false);
+    }
+  }, [isSearchingLyrics, currentTrack?.id]);
+
+  // 手动触发歌词搜索
+  const handleSearchLyrics = useCallback(() => {
+    if (currentTrack) {
+      searchLrcLyrics(currentTrack.name, currentTrack.id);
+    }
+  }, [currentTrack, searchLrcLyrics]);
+
   // 删除音频轨道
   const deleteAudioTrack = async (trackId: string) => {
     if (!window.confirm('确定要删除这首音乐吗？')) return;
@@ -1262,13 +1394,40 @@ function SilentRoom() {
 
   // 解析歌词
   const parsedLyrics = useMemo(() => {
-    if (!currentTrack?.lyrics) return { isLrc: false, lines: [], rawText: '' };
-    const lyricsText = typeof currentTrack.lyrics === 'string' ? currentTrack.lyrics : JSON.stringify(currentTrack.lyrics);
-    if (!lyricsText) return { isLrc: false, lines: [], rawText: '' };
+    // 优先使用缓存的在线LRC歌词
+    if (currentTrack?.cachedLrc) {
+      const isLrc = isLrcFormat(currentTrack.cachedLrc);
+      const lines = isLrc ? parseLrc(currentTrack.cachedLrc) : [];
+      return { isLrc, lines, rawText: currentTrack.cachedLrc, fromCache: true };
+    }
+    
+    if (!currentTrack?.lyrics) return { isLrc: false, lines: [], rawText: '', fromCache: false };
+    
+    // 处理原始歌词文本
+    let lyricsText = typeof currentTrack.lyrics === 'string' ? currentTrack.lyrics : JSON.stringify(currentTrack.lyrics);
+    if (!lyricsText) return { isLrc: false, lines: [], rawText: '', fromCache: false };
+    
+    // 尝试从Python dict格式中提取text字段
+    lyricsText = extractTextFromDictFormat(lyricsText);
+    
     const isLrc = isLrcFormat(lyricsText);
     const lines = isLrc ? parseLrc(lyricsText) : [];
-    return { isLrc, lines, rawText: lyricsText };
-  }, [currentTrack?.lyrics]);
+    return { isLrc, lines, rawText: lyricsText, fromCache: false };
+  }, [currentTrack?.lyrics, currentTrack?.cachedLrc]);
+
+  // 自动搜索歌词：当内嵌歌词不是LRC格式时自动搜索
+  useEffect(() => {
+    if (!currentTrack) return;
+    
+    // 只有当有原始歌词文本且不是LRC格式，且尚未缓存LRC歌词，且没有正在搜索且没有搜索失败过
+    if (parsedLyrics.rawText && !parsedLyrics.isLrc && !currentTrack.cachedLrc && !isSearchingLyrics && !lyricsSearchFailed) {
+      // 延迟搜索，避免过于频繁
+      const timer = setTimeout(() => {
+        searchLrcLyrics(currentTrack.name, currentTrack.id);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [currentTrack?.id, parsedLyrics.rawText, parsedLyrics.isLrc, currentTrack?.cachedLrc, isSearchingLyrics, lyricsSearchFailed, searchLrcLyrics]);
 
   // 当前高亮歌词行
   const activeLyricIndex = useMemo(() => {
@@ -1384,7 +1543,16 @@ function SilentRoom() {
         <div className="absolute top-1/3 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-15 w-80 max-w-[90%] p-4 rounded-2xl text-center" 
              style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(12px)' }}>
           <div className="text-white/90 text-sm font-medium mb-2">{currentTrack?.name || '未知曲目'}</div>
-          {parsedLyrics.rawText ? (
+          
+          {/* 搜索歌词状态 */}
+          {isSearchingLyrics && (
+            <div className="text-white/50 text-xs py-2 animate-pulse">
+              正在搜索歌词...
+            </div>
+          )}
+          
+          {/* 歌词内容 */}
+          {!isSearchingLyrics && parsedLyrics.rawText ? (
             parsedLyrics.isLrc && parsedLyrics.lines.length > 0 ? (
               <div className="max-h-40 overflow-y-auto scroll-smooth">
                 {parsedLyrics.lines.map((line, i) => (
@@ -1403,13 +1571,31 @@ function SilentRoom() {
                 ))}
               </div>
             ) : (
-              <div className="text-white/60 text-xs leading-relaxed whitespace-pre-line max-h-32 overflow-y-auto">
-                {parsedLyrics.rawText}
+              <div className="space-y-2">
+                <div className="text-white/60 text-xs leading-relaxed whitespace-pre-line max-h-32 overflow-y-auto">
+                  {parsedLyrics.rawText}
+                </div>
+                {lyricsSearchFailed && (
+                  <div className="text-white/40 text-xs">未找到同步歌词</div>
+                )}
               </div>
             )
-          ) : (
+          ) : !isSearchingLyrics ? (
             <div className="text-white/30 text-xs py-2">暂无歌词</div>
-          )}
+          ) : null}
+          
+          {/* 底部搜索按钮 */}
+          <div className="mt-2 pt-2 border-t border-white/10">
+            <button 
+              onClick={handleSearchLyrics}
+              disabled={isSearchingLyrics}
+              className="flex items-center justify-center gap-1 mx-auto px-3 py-1 rounded-full text-xs text-white/50 hover:text-white/70 hover:bg-white/10 transition-all disabled:opacity-50"
+            >
+              <span className="text-sm">🔍</span>
+              <span>{isSearchingLyrics ? '搜索中...' : '搜索歌词'}</span>
+            </button>
+          </div>
+          
           <button 
             onClick={() => setShowLyrics(false)}
             className="absolute top-1 right-1 p-1 rounded-full hover:bg-white/10"
