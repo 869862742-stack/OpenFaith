@@ -318,22 +318,21 @@ function FloatingSentence({ sentence, onFadeOut }: { sentence: Sentence; onFadeO
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isOverflowing, setIsOverflowing] = useState(false);
   const sentenceRef = useRef<HTMLDivElement>(null);
-  const textRef = useRef<HTMLParagraphElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   
-  // 检测文字是否溢出
+  // 检测文字是否溢出（基于容器宽度）
   useEffect(() => {
-    if (textRef.current) {
-      // 延迟检测，等待 DOM 完全渲染
+    if (containerRef.current) {
       const timer = setTimeout(() => {
-        if (textRef.current) {
-          const isOverflow = textRef.current.scrollWidth > textRef.current.clientWidth;
+        if (containerRef.current) {
+          const isOverflow = containerRef.current.scrollWidth > containerRef.current.clientWidth;
           setIsOverflowing(isOverflow);
         }
-      }, 100);
+      }, 150);
       return () => clearTimeout(timer);
     }
   }, [sentence.content]);
-  
+
   // 注入 marquee 动画样式
   useEffect(() => {
     const styleId = 'marquee-keyframes-style';
@@ -348,9 +347,6 @@ function FloatingSentence({ sentence, onFadeOut }: { sentence: Sentence; onFadeO
       `;
       document.head.appendChild(style);
     }
-    return () => {
-      // 不删除，因为可能其他句子也用到
-    };
   }, []);
   
   useEffect(() => {
@@ -407,10 +403,20 @@ function FloatingSentence({ sentence, onFadeOut }: { sentence: Sentence; onFadeO
         backgroundColor: 'rgba(255, 255, 255, 0.08)',
         border: '1px solid rgba(255, 255, 255, 0.1)',
         transition: 'opacity 1s ease-in-out',
+        maxWidth: '260px',
       }}
     >
+      {/* 隐藏的测量容器：用于检测文字是否溢出 */}
+      <div 
+        ref={containerRef}
+        className="text-sm text-white/90 whitespace-nowrap overflow-hidden"
+        style={{ visibility: isOverflowing ? 'hidden' : 'visible', height: isOverflowing ? 0 : 'auto', position: isOverflowing ? 'absolute' : 'relative' }}
+      >
+        {sentence.content}
+      </div>
+      
       {isOverflowing ? (
-        <div className="overflow-hidden" style={{ maxWidth: '220px' }}>
+        <div className="overflow-hidden" style={{ maxWidth: '260px' }}>
           <div 
             style={{ 
               display: 'inline-block', 
@@ -418,13 +424,11 @@ function FloatingSentence({ sentence, onFadeOut }: { sentence: Sentence; onFadeO
               animation: 'marquee 12s linear infinite' 
             }}
           >
-            <span ref={textRef} className="text-sm text-white/90" style={{ paddingRight: '3em' }}>{sentence.content}</span>
+            <span className="text-sm text-white/90" style={{ paddingRight: '3em' }}>{sentence.content}</span>
             <span className="text-sm text-white/90" style={{ paddingRight: '3em' }}>{sentence.content}</span>
           </div>
         </div>
-      ) : (
-        <p ref={textRef} className="text-sm text-white/90 whitespace-nowrap">{sentence.content}</p>
-      )}
+      ) : null}
     </div>
   );
 }
