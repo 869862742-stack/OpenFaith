@@ -637,17 +637,29 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
               const multiplier = p.is_vip ? 2 : 1;
               const expToAdd = 1 * multiplier;
               const newExp = (p.experience || 0) + expToAdd;
-              const newLevel = Math.floor(newExp / 1000) + 1; // simplified
-              await fetch(`/sb-api/rest/v1/profiles?user_id=eq.${userId}`, {
+              const newLevel = Math.floor(newExp / 1000) + 1;
+              console.log('[收藏经验] 开始更新, userId:', userId, 'oldExp:', p.experience, 'newExp:', newExp, 'level:', newLevel);
+              const updateRes = await fetch(`/sb-api/rest/v1/profiles?user_id=eq.${userId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json', 'apikey': SERVICE_ROLE_KEY, 'Authorization': `Bearer ${SERVICE_ROLE_KEY}` },
                 body: JSON.stringify({ experience: newExp, level: newLevel }),
               });
-              favExp.count += 1;
-              favExp.exp += expToAdd;
-              localStorage.setItem(favExpKey, JSON.stringify(favExp));
+              if (updateRes.ok) {
+                console.log('[收藏经验] 更新成功, newExp:', newExp);
+                favExp.count += 1;
+                favExp.exp += expToAdd;
+                localStorage.setItem(favExpKey, JSON.stringify(favExp));
+              } else {
+                console.error('[收藏经验] PATCH失败, status:', updateRes.status);
+              }
+            } else {
+              console.error('[收藏经验] 未找到profile, userId:', userId);
             }
+          } else {
+            console.error('[收藏经验] 查询profile失败, status:', res.status);
           }
+        } else {
+          console.log('[收藏经验] 今日已达上限10次');
         }
       } catch (e) {
         console.error('[收藏经验] 更新失败:', e);
@@ -1098,7 +1110,8 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
           const newExp = (profile.experience || 0) + expAmount;
           const newLevel = calculateLevel(newExp);
 
-          await fetch(
+          console.log(`[经验] 开始更新 ${key}, userId:`, profileId, 'oldExp:', profile.experience, 'newExp:', newExp);
+          const updateRes = await fetch(
             `/sb-api/rest/v1/profiles?user_id=eq.${profileId}`,
             {
               method: 'PATCH',
@@ -1114,15 +1127,22 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
             }
           );
 
-          // 更新每日统计
-          stats[key] = (stats[key] || 0) + 1;
-          saveTodayStats(stats);
-
-          console.log(`[Comment] Added ${expAmount} exp (${key}: ${stats[key]}/${maxLimit})`);
+          if (updateRes.ok) {
+            // 更新每日统计
+            stats[key] = (stats[key] || 0) + 1;
+            saveTodayStats(stats);
+            console.log(`[经验] ${key} 更新成功, newExp:`, newExp);
+          } else {
+            console.error(`[经验] ${key} PATCH失败, status:`, updateRes.status);
+          }
+        } else {
+          console.error(`[经验] 未找到profile, userId:`, profileId);
         }
+      } else {
+        console.error(`[经验] 查询profile失败, status:`, response.status);
       }
     } catch (err) {
-      console.error('[Comment] addExperience error:', err);
+      console.error('[经验] addExperience error:', err);
     }
   };
 
@@ -1334,7 +1354,8 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
                 const newExp = (authorProfile.experience || 0) + expAmount;
                 const newLevel = calculateLevel(newExp);
                 
-                await fetch(`/sb-api/rest/v1/profiles?user_id=eq.${postUserIdValue}`, {
+                console.log('[加热] 作者获得经验, userId:', postUserIdValue, 'oldExp:', authorProfile.experience, 'newExp:', newExp);
+                const authorUpdateRes = await fetch(`/sb-api/rest/v1/profiles?user_id=eq.${postUserIdValue}`, {
                   method: 'PATCH',
                   headers: {
                     'Content-Type': 'application/json',
@@ -1347,13 +1368,20 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
                   })
                 });
                 
-                // 更新作者每日统计
-                authorStats.heat_received = (authorStats.heat_received || 0) + 1;
-                saveTodayStats(authorStats);
-                
-                console.log(`[Heat] Added ${expAmount} exp to author (heat_received: ${authorStats.heat_received}/${MAX_HEAT_RECEIVED})`);
+                if (authorUpdateRes.ok) {
+                  // 更新作者每日统计
+                  authorStats.heat_received = (authorStats.heat_received || 0) + 1;
+                  saveTodayStats(authorStats);
+                  console.log('[加热] 作者经验更新成功, newExp:', newExp);
+                } else {
+                  console.error('[加热] 作者经验PATCH失败, status:', authorUpdateRes.status);
+                }
               }
+            } else {
+              console.error('[加热] 未找到作者profile, userId:', postUserIdValue);
             }
+          } else {
+            console.error('[加热] 查询作者profile失败, status:', res.status);
           }
         });
       }
@@ -1374,7 +1402,8 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
                 const newExp = (myProfile.experience || 0) + expAmount;
                 const newLevel = calculateLevel(newExp);
                 
-                await fetch(`/sb-api/rest/v1/profiles?user_id=eq.${myUserId}`, {
+                console.log('[加热] 操作者获得经验, userId:', myUserId, 'oldExp:', myProfile.experience, 'newExp:', newExp);
+                const myUpdateRes = await fetch(`/sb-api/rest/v1/profiles?user_id=eq.${myUserId}`, {
                   method: 'PATCH',
                   headers: {
                     'Content-Type': 'application/json',
@@ -1387,13 +1416,20 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
                   })
                 });
                 
-                // 更新操作者每日统计
-                myStats.heat_given = (myStats.heat_given || 0) + 1;
-                saveTodayStats(myStats);
-                
-                console.log(`[Heat] Added ${expAmount} exp to user (heat_given: ${myStats.heat_given}/${MAX_HEAT_GIVEN})`);
+                if (myUpdateRes.ok) {
+                  // 更新操作者每日统计
+                  myStats.heat_given = (myStats.heat_given || 0) + 1;
+                  saveTodayStats(myStats);
+                  console.log('[加热] 操作者经验更新成功, newExp:', newExp);
+                } else {
+                  console.error('[加热] 操作者经验PATCH失败, status:', myUpdateRes.status);
+                }
               }
+            } else {
+              console.error('[加热] 未找到操作者profile, userId:', myUserId);
             }
+          } else {
+            console.error('[加热] 查询操作者profile失败, status:', res.status);
           }
         });
       }

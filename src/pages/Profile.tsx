@@ -314,6 +314,18 @@ function Profile() {
     }
   }, [showFollowing, user?.id, fetchFollowing]);
 
+  // 页面获得焦点时刷新 profile（确保经验值等数据最新）
+  useEffect(() => {
+    const handleFocus = () => {
+      if (user?.id) {
+        console.log('[Profile] 页面获得焦点，刷新用户资料');
+        refreshProfile();
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [user?.id, refreshProfile]);
+
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const bgInputRef = useRef<HTMLInputElement>(null);
 

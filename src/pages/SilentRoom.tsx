@@ -669,7 +669,7 @@ function SilentRoom() {
 
   // 音频播放控制 - 根据轨道列表播放
   const playTrack = useCallback((trackUrl?: string) => {
-    if (isMuted || audioTracks.length === 0) return;
+    if (audioTracks.length === 0) return;
     
     const url = trackUrl || audioTracks[currentTrackIndex]?.url;
     if (!url) return;
@@ -681,7 +681,8 @@ function SilentRoom() {
     }
     
     const audio = new Audio(url);
-    audio.volume = 0.5;
+    // 根据静音状态设置音量
+    audio.volume = isMuted ? 0 : 0.5;
     
     audio.onended = () => {
       if (playMode === 'single') {
@@ -715,27 +716,28 @@ function SilentRoom() {
     playerRef.current = audio;
     audio.play().catch(() => {});
     setIsPlaying(true);
-  }, [isMuted, audioTracks, currentTrackIndex, playMode, isPlaying]);
+  }, [audioTracks, currentTrackIndex, playMode, isMuted, isPlaying]);
 
   const pauseTrack = useCallback(() => {
     if (playerRef.current) {
       playerRef.current.pause();
-      setIsPlaying(false);
     }
+    setIsPlaying(false);
   }, []);
 
   const togglePlayPause = useCallback(() => {
     if (isPlaying) {
       pauseTrack();
     } else {
-      if (audioTracks.length > 0 && !playerRef.current) {
+      if (!playerRef.current && audioTracks.length > 0) {
         playTrack();
       } else if (playerRef.current) {
+        playerRef.current.volume = isMuted ? 0 : 0.5;
         playerRef.current.play().catch(() => {});
         setIsPlaying(true);
       }
     }
-  }, [isPlaying, pauseTrack, playTrack, audioTracks]);
+  }, [isPlaying, pauseTrack, playTrack, audioTracks, isMuted]);
 
   const playPrevious = useCallback(() => {
     if (audioTracks.length === 0) return;
@@ -1288,16 +1290,30 @@ function SilentRoom() {
         />
       ))}
 
-      {/* 歌词显示区域 - 在房间状态面板上方 */}
-      {showLyrics && currentTrack?.lyrics && (
+      {/* 歌词显示区域 - 在房间状态面板上方 - 即使没有歌词也显示 */}
+      {showLyrics && currentTrack && (
         <div className="absolute top-1/3 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-15 w-80 max-w-[90%] p-4 rounded-2xl text-center" 
              style={{ backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }}>
           <div className="text-white/80 text-sm font-medium mb-2">{currentTrack?.name}</div>
-          <div className="text-white/50 text-xs whitespace-nowrap overflow-hidden">
-            <div style={{ animation: 'lyricsMarquee 20s linear infinite', display: 'inline-block', whiteSpace: 'nowrap' }}>
-              {currentTrack?.lyrics}
+          {currentTrack?.lyrics ? (
+            <div className="text-white/50 text-xs whitespace-nowrap overflow-hidden">
+              <div style={{ animation: 'lyricsMarquee 20s linear infinite', display: 'inline-block', whiteSpace: 'nowrap' }}>
+                {currentTrack?.lyrics}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="text-white/30 text-xs">
+              暂无歌词
+              {room?.creator_id === userId && (
+                <button 
+                  onClick={() => setShowLyricsInput(currentTrack.id)}
+                  className="ml-2 text-rose-400 underline"
+                >
+                  添加歌词
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -1358,6 +1374,23 @@ function SilentRoom() {
               )}
               <span className="text-xs text-white/70">
                 {isPlaying ? '暂停' : '播放'}
+              </span>
+            </button>
+          </div>
+          
+          {/* 播放模式控制 */}
+          <div className="flex items-center justify-between mb-4 border-t border-white/10 pt-3">
+            <span className="text-white/80 text-sm">播放模式</span>
+            <button
+              onClick={cyclePlayMode}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full transition-all"
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              }}
+            >
+              {getPlayModeIcon()}
+              <span className="text-xs text-white/70">
+                {playMode === 'list' ? '列表循环' : playMode === 'single' ? '单曲循环' : '随机播放'}
               </span>
             </button>
           </div>
@@ -1585,10 +1618,13 @@ function SilentRoom() {
           {/* 播放模式 */}
           <button
             onClick={cyclePlayMode}
-            className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
+            className="flex items-center gap-1 px-2 py-1 rounded-full hover:bg-white/10 transition-colors"
             title={playMode === 'list' ? '列表循环' : playMode === 'single' ? '单曲循环' : '随机播放'}
           >
             {getPlayModeIcon()}
+            <span className="text-xs text-white/70">
+              {playMode === 'list' ? '列表' : playMode === 'single' ? '单曲' : '随机'}
+            </span>
           </button>
           
           <div className="w-px h-5 bg-white/20" />
