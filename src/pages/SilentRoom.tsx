@@ -28,6 +28,44 @@ const extractLyricsFromFile = async (file: File): Promise<string> => {
   }
 };
 
+// LRC歌词行类型
+interface LrcLine {
+  time: number; // 秒
+  text: string;
+}
+
+// 解析LRC格式歌词
+const parseLrc = (lrcText: string): LrcLine[] => {
+  const lines = lrcText.split('\n');
+  const result: LrcLine[] = [];
+  const timeRegex = /\[(\d{2}):(\d{2})(?:\.(\d{2,3}))?\]/g;
+  
+  for (const line of lines) {
+    const timestamps: number[] = [];
+    let match;
+    while ((match = timeRegex.exec(line)) !== null) {
+      const min = parseInt(match[1]);
+      const sec = parseInt(match[2]);
+      const ms = match[3] ? parseInt(match[3].padEnd(3, '0')) : 0;
+      timestamps.push(min * 60 + sec + ms / 1000);
+    }
+    const text = line.replace(/\[\d{2}:\d{2}(?:\.\d{2,3})?\]/g, '').trim();
+    if (timestamps.length > 0 && text) {
+      for (const t of timestamps) {
+        result.push({ time: t, text });
+      }
+    }
+  }
+  
+  result.sort((a, b) => a.time - b.time);
+  return result;
+};
+
+// 判断是否为LRC格式歌词
+const isLrcFormat = (text: string): boolean => {
+  return /\[\d{2}:\d{2}/.test(text);
+};
+
 // 状态选项
 const STATUS_OPTIONS = [
   { value: 'quiet', label: '安静中', Icon: VolumeX },
@@ -461,7 +499,8 @@ function SilentRoom() {
   
   // 新增状态
   const [showLyrics, setShowLyrics] = useState(false);
-  const [panelPos, setPanelPos] = useState({ x: Math.max(10, (window.innerWidth - 300) / 2), y: Math.round(window.innerHeight * 0.22) });
+  const [currentPlayTime, setCurrentPlayTime] = useState(0);
+  const [panelPos, setPanelPos] = useState({ x: Math.max(10, (window.innerWidth - 300) / 2), y: Math.round(window.innerHeight - 220) });
   const [isPanelDragging, setIsPanelDragging] = useState(false);
   
   // 音频播放状态
@@ -745,6 +784,16 @@ function SilentRoom() {
       playerRef.current.pause();
     }
     setIsPlaying(false);
+  }, []);
+
+  // 追踪音频播放时间（用于歌词同步）
+  useEffect(() => {
+    const tick = setInterval(() => {
+      if (playerRef.current && !playerRef.current.paused) {
+        setCurrentPlayTime(playerRef.current.currentTime);
+      }
+    }, 200);
+    return () => clearInterval(tick);
   }, []);
 
   // 恢复播放（不重新创建Audio，继续当前进度）
@@ -1311,28 +1360,61 @@ function SilentRoom() {
         />
       ))}
 
-      {/* 歌词显示区域 - 在房间状态面板上方 */}
-      {showLyrics && currentTrack && (
-        <div className="absolute top-1/3 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-15 w-80 max-w-[90%] p-4 rounded-2xl text-center" 
-             style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(12px)' }}>
-          <div className="text-white/90 text-sm font-medium mb-2">{currentTrack?.name || '未知曲目'}</div>
-          {currentTrack?.lyrics ? (
-            <div className="text-white/60 text-xs leading-relaxed whitespace-pre-line max-h-32 overflow-y-auto">
-              {typeof currentTrack.lyrics === 'string' ? currentTrack.lyrics : JSON.stringify(currentTrack.lyrics)}
-            </div>
-          ) : (
-            <div className="text-white/30 text-xs py-2">
-              暂无歌词
-            </div>
-          )}
-          <button 
-            onClick={() => setShowLyrics(false)}
-            className="absolute top-1 right-1 p-1 rounded-full hover:bg-white/10"
-          >
-            <X className="w-3 h-3 text-white/40" />
-          </button>
-        </div>
-      )}
+      {/* 歌词显示区域 - 同步滚动 */}
+      {showLyrics && currentTrack && (() => {
+        const lyricsText = typeof currentTrack.lyrics === 'string' ? currentTrack.lyrics : '';
+        const isLrc = isLrcFormat(lyricsText);
+        const lrcLines = isLrc ? parseLrc(lyricsText) : [];
+        // 找当前高亮行
+        let activeIndex = -1;
+        if (lrcLines.length > 0) {
+          for (let i = lrcLines.length - 1; i >= 0; i--) {
+            if (currentPlayTime >= lrcLines[i].time) {
+              activeIndex = i;
+              break;
+            }
+          }
+        }
+        return (
+          <div className="absolute top-1/3 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-15 w-80 max-w-[90%] p-4 rounded-2xl text-center" 
+               style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(12px)' }}>
+            <div className="text-white/90 text-sm font-medium mb-2">{currentTrack?.name || '未知曲目'}</div>
+            {lyricsText ? (
+              isLrc && lrcLines.length > 0 ? (
+                <div className="max-h-40 overflow-y-auto scroll-smooth" id="lyrics-scroll"
+                     style={{ scrollBehavior: 'smooth' }}>
+                  {lrcLines.map((line, i) => (
+                    <div
+                      key={i}
+                      ref={i === activeIndex ? (el => { if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }) : undefined}
+                      className="text-xs leading-relaxed py-0.5 transition-all duration-300"
+                      style={{
+                        color: i === activeIndex ? 'white' : 'rgba(255,255,255,0.35)',
+                        fontWeight: i === activeIndex ? 600 : 400,
+                        fontSize: i === activeIndex ? '14px' : '11px',
+                      }}
+                    >
+                      {line.text}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-white/60 text-xs leading-relaxed whitespace-pre-line max-h-32 overflow-y-auto">
+                  {lyricsText}
+                </div>
+              )
+            ) : (
+              <div className="text-white/30 text-xs py-2">暂无歌词</div>
+            )}
+            <button 
+              onClick={() => setShowLyrics(false)}
+              className="absolute top-1 right-1 p-1 rounded-full hover:bg-white/10"
+            >
+              <X className="w-3 h-3 text-white/40" />
+            </button>
+          </div>
+        );
+      })()}
 
       {/* 环境音控制 - 右上角声音按钮 */}
       <div className="absolute top-20 right-4 z-10">
@@ -1530,6 +1612,50 @@ function SilentRoom() {
         </div>
       )}
 
+      {/* 可拖动音乐控制面板 - 默认在状态栏上方，可拖动 */}
+      {audioTracks.length > 0 && room?.creator_id === userId && (
+        <div
+          className="fixed z-30 flex items-center gap-1 px-3 py-2 rounded-full backdrop-blur-md"
+          style={{
+            backgroundColor: 'rgba(30, 30, 50, 0.9)',
+            left: panelPos.x,
+            top: panelPos.y,
+            cursor: isPanelDragging ? 'grabbing' : 'grab',
+          }}
+        >
+          <div
+            className="p-1 cursor-grab active:cursor-grabbing"
+            onMouseDown={handlePanelDragStart}
+            onTouchStart={handlePanelDragStart}
+            title="拖动面板"
+          >
+            <GripVertical className="w-4 h-4 text-white/50" />
+          </div>
+          <div className="w-px h-5 bg-white/20" />
+          <button onClick={playPrevious} className="p-1.5 rounded-full hover:bg-white/10 transition-colors">
+            <SkipBack className="w-4 h-4 text-white/70" />
+          </button>
+          <button onClick={handlePlayPause} className="p-2 rounded-full" style={{ backgroundColor: '#E11D48' }}>
+            {isPlaying ? <Pause className="w-4 h-4 text-white" /> : <Play className="w-4 h-4 text-white" />}
+          </button>
+          <button onClick={playNext} className="p-1.5 rounded-full hover:bg-white/10 transition-colors">
+            <SkipForward className="w-4 h-4 text-white/70" />
+          </button>
+          <div className="w-px h-5 bg-white/20" />
+          <button onClick={cyclePlayMode} className="flex items-center gap-1 px-2 py-1 rounded-full hover:bg-white/10 transition-colors"
+            title={playMode === 'list' ? '列表循环' : playMode === 'single' ? '单曲循环' : '随机播放'}>
+            {getPlayModeIcon()}
+            <span className="text-xs text-white/70">{playMode === 'list' ? '列表' : playMode === 'single' ? '单曲' : '随机'}</span>
+          </button>
+          <div className="w-px h-5 bg-white/20" />
+          <button onClick={() => setShowLyrics(!showLyrics)} className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
+            title={showLyrics ? '隐藏歌词' : '显示歌词'}
+            style={{ color: showLyrics ? 'var(--theme-primary)' : 'rgba(255,255,255,0.7)' }}>
+            <Type className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* 解散房间确认对话框 */}
       {showDisbandConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
@@ -1582,84 +1708,6 @@ function SilentRoom() {
       {/* 底部操作栏 - 独立状态选择和轻语输入 */}
       <div className="absolute bottom-0 left-0 right-0 z-10 p-4 pb-8">
         <div className="max-w-md mx-auto">
-          {/* 音乐控制面板 - 在状态选择器上方 */}
-          {audioTracks.length > 0 && room?.creator_id === userId && (
-            <div
-              className="flex items-center justify-center gap-1 px-3 py-2 rounded-full backdrop-blur-md mb-4"
-              style={{
-                backgroundColor: 'rgba(30, 30, 50, 0.9)',
-                cursor: isPanelDragging ? 'grabbing' : 'grab',
-              }}
-            >
-              {/* 拖动手柄 */}
-              <div
-                className="p-1 cursor-grab active:cursor-grabbing"
-                onMouseDown={handlePanelDragStart}
-                onTouchStart={handlePanelDragStart}
-                title="拖动面板"
-              >
-                <GripVertical className="w-4 h-4 text-white/50" />
-              </div>
-              
-              <div className="w-px h-5 bg-white/20" />
-              
-              {/* 上一首 */}
-              <button
-                onClick={playPrevious}
-                className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
-              >
-                <SkipBack className="w-4 h-4 text-white/70" />
-              </button>
-              
-              {/* 播放/暂停 */}
-              <button
-                onClick={handlePlayPause}
-                className="p-2 rounded-full"
-                style={{ backgroundColor: '#E11D48' }}
-              >
-                {isPlaying ? (
-                  <Pause className="w-4 h-4 text-white" />
-                ) : (
-                  <Play className="w-4 h-4 text-white" />
-                )}
-              </button>
-              
-              {/* 下一首 */}
-              <button
-                onClick={playNext}
-                className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
-              >
-                <SkipForward className="w-4 h-4 text-white/70" />
-              </button>
-              
-              <div className="w-px h-5 bg-white/20" />
-              
-              {/* 播放模式 */}
-              <button
-                onClick={cyclePlayMode}
-                className="flex items-center gap-1 px-2 py-1 rounded-full hover:bg-white/10 transition-colors"
-                title={playMode === 'list' ? '列表循环' : playMode === 'single' ? '单曲循环' : '随机播放'}
-              >
-                {getPlayModeIcon()}
-                <span className="text-xs text-white/70">
-                  {playMode === 'list' ? '列表' : playMode === 'single' ? '单曲' : '随机'}
-                </span>
-              </button>
-              
-              <div className="w-px h-5 bg-white/20" />
-              
-              {/* 歌词开关 */}
-              <button
-                onClick={() => setShowLyrics(!showLyrics)}
-                className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
-                title={showLyrics ? '隐藏歌词' : '显示歌词'}
-                style={{ color: showLyrics ? 'var(--theme-primary)' : 'rgba(255,255,255,0.7)' }}
-              >
-                <Type className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-          
           {/* 状态选择器 - 只显示图标，不滑动 */}
           <div className="flex justify-center gap-3 mb-4">
             {STATUS_OPTIONS.map(status => (
