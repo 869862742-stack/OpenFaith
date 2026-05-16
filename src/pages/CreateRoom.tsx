@@ -60,8 +60,8 @@ function CreateRoom({ onClose }: CreateRoomProps) {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        setError('音频文件不能超过10MB');
+      if (file.size > 20 * 1024 * 1024) {
+        setError('音频文件不能超过20MB');
         return;
       }
       if (!file.type.startsWith('audio/')) {
@@ -178,6 +178,15 @@ function CreateRoom({ onClose }: CreateRoomProps) {
         user_count: 1,
         last_activity_at: new Date().toISOString(),
         room_code: roomCode,
+        // 添加 audio_tracks 数组，使创建时上传的音频能显示在播放列表
+        audio_tracks: customAudioUrl ? [{
+          id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          name: customAudio.name.replace(/\.[^/.]+$/, ''),
+          url: customAudioUrl,
+          duration: 0,
+          lyrics: '',
+          uploaded_at: new Date().toISOString(),
+        }] : [],
       };
 
       let res = await fetch('/sb-api/rest/v1/rooms', {
@@ -366,7 +375,7 @@ function CreateRoom({ onClose }: CreateRoomProps) {
             )}
           </button>
           <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
-            最大 10MB，仅支持 mp3/wav/m4a 格式
+            最大 20MB，仅支持 mp3/wav/m4a 格式
           </p>
         </div>
 

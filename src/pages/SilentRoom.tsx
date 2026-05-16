@@ -432,6 +432,8 @@ function SilentRoom() {
   const [uploadProgress, setUploadProgress] = useState<string>('');
   const [showLyricsInput, setShowLyricsInput] = useState<string | null>(null);
   const [lyricsText, setLyricsText] = useState('');
+  const [panelHeight, setPanelHeight] = useState(200);
+  const [isDragging, setIsDragging] = useState(false);
   
   // 音频播放状态
   const [audioTracks, setAudioTracks] = useState<AudioTrack[]>([]);
@@ -471,8 +473,19 @@ function SilentRoom() {
       const roomData = data[0];
       setRoom(roomData);
       // 设置音频轨道
-      if (roomData.audio_tracks && Array.isArray(roomData.audio_tracks)) {
+      if (roomData.audio_tracks && Array.isArray(roomData.audio_tracks) && roomData.audio_tracks.length > 0) {
         setAudioTracks(roomData.audio_tracks);
+      } else if (roomData.custom_audio_url) {
+        // Fallback: 如果有 custom_audio_url 但没有 audio_tracks，从 custom_audio_url 构建
+        const fallbackTrack: AudioTrack = {
+          id: `custom-${Date.now()}`,
+          name: '自定义音频',
+          url: roomData.custom_audio_url,
+          duration: 0,
+          lyrics: '',
+          uploaded_at: new Date().toISOString(),
+        };
+        setAudioTracks([fallbackTrack]);
       }
     } catch (err: any) {
       setError(err.message);
@@ -753,6 +766,35 @@ function SilentRoom() {
       playTrack();
     }
   }, [isMuted, pauseTrack, playTrack, audioTracks.length]);
+
+  // 拖动调整面板大小
+  const handleDragStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+    
+    const startY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    const startHeight = panelHeight;
+    
+    const handleDragMove = (moveEvent: MouseEvent | TouchEvent) => {
+      const currentY = 'touches' in moveEvent ? (moveEvent as TouchEvent).touches[0].clientY : (moveEvent as MouseEvent).clientY;
+      const delta = startY - currentY;
+      const newHeight = Math.min(400, Math.max(150, startHeight + delta));
+      setPanelHeight(newHeight);
+    };
+    
+    const handleDragEnd = () => {
+      setIsDragging(false);
+      document.removeEventListener('mousemove', handleDragMove);
+      document.removeEventListener('mouseup', handleDragEnd);
+      document.removeEventListener('touchmove', handleDragMove);
+      document.removeEventListener('touchend', handleDragEnd);
+    };
+    
+    document.addEventListener('mousemove', handleDragMove);
+    document.addEventListener('mouseup', handleDragEnd);
+    document.addEventListener('touchmove', handleDragMove);
+    document.addEventListener('touchend', handleDragEnd);
+  }, [panelHeight]);
 
   // 初始化
   useEffect(() => {
@@ -1202,10 +1244,15 @@ function SilentRoom() {
             <span className="text-white/80 text-sm">音频播放</span>
             <button
               onClick={() => {
-                if (!isMuted && playerRef.current) {
-                  pauseTrack();
+                if (isMuted) {
+                  setIsMuted(false);
+                  // 恢复播放
+                  if (audioTracks.length > 0) {
+                    playTrack(audioTracks[currentTrackIndex]?.url);
+                  }
                 } else {
-                  togglePlayPause();
+                  setIsMuted(true);
+                  pauseTrack();
                 }
               }}
               className="flex items-center gap-2 px-3 py-1.5 rounded-full transition-all"
@@ -1228,6 +1275,14 @@ function SilentRoom() {
           
           {/* 播放列表 */}
           <div className="border-t border-white/10 pt-3 mb-3">
+            {/* 拖动手柄 */}
+            <div 
+              className="flex justify-center py-1 cursor-ns-resize mb-2"
+              onMouseDown={handleDragStart}
+              onTouchStart={handleDragStart}
+            >
+              <div className="w-8 h-1 rounded-full bg-white/30" />
+            </div>
             <div className="flex items-center justify-between mb-2">
               <div className="text-white/50 text-xs font-medium flex items-center gap-1">
                 <ListMusic className="w-3.5 h-3.5" />
@@ -1241,7 +1296,7 @@ function SilentRoom() {
                 暂无音频，上传音频开始播放
               </div>
             ) : (
-              <div className="max-h-40 overflow-y-auto space-y-1">
+              <div className="overflow-y-auto space-y-1" style={{ maxHeight: panelHeight - 100 }}>
                 {audioTracks.map((track, index) => (
                   <div
                     key={track.id}
@@ -1418,62 +1473,6 @@ function SilentRoom() {
         </div>
       )}
 
-      {/* 迷你播放控制栏 - 仅房主可见 */}
-      {audioTracks.length > 0 && room?.creator_id === userId && (
-        <div className="absolute bottom-36 left-0 right-0 z-10 px-4">
-          <div className="max-w-md mx-auto">
-            {/* 歌词显示区域 */}
-            {audioTracks[currentTrackIndex]?.lyrics && (
-              <div className="mb-2 px-4 py-1 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}>
-                <div className="overflow-hidden whitespace-nowrap">
-                  <span className="text-xs text-white/60 animate-marquee inline-block">
-                    {audioTracks[currentTrackIndex].lyrics}
-                  </span>
-                </div>
-              </div>
-            )}
-            {/* 播放控制栏 */}
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full" style={{ backgroundColor: 'rgba(30, 30, 50, 0.9)' }}>
-              <button
-                onClick={playPrevious}
-                className="p-2 rounded-full hover:bg-white/10 transition-colors"
-              >
-                <SkipBack className="w-4 h-4 text-white/70" />
-              </button>
-              <button
-                onClick={togglePlayPause}
-                className="p-3 rounded-full" 
-                style={{ backgroundColor: '#E11D48' }}
-              >
-                {isPlaying ? (
-                  <Pause className="w-5 h-5 text-white" />
-                ) : (
-                  <Play className="w-5 h-5 text-white" />
-                )}
-              </button>
-              <button
-                onClick={playNext}
-                className="p-2 rounded-full hover:bg-white/10 transition-colors"
-              >
-                <SkipForward className="w-4 h-4 text-white/70" />
-              </button>
-              <div className="flex-1 px-2 min-w-0">
-                <div className="text-xs text-white/90 truncate">{audioTracks[currentTrackIndex]?.name || '未选择'}</div>
-              </div>
-              <button
-                onClick={cyclePlayMode}
-                className="p-2 rounded-full hover:bg-white/10 transition-colors"
-                title={playMode === 'list' ? '列表循环' : playMode === 'single' ? '单曲循环' : '随机播放'}
-              >
-                {playMode === 'list' && <Repeat className="w-4 h-4 text-white/50" />}
-                {playMode === 'single' && <Repeat className="w-4 h-4 text-white" style={{ transform: 'scale(1.2)' }} />}
-                {playMode === 'shuffle' && <Shuffle className="w-4 h-4 text-white" />}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      
       {/* 歌词 marquee 动画样式 */}
       <style>{`
         @keyframes marquee {
@@ -1485,7 +1484,7 @@ function SilentRoom() {
         }
       `}</style>
 
-      {/* 底部操作栏 */}
+      {/* 底部操作栏 - 音乐控制和轻语合并 */}
       <div className="absolute bottom-0 left-0 right-0 z-10 p-4 pb-8">
         <div className="max-w-md mx-auto">
           {/* 状态选择器 - 只显示图标，不滑动 */}
@@ -1507,10 +1506,47 @@ function SilentRoom() {
             ))}
           </div>
 
-          {/* 说一句话按钮 */}
-          <div className="flex gap-3">
+          {/* 合并的音乐控制和轻语输入行 */}
+          <div className="flex items-center gap-2">
+            {/* 左侧：音乐控制按钮组（仅房主可见且有音频时） */}
+            {audioTracks.length > 0 && room?.creator_id === userId && (
+              <>
+                <div className="flex items-center gap-1 px-3 py-2 rounded-full" style={{ backgroundColor: 'rgba(30, 30, 50, 0.9)' }}>
+                  <button
+                    onClick={playPrevious}
+                    className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
+                  >
+                    <SkipBack className="w-4 h-4 text-white/70" />
+                  </button>
+                  <button
+                    onClick={togglePlayPause}
+                    className="p-2 rounded-full" 
+                    style={{ backgroundColor: '#E11D48' }}
+                  >
+                    {isPlaying ? (
+                      <Pause className="w-4 h-4 text-white" />
+                    ) : (
+                      <Play className="w-4 h-4 text-white" />
+                    )}
+                  </button>
+                  <button
+                    onClick={playNext}
+                    className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
+                  >
+                    <SkipForward className="w-4 h-4 text-white/70" />
+                  </button>
+                  <div className="w-px h-5 bg-white/20 mx-1" />
+                  <div className="text-xs text-white/80 max-w-24 truncate">
+                    {audioTracks[currentTrackIndex]?.name || '未选择'}
+                  </div>
+                </div>
+                <div className="w-px h-8 bg-white/20" />
+              </>
+            )}
+            
+            {/* 右侧：轻语输入框 */}
             {showSentenceInput ? (
-              <div className="flex-1 flex flex-col gap-2">
+              <div className="flex-1 flex flex-col gap-1">
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -1518,7 +1554,7 @@ function SilentRoom() {
                     onChange={e => setSentenceText(e.target.value.slice(0, 60))}
                     placeholder="轻轻留下一句话..."
                     maxLength={60}
-                    className="flex-1 h-12 px-4 rounded-full text-sm backdrop-blur-sm"
+                    className="flex-1 h-11 px-4 rounded-full text-sm backdrop-blur-sm"
                     style={{ 
                       backgroundColor: 'rgba(255, 255, 255, 0.15)',
                       color: 'white',
@@ -1530,20 +1566,20 @@ function SilentRoom() {
                   <button
                     onClick={sendSentence}
                     disabled={!sentenceText.trim()}
-                    className="h-12 px-6 rounded-full text-sm font-medium text-white disabled:opacity-50"
+                    className="h-11 px-5 rounded-full text-sm font-medium text-white disabled:opacity-50"
                     style={{ backgroundColor: '#E11D48' }}
                   >
                     发送
                   </button>
                   <button
                     onClick={() => { setShowSentenceInput(false); setSentenceText(''); }}
-                    className="h-12 px-4 rounded-full backdrop-blur-sm"
+                    className="h-11 px-3 rounded-full backdrop-blur-sm"
                     style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
                   >
                     <span className="text-white/60">×</span>
                   </button>
                 </div>
-                <div className="flex justify-end">
+                <div className="flex justify-end px-1">
                   <span 
                     className="text-xs px-2 py-0.5 rounded-full backdrop-blur-sm"
                     style={{ 
@@ -1558,10 +1594,11 @@ function SilentRoom() {
             ) : (
               <button
                 onClick={() => setShowSentenceInput(true)}
-                className="flex-1 h-12 rounded-full text-sm font-medium text-white/80 backdrop-blur-sm transition-all hover:bg-white/10"
+                className="flex-1 h-11 rounded-full text-sm font-medium text-white/80 backdrop-blur-sm transition-all hover:bg-white/10 flex items-center justify-center gap-2"
                 style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
               >
-                <Sparkles className="w-4 h-4 inline" style={{ color: 'var(--theme-primary)' }} /> 说一句话
+                <Sparkles className="w-4 h-4" style={{ color: 'var(--theme-primary)' }} /> 
+                轻语
               </button>
             )}
           </div>
