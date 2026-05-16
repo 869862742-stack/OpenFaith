@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Share2, Volume2, VolumeX, Moon, Music, BookOpen, Brain, Flower2, HeartHandshake, Sparkles, Upload, X, Power, SkipBack, SkipForward, Play, Pause, Repeat, Repeat1, Shuffle, ListMusic, Trash2, GripVertical, Type } from 'lucide-react';
+import { ArrowLeft, Share2, Volume2, VolumeX, Moon, Music, BookOpen, Brain, Flower2, HeartHandshake, Sparkles, Upload, X, Power, SkipBack, SkipForward, Play, Pause, Repeat, Repeat1, Shuffle, ListMusic, Trash2, GripVertical, Type, Search } from 'lucide-react';
 import * as mm from 'music-metadata';
 
 // Service Role Key
@@ -1290,8 +1290,11 @@ function SilentRoom() {
       // 清理曲名用于搜索
       const searchQuery = trackName
         .replace(/\.(mp3|flac|wav|m4a|ogg)$/i, '') // 移除文件扩展名
+        .replace(/_?(full_)?lyrics$/i, '') // 移除 _lyrics / _full_lyrics 后缀
+        .replace(/_?(with_)?lyrics$/i, '') // 移除 _with_lyrics 后缀
         .replace(/\[.*?\]/g, '') // 移除方括号内容
         .replace(/\(.*?\)/g, '') // 移除括号内容
+        .replace(/_/g, ' ') // 下划线转空格，如 Beautiful_In_White → Beautiful In White
         .trim();
       
       if (!searchQuery) {
@@ -1538,10 +1541,9 @@ function SilentRoom() {
         />
       ))}
 
-      {/* 歌词显示区域 - 同步滚动 */}
+      {/* 歌词显示区域 - 无背景，直接融入界面 */}
       {showLyrics && currentTrack && (
-        <div className="absolute top-1/3 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-15 w-80 max-w-[90%] p-4 rounded-2xl text-center" 
-             style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(12px)' }}>
+        <div className="absolute top-1/3 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-15 w-80 max-w-[90%] text-center">
           <div className="text-white/90 text-sm font-medium mb-2">{currentTrack?.name || '未知曲目'}</div>
           
           {/* 搜索歌词状态 */}
@@ -1554,7 +1556,7 @@ function SilentRoom() {
           {/* 歌词内容 */}
           {!isSearchingLyrics && parsedLyrics.rawText ? (
             parsedLyrics.isLrc && parsedLyrics.lines.length > 0 ? (
-              <div className="max-h-40 overflow-y-auto scroll-smooth">
+              <div className="max-h-52 overflow-y-auto scroll-smooth scrollbar-hide">
                 {parsedLyrics.lines.map((line, i) => (
                   <div
                     key={i}
@@ -1572,7 +1574,7 @@ function SilentRoom() {
               </div>
             ) : (
               <div className="space-y-2">
-                <div className="text-white/60 text-xs leading-relaxed whitespace-pre-line max-h-32 overflow-y-auto">
+                <div className="text-white/60 text-xs leading-relaxed whitespace-pre-line max-h-32 overflow-y-auto scrollbar-hide">
                   {parsedLyrics.rawText}
                 </div>
                 {lyricsSearchFailed && (
@@ -1584,21 +1586,21 @@ function SilentRoom() {
             <div className="text-white/30 text-xs py-2">暂无歌词</div>
           ) : null}
           
-          {/* 底部搜索按钮 */}
-          <div className="mt-2 pt-2 border-t border-white/10">
+          {/* 底部搜索按钮 - 纯白图标 */}
+          <div className="mt-2">
             <button 
               onClick={handleSearchLyrics}
               disabled={isSearchingLyrics}
-              className="flex items-center justify-center gap-1 mx-auto px-3 py-1 rounded-full text-xs text-white/50 hover:text-white/70 hover:bg-white/10 transition-all disabled:opacity-50"
+              className="flex items-center justify-center gap-1 mx-auto px-3 py-1 rounded-full text-xs text-white/50 hover:text-white/70 transition-all disabled:opacity-50"
             >
-              <span className="text-sm">🔍</span>
+              <Search className="w-3 h-3" />
               <span>{isSearchingLyrics ? '搜索中...' : '搜索歌词'}</span>
             </button>
           </div>
           
           <button 
             onClick={() => setShowLyrics(false)}
-            className="absolute top-1 right-1 p-1 rounded-full hover:bg-white/10"
+            className="absolute top-0 right-0 p-1 rounded-full hover:bg-white/10"
           >
             <X className="w-3 h-3 text-white/40" />
           </button>
