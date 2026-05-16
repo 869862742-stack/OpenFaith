@@ -19,6 +19,7 @@ function ChannelTabs({ activeTab, onTabChange }: ChannelTabsProps) {
   ];
 
   const handleGongjing = () => {
+    onTabChange('gongjing');
     setShowToast(true);
     setTimeout(() => setShowToast(false), 2000);
   };
@@ -39,9 +40,12 @@ function ChannelTabs({ activeTab, onTabChange }: ChannelTabsProps) {
       ))}
       <button
         onClick={handleGongjing}
-        className="relative px-4 py-2 text-sm font-medium whitespace-nowrap text-gray-500 transition-colors"
+        className={`relative px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${activeTab === 'gongjing' ? 'text-[#E11D48]' : 'text-gray-500'}`}
       >
         共境
+        {activeTab === 'gongjing' && (
+          <div className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-[#E11D48]" />
+        )}
       </button>
       {showToast && (
         <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-4 py-2 bg-gray-800 text-white text-sm rounded-lg shadow-lg z-50 animate-fade-in">
