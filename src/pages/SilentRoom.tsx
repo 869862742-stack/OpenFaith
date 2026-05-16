@@ -305,107 +305,7 @@ function StarryBackground() {
   );
 }
 
-// 漂浮头像组件
-function FloatingAvatar({ 
-  participant, 
-  index, 
-  total 
-}: { 
-  participant: Participant; 
-  index: number; 
-  total: number;
-}) {
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [isVisible, setIsVisible] = useState(true);
-  const avatarRef = useRef<HTMLDivElement>(null);
-  const statusConfig = STATUS_OPTIONS.find(s => s.value === participant.status) || STATUS_OPTIONS[0];
-  
-  // 计算初始位置（围绕中心分布）
-  useEffect(() => {
-    const centerX = window.innerWidth / 2;
-    const centerY = window.innerHeight / 2;
-    const radius = Math.min(window.innerWidth, window.innerHeight) * 0.3;
-    const angle = (index / total) * Math.PI * 2 - Math.PI / 2;
-    
-    setPosition({
-      x: centerX + Math.cos(angle) * radius,
-      y: centerY + Math.sin(angle) * radius,
-    });
-  }, [index, total]);
 
-  // 缓慢漂浮动画
-  useEffect(() => {
-    let animationId: number;
-    let time = Math.random() * Math.PI * 2;
-    const startX = position.x;
-    const startY = position.y;
-    
-    const animate = () => {
-      time += 0.01;
-      setPosition({
-        x: startX + Math.sin(time) * 20,
-        y: startY + Math.cos(time * 0.7) * 15,
-      });
-      animationId = requestAnimationFrame(animate);
-    };
-    
-    animationId = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animationId);
-  }, [position.x, position.y]);
-
-  const avatar = participant.profiles?.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + participant.user_id;
-  const username = participant.profiles?.username || '匿名';
-
-  return (
-    <div
-      ref={avatarRef}
-      className="absolute flex flex-col items-center transition-all duration-1000"
-      style={{
-        left: position.x,
-        top: position.y,
-        transform: 'translate(-50%, -50%)',
-        opacity: isVisible ? 1 : 0,
-      }}
-    >
-      {/* 发光效果 */}
-      <div 
-        className="absolute rounded-full animate-pulse"
-        style={{
-          width: 70,
-          height: 70,
-          background: `radial-gradient(circle, var(--theme-primary)30 0%, transparent 70%)`,
-          animation: 'breathe 4s ease-in-out infinite',
-        }}
-      />
-      {/* 头像 */}
-      <div className="relative w-14 h-14 rounded-full overflow-hidden border-2" style={{ borderColor: 'var(--theme-primary)' }}>
-        <img 
-          src={avatar} 
-          alt={username}
-          className="w-full h-full object-cover"
-          onError={(e) => {
-            e.currentTarget.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${participant.user_id}`;
-          }}
-        />
-        {participant.is_owner && (
-          <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs" style={{ backgroundColor: 'var(--theme-primary)' }}>
-            👑
-          </div>
-        )}
-      </div>
-      {/* 状态标签 */}
-      <div 
-        className="mt-2 px-2 py-0.5 rounded-full text-xs whitespace-nowrap flex items-center gap-0.5"
-        style={{ 
-          backgroundColor: 'color-mix(in srgb, var(--theme-primary) 12%, transparent)',
-          color: 'var(--theme-primary)',
-        }}
-      >
-        <statusConfig.Icon className="w-3 h-3" /> {statusConfig.label}
-      </div>
-    </div>
-  );
-}
 
 // 漂浮句子组件
 // 注入 float-up CSS 动画样式
@@ -493,7 +393,7 @@ function SilentRoom() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioUploadRef = useRef<HTMLInputElement>(null);
   const playerRef = useRef<HTMLAudioElement | null>(null);
-  const hasAutoPlayedRef = useRef(false);
+
 
   // 获取当前用户ID（需要auth UUID，不是profiles.id）
   useEffect(() => {
@@ -1023,19 +923,6 @@ function SilentRoom() {
     };
   }, [roomId, userId]);
 
-  // 播放环境音 - 当房间数据加载时自动播放
-  // 初始自动播放（仅一次，不因暂停/播放状态变化而重复触发）
-  useEffect(() => {
-    if (room && audioTracks.length > 0 && !isMuted && !hasAutoPlayedRef.current) {
-      hasAutoPlayedRef.current = true;
-      try {
-        playTrack();
-      } catch (err) {
-        console.error('Failed to play audio:', err);
-      }
-    }
-  }, [room, audioTracks.length, isMuted]);
-
   // 同步房间在线人数到 rooms 表
   useEffect(() => {
     if (!roomId || participants.length === 0) return;
@@ -1101,7 +988,7 @@ function SilentRoom() {
     const body = JSON.stringify({
       room_id: roomId,
       user_id: uid,
-      content: sentenceText.trim().slice(0, 60),
+      content: sentenceText.trim().slice(0, 30),
     });
     console.log('[sendSentence] request body:', body);
     
@@ -1500,23 +1387,48 @@ function SilentRoom() {
         </button>
       </div>
 
-      {/* 中间区域 - 漂浮头像 */}
-      <div className="absolute inset-0 z-5">
-        {participants.slice(0, 50).map((participant, index) => (
-          <FloatingAvatar
-            key={participant.id}
-            participant={participant}
-            index={index}
-            total={Math.min(participants.length, 50)}
-          />
-        ))}
-        {participants.length > 50 && (
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-            <div className="px-4 py-2 rounded-full backdrop-blur-sm" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
-              <span className="text-white/70">+{participants.length - 50} more</span>
+      {/* 在线用户头像行 */}
+      <div className="absolute z-20" style={{ bottom: '200px', left: 0, right: 0 }}>
+        <div className={`flex items-center justify-center gap-2 px-4 ${participants.length > 5 ? 'overflow-hidden' : ''}`}>
+          {participants.length > 5 ? (
+            // 跑马灯滚动
+            <div className="flex animate-marquee-horizontal hover:[animation-play-state:paused]">
+              {[...participants, ...participants].map((p, i) => {
+                const statusConfig = STATUS_OPTIONS.find(s => s.value === p.status) || STATUS_OPTIONS[0];
+                return (
+                  <div key={i} className="flex flex-col items-center mx-1 shrink-0">
+                    <div className="w-8 h-8 rounded-full overflow-hidden border-2" style={{ borderColor: '#E11D48' }}>
+                      <img 
+                        src={p.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.user_id}`} 
+                        className="w-full h-full object-cover"
+                        onError={(e) => { e.currentTarget.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.user_id}`; }}
+                      />
+                    </div>
+                    <statusConfig.Icon className="w-3 h-3 text-white/60 mt-0.5" />
+                  </div>
+                );
+              })}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="flex items-center justify-center gap-2">
+              {participants.map(p => {
+                const statusConfig = STATUS_OPTIONS.find(s => s.value === p.status) || STATUS_OPTIONS[0];
+                return (
+                  <div key={p.id} className="flex flex-col items-center">
+                    <div className="w-8 h-8 rounded-full overflow-hidden border-2" style={{ borderColor: '#E11D48' }}>
+                      <img 
+                        src={p.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.user_id}`} 
+                        className="w-full h-full object-cover"
+                        onError={(e) => { e.currentTarget.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.user_id}`; }}
+                      />
+                    </div>
+                    <statusConfig.Icon className="w-3 h-3 text-white/60 mt-0.5" />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 漂浮句子 */}
@@ -1881,6 +1793,13 @@ function SilentRoom() {
         .animate-marquee {
           animation: marquee 20s linear infinite;
         }
+        @keyframes marquee-horizontal {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .animate-marquee-horizontal {
+          animation: marquee-horizontal 20s linear infinite;
+        }
       `}</style>
 
       {/* 底部操作栏 - 独立状态选择和轻语输入 */}
@@ -1913,14 +1832,14 @@ function SilentRoom() {
                   <input
                     type="text"
                     value={sentenceText}
-                    onChange={e => setSentenceText(e.target.value.slice(0, 60))}
-                    placeholder="轻轻留下一句话..."
-                    maxLength={60}
+                    onChange={e => setSentenceText(e.target.value.slice(0, 30))}
+                    placeholder="轻轻留下一句话（30字内）..."
+                    maxLength={30}
                     className="flex-1 h-11 px-4 rounded-full text-sm backdrop-blur-sm"
                     style={{ 
                       backgroundColor: 'rgba(255, 255, 255, 0.15)',
                       color: 'white',
-                      border: sentenceText.length >= 60 ? '2px solid #ef4444' : '2px solid transparent',
+                      border: sentenceText.length >= 30 ? '2px solid #ef4444' : '2px solid transparent',
                     }}
                     autoFocus
                     onKeyDown={e => e.key === 'Enter' && sendSentence()}
@@ -1945,11 +1864,11 @@ function SilentRoom() {
                   <span 
                     className="text-xs px-2 py-0.5 rounded-full backdrop-blur-sm"
                     style={{ 
-                      backgroundColor: sentenceText.length >= 60 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255, 255, 255, 0.1)',
-                      color: sentenceText.length >= 60 ? '#fca5a5' : 'rgba(255, 255, 255, 0.5)',
+                      backgroundColor: sentenceText.length >= 30 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+                      color: sentenceText.length >= 30 ? '#fca5a5' : 'rgba(255, 255, 255, 0.5)',
                     }}
                   >
-                    {sentenceText.length}/60
+                    {sentenceText.length}/30
                   </span>
                 </div>
               </div>
