@@ -84,6 +84,7 @@ function Messages() {
   
   // 数据状态
   const [friendsList, setFriendsList] = useState<FriendProfile[]>([]);
+  const [latestChatMessages, setLatestChatMessages] = useState<Record<string, {content: string, time: string, messageType: string}>>({});
   const [groupChats, setGroupChats] = useState<GroupChat[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [noteNotifications, setNoteNotifications] = useState<any[]>([]);
@@ -203,6 +204,58 @@ function Messages() {
       console.error('Error loading friends list:', error);
     } finally {
       setIsLoadingFriends(false);
+    }
+  };
+
+  // 加载好友最新聊天消息
+  const loadLatestChatMessages = async () => {
+    const userInfo = localStorage.getItem('user_info');
+    if (!userInfo) return;
+    
+    try {
+      const parsed = JSON.parse(userInfo);
+      const authUserId = parsed.user_id || parsed.id;
+      if (!authUserId) return;
+      
+      // 获取当前用户的 profile ID
+      const profileRes = await fetch(`/sb-api/rest/v1/profiles?user_id=eq.${authUserId}&select=id&limit=1`, {
+        headers: { 'apikey': SERVICE_ROLE_KEY, 'Authorization': `Bearer ${SERVICE_ROLE_KEY}` }
+      });
+      if (!profileRes.ok) return;
+      const profileData = await profileRes.json();
+      if (!Array.isArray(profileData) || profileData.length === 0) return;
+      const myProfileId = profileData[0].id;
+      
+      // 查询当前用户发送或接收的所有消息，按时间倒序
+      const msgRes = await fetch(`/sb-api/rest/v1/private_messages?or=(sender_id.eq.${myProfileId},receiver_id.eq.${myProfileId})&select=sender_id,receiver_id,content,message_type,created_at&order=created_at.desc&limit=100`, {
+        headers: { 'apikey': SERVICE_ROLE_KEY, 'Authorization': `Bearer ${SERVICE_ROLE_KEY}` }
+      });
+      
+      if (!msgRes.ok) return;
+      const messages = await msgRes.json();
+      if (!Array.isArray(messages)) return;
+      
+      // 按对话分组，取每个好友的最新消息
+      const latestMap: Record<string, {content: string, time: string, messageType: string}> = {};
+      for (const msg of messages) {
+        const otherId = msg.sender_id === myProfileId ? msg.receiver_id : msg.sender_id;
+        if (!latestMap[otherId]) {
+          let displayContent = msg.content;
+          if (msg.message_type === 'image') displayContent = '[图片]';
+          else if (msg.message_type === 'voice') displayContent = '[语音]';
+          else if (msg.message_type === 'faith_bubble') displayContent = '[信仰之光]';
+          else if (displayContent.startsWith('[emoji:')) displayContent = '[表情]';
+          latestMap[otherId] = {
+            content: displayContent,
+            time: msg.created_at,
+            messageType: msg.message_type,
+          };
+        }
+      }
+      
+      setLatestChatMessages(latestMap);
+    } catch (err) {
+      console.error('Error loading latest chat messages:', err);
     }
   };
 
@@ -760,6 +813,7 @@ function Messages() {
   useEffect(() => {
     if (activeTab === 'messages') {
       loadFriendsList();
+      loadLatestChatMessages();
       loadGroupChats();
       loadAnnouncements();
       loadNoteNotifications();
@@ -787,15 +841,16 @@ function Messages() {
     // 添加私聊消息
     friendsList.forEach(friend => {
       const userId = friend.user_id || friend.id;
+      const latestMsg = latestChatMessages[friend.id];
       messages.push({
         id: `private_${userId}`,
         type: 'private',
         title: friend.nickname || friend.username || '未命名用户',
-        subtitle: '点击开始聊天',
+        subtitle: latestMsg ? latestMsg.content : '点击开始聊天',
         avatar: friend.avatar_url || undefined,
         avatarType: 'user',
-        time: formatTime(friend.created_at),
-        timeRaw: friend.created_at,
+        time: latestMsg ? formatTime(latestMsg.time) : formatTime(friend.created_at),
+        timeRaw: latestMsg ? latestMsg.time : friend.created_at,
         isRead: true,
         rawData: friend,
       });

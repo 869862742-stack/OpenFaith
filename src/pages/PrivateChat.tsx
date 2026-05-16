@@ -931,8 +931,8 @@ function PrivateChat() {
                         <div
                           className="px-4 py-2.5 rounded-2xl flex items-center gap-2 cursor-pointer"
                           style={{
-                            backgroundColor: isOwn ? PRIMARY_COLOR : cardBgSecondary,
-                            color: isOwn ? 'white' : textColor,
+                            backgroundColor: isOwn ? 'rgba(225,29,72,0.08)' : cardBgSecondary,
+                            color: isOwn ? PRIMARY_COLOR : textColor,
                             borderRadius: isOwn ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                             minWidth: '100px',
                           }}
@@ -942,7 +942,7 @@ function PrivateChat() {
                             {[1,2,3].map(i => (
                               <div key={i} className="w-0.5 rounded-full" style={{ 
                                 height: `${8 + i * 4}px`, 
-                                backgroundColor: isOwn ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.3)' 
+                                backgroundColor: isOwn ? 'rgba(225,29,72,0.4)' : 'rgba(0,0,0,0.3)' 
                               }} />
                             ))}
                           </div>
@@ -955,8 +955,8 @@ function PrivateChat() {
                         <div
                           className="px-4 py-2.5 rounded-2xl text-sm leading-relaxed"
                           style={{
-                            backgroundColor: isOwn ? PRIMARY_COLOR : cardBgSecondary,
-                            color: isOwn ? 'white' : textColor,
+                            backgroundColor: isOwn ? 'rgba(225,29,72,0.08)' : cardBgSecondary,
+                            color: isOwn ? textColor : textColor,
                             borderRadius: isOwn ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                           }}
                         >
