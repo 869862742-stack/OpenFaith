@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Share2, Volume2, VolumeX, Moon, Music, BookOpen, Brain, Flower2, HeartHandshake, Sparkles, Upload, X, Power, SkipBack, SkipForward, Play, Pause, Repeat, Shuffle, ListMusic, Trash2 } from 'lucide-react';
+import { ArrowLeft, Share2, Volume2, VolumeX, Moon, Music, BookOpen, Brain, Flower2, HeartHandshake, Sparkles, Upload, X, Power, SkipBack, SkipForward, Play, Pause, Repeat, Repeat1, Shuffle, ListMusic, Trash2, GripVertical, Type } from 'lucide-react';
 
 // Service Role Key
 const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE';
@@ -435,6 +435,11 @@ function SilentRoom() {
   const [panelHeight, setPanelHeight] = useState(200);
   const [isDragging, setIsDragging] = useState(false);
   
+  // 新增状态
+  const [showLyrics, setShowLyrics] = useState(false);
+  const [panelPos, setPanelPos] = useState({ x: 0, y: window.innerHeight - 100 });
+  const [isPanelDragging, setIsPanelDragging] = useState(false);
+  
   // 音频播放状态
   const [audioTracks, setAudioTracks] = useState<AudioTrack[]>([]);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
@@ -758,14 +763,28 @@ function SilentRoom() {
     });
   }, []);
 
-  // 播放环境音 - 简化为静音控制
-  const playAmbientSound = useCallback(() => {
-    if (isMuted) {
-      pauseTrack();
-    } else if (audioTracks.length > 0) {
-      playTrack();
+  // 静音切换：只切换音量，不暂停
+  const toggleMute = useCallback(() => {
+    const newMuted = !isMuted;
+    setIsMuted(newMuted);
+    if (playerRef.current) {
+      playerRef.current.volume = newMuted ? 0 : 0.5;
     }
-  }, [isMuted, pauseTrack, playTrack, audioTracks.length]);
+  }, [isMuted]);
+
+  // 播放/暂停：真正控制播放状态
+  const handlePlayPause = useCallback(() => {
+    if (isPlaying) {
+      pauseTrack();
+    } else {
+      if (audioTracks.length > 0 && !playerRef.current) {
+        playTrack();
+      } else if (playerRef.current) {
+        playerRef.current.play().catch(() => {});
+        setIsPlaying(true);
+      }
+    }
+  }, [isPlaying, pauseTrack, playTrack, audioTracks]);
 
   // 拖动调整面板大小
   const handleDragStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
@@ -795,6 +814,46 @@ function SilentRoom() {
     document.addEventListener('touchmove', handleDragMove);
     document.addEventListener('touchend', handleDragEnd);
   }, [panelHeight]);
+
+  // 可拖动面板位置控制
+  const handlePanelDragStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    setIsPanelDragging(true);
+    
+    const startX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const startY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    const startPanelX = panelPos.x;
+    const startPanelY = panelPos.y;
+    
+    const handleDragMove = (moveEvent: MouseEvent | TouchEvent) => {
+      const currentX = 'touches' in moveEvent ? (moveEvent as TouchEvent).touches[0].clientX : (moveEvent as MouseEvent).clientX;
+      const currentY = 'touches' in moveEvent ? (moveEvent as TouchEvent).touches[0].clientY : (moveEvent as MouseEvent).clientY;
+      
+      let newX = startPanelX + (currentX - startX);
+      let newY = startPanelY + (currentY - startY);
+      
+      // 限制在屏幕范围内
+      const panelWidth = 320;
+      const panelHeight = 60;
+      newX = Math.max(0, Math.min(window.innerWidth - panelWidth, newX));
+      newY = Math.max(0, Math.min(window.innerHeight - panelHeight, newY));
+      
+      setPanelPos({ x: newX, y: newY });
+    };
+    
+    const handleDragEnd = () => {
+      setIsPanelDragging(false);
+      document.removeEventListener('mousemove', handleDragMove);
+      document.removeEventListener('mouseup', handleDragEnd);
+      document.removeEventListener('touchmove', handleDragMove);
+      document.removeEventListener('touchend', handleDragEnd);
+    };
+    
+    document.addEventListener('mousemove', handleDragMove);
+    document.addEventListener('mouseup', handleDragEnd);
+    document.addEventListener('touchmove', handleDragMove);
+    document.addEventListener('touchend', handleDragEnd);
+  }, [panelPos]);
 
   // 初始化
   useEffect(() => {
@@ -1037,77 +1096,72 @@ function SilentRoom() {
         // 更新音频轨道列表
         const updatedTracks = [...audioTracks, ...newTracks];
         setAudioTracks(updatedTracks);
-        
-        // 更新数据库
         await updateAudioTracksInRoom(updatedTracks);
         
-        // 如果是第一个轨道，自动播放
-        if (audioTracks.length === 0) {
+        // 自动播放第一首（如果没有正在播放）
+        if (!isPlaying && audioTracks.length === 0) {
           setCurrentTrackIndex(0);
-          setIsPlaying(true);
-          playTrack(newTracks[0].url);
+          if (!isMuted) {
+            setTimeout(() => playTrack(newTracks[0].url), 500);
+          }
         }
       }
     } catch (err) {
       console.error('Failed to upload audio:', err);
-      alert('音频上传失败');
+      alert('上传失败，请重试');
     } finally {
       setUploadingAudio(false);
       setUploadProgress('');
-      // 清空 input 以便重新选择同一文件
       if (audioUploadRef.current) {
         audioUploadRef.current.value = '';
       }
     }
   };
-  
-  // 更新房间的 audio_tracks 字段
-  const updateAudioTracksInRoom = async (tracks: AudioTrack[]) => {
-    if (!roomId || room?.creator_id !== userId) return;
+
+  // 更新房间的音频轨道列表
+  const updateAudioTracksInRoom = async (updatedTracks: AudioTrack[]) => {
+    if (!roomId) return;
     
     try {
-      const res = await fetch(`/sb-api/rest/v1/rooms?id=eq.${roomId}`, {
+      await fetch(`/sb-api/rest/v1/rooms?id=eq.${roomId}`, {
         method: 'PATCH',
         headers: {
           'apikey': SERVICE_ROLE_KEY,
           'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ audio_tracks: tracks }),
+        body: JSON.stringify({
+          audio_tracks: updatedTracks,
+        }),
       });
-      
-      if (res.ok) {
-        setRoom(prev => prev ? { ...prev, audio_tracks: tracks } : null);
-      } else {
-        // audio_tracks 列可能不存在，忽略错误
-        console.warn('audio_tracks update failed, column may not exist');
-      }
     } catch (err) {
       console.error('Failed to update audio tracks:', err);
     }
   };
-  
+
   // 删除音频轨道
   const deleteAudioTrack = async (trackId: string) => {
-    if (!roomId || room?.creator_id !== userId) return;
+    if (!window.confirm('确定要删除这首音乐吗？')) return;
     
     const updatedTracks = audioTracks.filter(t => t.id !== trackId);
     setAudioTracks(updatedTracks);
     
     // 如果删除的是当前播放的曲目
-    const deletedIndex = audioTracks.findIndex(t => t.id === trackId);
-    if (deletedIndex !== -1) {
-      if (deletedIndex < currentTrackIndex) {
-        setCurrentTrackIndex(prev => prev - 1);
-      } else if (deletedIndex === currentTrackIndex) {
-        pauseTrack();
-        if (updatedTracks.length > 0) {
-          const newIndex = Math.min(currentTrackIndex, updatedTracks.length - 1);
-          setCurrentTrackIndex(newIndex);
-        } else {
-          setCurrentTrackIndex(0);
-        }
+    if (audioTracks[currentTrackIndex]?.id === trackId) {
+      if (playerRef.current) {
+        playerRef.current.pause();
+        playerRef.current = null;
       }
+      setIsPlaying(false);
+      
+      if (updatedTracks.length > 0) {
+        setCurrentTrackIndex(0);
+      } else {
+        setCurrentTrackIndex(0);
+      }
+    } else if (currentTrackIndex >= updatedTracks.length) {
+      // 如果当前索引超出范围，调整到最后一首
+      setCurrentTrackIndex(Math.max(0, updatedTracks.length - 1));
     }
     
     await updateAudioTracksInRoom(updatedTracks);
@@ -1129,6 +1183,21 @@ function SilentRoom() {
   // 移除过期的句子
   const removeSentence = (id: string) => {
     setSentences(prev => prev.filter(s => s.id !== id));
+  };
+
+  // 获取当前播放的曲目
+  const currentTrack = audioTracks[currentTrackIndex];
+
+  // 获取播放模式图标
+  const getPlayModeIcon = () => {
+    switch (playMode) {
+      case 'list':
+        return <Repeat className="w-4 h-4" />;
+      case 'single':
+        return <Repeat1 className="w-4 h-4" />;
+      case 'shuffle':
+        return <Shuffle className="w-4 h-4" />;
+    }
   };
 
   if (isLoading) {
@@ -1219,7 +1288,20 @@ function SilentRoom() {
         />
       ))}
 
-      {/* 环境音控制 - 合并为一个按钮 */}
+      {/* 歌词显示区域 - 在房间状态面板上方 */}
+      {showLyrics && currentTrack?.lyrics && (
+        <div className="absolute top-1/3 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-15 w-80 max-w-[90%] p-4 rounded-2xl text-center" 
+             style={{ backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }}>
+          <div className="text-white/80 text-sm font-medium mb-2">{currentTrack?.name}</div>
+          <div className="text-white/50 text-xs whitespace-nowrap overflow-hidden">
+            <div style={{ animation: 'lyricsMarquee 20s linear infinite', display: 'inline-block', whiteSpace: 'nowrap' }}>
+              {currentTrack?.lyrics}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 环境音控制 - 右上角声音按钮 */}
       <div className="absolute top-20 right-4 z-10">
         <button
           onClick={() => setShowSoundPanel(!showSoundPanel)}
@@ -1235,26 +1317,14 @@ function SilentRoom() {
         </button>
       </div>
 
-      {/* 声音设置面板 - 合并所有功能 */}
+      {/* 声音设置面板 - 修复：静音和播放/暂停分离 */}
       {showSoundPanel && (
         <div className="absolute top-28 right-4 z-20 w-72 p-4 rounded-2xl backdrop-blur-md" style={{ backgroundColor: 'rgba(30, 30, 50, 0.95)' }}>
-          {/* 顶部静音切换 */}
-          {/* 静音控制 */}
+          {/* 静音控制 - 只控制音量，不影响播放状态 */}
           <div className="flex items-center justify-between mb-4">
             <span className="text-white/80 text-sm">音频播放</span>
             <button
-              onClick={() => {
-                if (isMuted) {
-                  setIsMuted(false);
-                  // 恢复播放
-                  if (audioTracks.length > 0) {
-                    playTrack(audioTracks[currentTrackIndex]?.url);
-                  }
-                } else {
-                  setIsMuted(true);
-                  pauseTrack();
-                }
-              }}
+              onClick={toggleMute}
               className="flex items-center gap-2 px-3 py-1.5 rounded-full transition-all"
               style={{
                 backgroundColor: isMuted ? 'rgba(255, 255, 255, 0.1)' : 'rgba(225, 29, 72, 0.3)',
@@ -1262,13 +1332,32 @@ function SilentRoom() {
             >
               {isMuted ? (
                 <VolumeX className="w-4 h-4 text-white/60" />
-              ) : isPlaying ? (
-                <Volume2 className="w-4 h-4 text-white" />
               ) : (
-                <Volume2 className="w-4 h-4 text-white/60" />
+                <Volume2 className="w-4 h-4 text-white" />
               )}
               <span className="text-xs text-white/70">
-                {isMuted ? '静音' : isPlaying ? '播放中' : '已暂停'}
+                {isMuted ? '已静音' : '已开启'}
+              </span>
+            </button>
+          </div>
+          
+          {/* 播放/暂停控制 - 独立于静音状态 */}
+          <div className="flex items-center justify-between mb-4 border-t border-white/10 pt-3">
+            <span className="text-white/80 text-sm">播放控制</span>
+            <button
+              onClick={handlePlayPause}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full transition-all"
+              style={{
+                backgroundColor: isPlaying ? 'rgba(225, 29, 72, 0.3)' : 'rgba(255, 255, 255, 0.1)',
+              }}
+            >
+              {isPlaying ? (
+                <Pause className="w-4 h-4 text-white" />
+              ) : (
+                <Play className="w-4 h-4 text-white" />
+              )}
+              <span className="text-xs text-white/70">
+                {isPlaying ? '暂停' : '播放'}
               </span>
             </button>
           </div>
@@ -1439,6 +1528,83 @@ function SilentRoom() {
         </div>
       )}
 
+      {/* 可拖动的音乐控制面板 - 仅房主可见 */}
+      {audioTracks.length > 0 && room?.creator_id === userId && (
+        <div
+          className="fixed z-30 flex items-center gap-1 px-3 py-2 rounded-full backdrop-blur-md"
+          style={{
+            backgroundColor: 'rgba(30, 30, 50, 0.9)',
+            left: panelPos.x,
+            top: panelPos.y,
+            cursor: isPanelDragging ? 'grabbing' : 'grab',
+          }}
+        >
+          {/* 拖动手柄 */}
+          <div
+            className="p-1 cursor-grab active:cursor-grabbing"
+            onMouseDown={handlePanelDragStart}
+            onTouchStart={handlePanelDragStart}
+            title="拖动面板"
+          >
+            <GripVertical className="w-4 h-4 text-white/50" />
+          </div>
+          
+          <div className="w-px h-5 bg-white/20" />
+          
+          {/* 上一首 */}
+          <button
+            onClick={playPrevious}
+            className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
+          >
+            <SkipBack className="w-4 h-4 text-white/70" />
+          </button>
+          
+          {/* 播放/暂停 */}
+          <button
+            onClick={handlePlayPause}
+            className="p-2 rounded-full"
+            style={{ backgroundColor: '#E11D48' }}
+          >
+            {isPlaying ? (
+              <Pause className="w-4 h-4 text-white" />
+            ) : (
+              <Play className="w-4 h-4 text-white" />
+            )}
+          </button>
+          
+          {/* 下一首 */}
+          <button
+            onClick={playNext}
+            className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
+          >
+            <SkipForward className="w-4 h-4 text-white/70" />
+          </button>
+          
+          <div className="w-px h-5 bg-white/20" />
+          
+          {/* 播放模式 */}
+          <button
+            onClick={cyclePlayMode}
+            className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
+            title={playMode === 'list' ? '列表循环' : playMode === 'single' ? '单曲循环' : '随机播放'}
+          >
+            {getPlayModeIcon()}
+          </button>
+          
+          <div className="w-px h-5 bg-white/20" />
+          
+          {/* 歌词开关 */}
+          <button
+            onClick={() => setShowLyrics(!showLyrics)}
+            className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
+            title={showLyrics ? '隐藏歌词' : '显示歌词'}
+            style={{ color: showLyrics ? 'var(--theme-primary)' : 'rgba(255,255,255,0.7)' }}
+          >
+            <Type className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* 解散房间确认对话框 */}
       {showDisbandConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
@@ -1479,12 +1645,16 @@ function SilentRoom() {
           0% { transform: translateX(100%); }
           100% { transform: translateX(-100%); }
         }
+        @keyframes lyricsMarquee {
+          0% { transform: translateX(100%); }
+          100% { transform: translateX(-100%); }
+        }
         .animate-marquee {
           animation: marquee 20s linear infinite;
         }
       `}</style>
 
-      {/* 底部操作栏 - 音乐控制和轻语合并 */}
+      {/* 底部操作栏 - 独立状态选择和轻语输入 */}
       <div className="absolute bottom-0 left-0 right-0 z-10 p-4 pb-8">
         <div className="max-w-md mx-auto">
           {/* 状态选择器 - 只显示图标，不滑动 */}
@@ -1506,47 +1676,10 @@ function SilentRoom() {
             ))}
           </div>
 
-          {/* 合并的音乐控制和轻语输入行 */}
-          <div className="flex items-center gap-2">
-            {/* 左侧：音乐控制按钮组（仅房主可见且有音频时） */}
-            {audioTracks.length > 0 && room?.creator_id === userId && (
-              <>
-                <div className="flex items-center gap-1 px-3 py-2 rounded-full" style={{ backgroundColor: 'rgba(30, 30, 50, 0.9)' }}>
-                  <button
-                    onClick={playPrevious}
-                    className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
-                  >
-                    <SkipBack className="w-4 h-4 text-white/70" />
-                  </button>
-                  <button
-                    onClick={togglePlayPause}
-                    className="p-2 rounded-full" 
-                    style={{ backgroundColor: '#E11D48' }}
-                  >
-                    {isPlaying ? (
-                      <Pause className="w-4 h-4 text-white" />
-                    ) : (
-                      <Play className="w-4 h-4 text-white" />
-                    )}
-                  </button>
-                  <button
-                    onClick={playNext}
-                    className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
-                  >
-                    <SkipForward className="w-4 h-4 text-white/70" />
-                  </button>
-                  <div className="w-px h-5 bg-white/20 mx-1" />
-                  <div className="text-xs text-white/80 max-w-24 truncate">
-                    {audioTracks[currentTrackIndex]?.name || '未选择'}
-                  </div>
-                </div>
-                <div className="w-px h-8 bg-white/20" />
-              </>
-            )}
-            
-            {/* 右侧：轻语输入框 */}
+          {/* 独立的轻语输入面板 */}
+          <div className="w-full">
             {showSentenceInput ? (
-              <div className="flex-1 flex flex-col gap-1">
+              <div className="flex flex-col gap-1">
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -1594,7 +1727,7 @@ function SilentRoom() {
             ) : (
               <button
                 onClick={() => setShowSentenceInput(true)}
-                className="flex-1 h-11 rounded-full text-sm font-medium text-white/80 backdrop-blur-sm transition-all hover:bg-white/10 flex items-center justify-center gap-2"
+                className="w-full h-11 rounded-full text-sm font-medium text-white/80 backdrop-blur-sm transition-all hover:bg-white/10 flex items-center justify-center gap-2"
                 style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
               >
                 <Sparkles className="w-4 h-4" style={{ color: 'var(--theme-primary)' }} /> 
