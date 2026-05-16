@@ -1,0 +1,25 @@
+// 示例：藏书智能导入格式
+// 复制以下内容到智能导入中，或保存为 .json 文件后上传
+
+[
+  {
+    "title": "书名",
+    "religion": "所属宗教",
+    "category": "分类",
+    "description": "书籍描述",
+    "status": "published",
+    "chapters": [
+      {
+        "number": 1,
+        "title": "第一章",
+        "volume": "卷名（可选）",
+        "content": "章节内容..."
+      },
+      {
+        "number": 2,
+        "title": "第二章",
+        "content": "第二章内容..."
+      }
+    ]
+  }
+]

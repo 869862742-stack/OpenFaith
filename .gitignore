@@ -1,0 +1,35 @@
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build
+dist/
+build/
+.webpack-cache/
+.cache/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Vercel
+.vercel/
+dist/
+dm_backup_20250515/
+dm_backup_20250515/

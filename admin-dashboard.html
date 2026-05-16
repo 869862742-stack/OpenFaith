@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>OpenFaith 管理后台 - 仪表盘</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f5;
+      min-height: 100vh;
+    }
+    .header {
+      background: white;
+      border-bottom: 1px solid #eee;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: #E11D48;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .logo-icon svg {
+      width: 20px;
+      height: 20px;
+      fill: white;
+    }
+    .header-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .user-info {
+      text-align: right;
+    }
+    .user-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: #333;
+    }
+    .user-role {
+      font-size: 12px;
+      color: #999;
+    }
+    .logout-btn {
+      padding: 8px 16px;
+      background: #f5f5f5;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      color: #666;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .logout-btn:hover {
+      background: #eee;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .stat-label {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+    .stat-change {
+      font-size: 12px;
+      color: #22c55e;
+      margin-top: 4px;
+    }
+    .section {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+    .view-all {
+      font-size: 14px;
+      color: #E11D48;
+      text-decoration: none;
+    }
+    .table-container {
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+    th {
+      font-size: 12px;
+      font-weight: 500;
+      color: #999;
+      text-transform: uppercase;
+    }
+    td {
+      font-size: 14px;
+      color: #333;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .status-active {
+      background: #dcfce7;
+      color: #166534;
+    }
+    .status-pending {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    .status-inactive {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    .loading-state {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+    .error-state {
+      text-align: center;
+      padding: 40px;
+      color: #c33;
+    }
+    @media (max-width: 768px) {
+      .container {
+        padding: 16px;
+      }
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .header {
+        padding: 12px 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.18L19.18 7 12 10.82 4.82 7 12 4.18zM4 8.82l7 3.5v7.86l-7-3.5V8.82zm9 11.36v-7.86l7-3.5v7.86l-7 3.5z"/></svg>
+      </div>
+      <span class="header-title">OpenFaith 管理后台</span>
+    </div>
+    <div class="header-right">
+      <div class="user-info">
+        <div class="user-name" id="userName">管理员</div>
+        <div class="user-role" id="userRole">超级管理员</div>
+      </div>
+      <button class="logout-btn" onclick="handleLogout()">退出登录</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="stats-grid" id="statsGrid">
+      <div class="loading-state">加载中...</div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <h2 class="section-title">最近活动</h2>
+        <a href="#" class="view-all">查看全部</a>
+      </div>
+      <div class="table-container">
+        <table id="activityTable">
+          <thead>
+            <tr>
+              <th>类型</th>
+              <th>内容</th>
+              <th>用户</th>
+              <th>时间</th>
+              <th>状态</th>
+            </tr>
+          </thead>
+          <tbody id="activityBody">
+            <tr><td colspan="5" class="loading-state">加载中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = window.MEOO_CONFIG?.meoo_app_access_url 
+      ? `${window.MEOO_CONFIG.meoo_app_access_url}/sb-api` 
+      : location.origin + '/sb-api';
+
+    // 检查登录状态
+    function checkAuth() {
+      const token = localStorage.getItem('openfaith_admin_token');
+      if (!token) {
+        window.location.href = 'admin.html';
+        return false;
+      }
+
+      try {
+        const tokenData = JSON.parse(atob(token));
+        if (!tokenData.admin_id?.startsWith('super-') && tokenData.exp <= Math.floor(Date.now() / 1000)) {
+          localStorage.removeItem('openfaith_admin_token');
+          localStorage.removeItem('openfaith_admin_user');
+          window.location.href = 'admin.html';
+          return false;
+        }
+
+        // 显示用户信息
+        const adminUser = JSON.parse(localStorage.getItem('openfaith_admin_user') || '{}');
+        document.getElementById('userName').textContent = adminUser.username || '管理员';
+        document.getElementById('userRole').textContent = adminUser.roles?.includes('super_admin') ? '超级管理员' : '管理员';
+        
+        return true;
+      } catch (e) {
+        localStorage.removeItem('openfaith_admin_token');
+        localStorage.removeItem('openfaith_admin_user');
+        window.location.href = 'admin.html';
+        return false;
+      }
+    }
+
+    // 退出登录
+    function handleLogout() {
+      localStorage.removeItem('openfaith_admin_token');
+      localStorage.removeItem('openfaith_admin_user');
+      window.location.href = 'admin.html';
+    }
+
+    // 加载统计数据
+    async function loadStats() {
+      try {
+        // 模拟数据，实际项目中应从 API 获取
+        const stats = [
+          { label: '总用户数', value: '1,234', change: '+12%' },
+          { label: '活跃帖子', value: '567', change: '+8%' },
+          { label: '待审核', value: '23', change: '-5%' },
+          { label: '举报处理', value: '12', change: '+3%' },
+        ];
+
+        const statsGrid = document.getElementById('statsGrid');
+        statsGrid.innerHTML = stats.map(stat => `
+          <div class="stat-card">
+            <div class="stat-label">${stat.label}</div>
+            <div class="stat-value">${stat.value}</div>
+            <div class="stat-change">${stat.change} 较上周</div>
+          </div>
+        `).join('');
+      } catch (error) {
+        console.error('Load stats error:', error);
+        document.getElementById('statsGrid').innerHTML = '<div class="error-state">加载失败，请刷新重试</div>';
+      }
+    }
+
+    // 加载活动列表
+    async function loadActivities() {
+      try {
+        // 模拟数据
+        const activities = [
+          { type: '新用户', content: '张三 注册了账号', user: '系统', time: '2分钟前', status: 'active' },
+          { type: '新帖子', content: '基督教信仰分享', user: '李四', time: '15分钟前', status: 'pending' },
+          { type: '举报', content: '不当内容举报', user: '王五', time: '1小时前', status: 'pending' },
+          { type: '评论', content: '很好的分享', user: '赵六', time: '2小时前', status: 'active' },
+        ];
+
+        const activityBody = document.getElementById('activityBody');
+        activityBody.innerHTML = activities.map(activity => `
+          <tr>
+            <td>${activity.type}</td>
+            <td>${activity.content}</td>
+            <td>${activity.user}</td>
+            <td>${activity.time}</td>
+            <td><span class="status-badge status-${activity.status}">${activity.status === 'active' ? '已处理' : '待处理'}</span></td>
+          </tr>
+        `).join('');
+      } catch (error) {
+        console.error('Load activities error:', error);
+        document.getElementById('activityBody').innerHTML = '<tr><td colspan="5" class="error-state">加载失败</td></tr>';
+      }
+    }
+
+    // 初始化
+    if (checkAuth()) {
+      loadStats();
+      loadActivities();
+    }
+  </script>
+</body>
+</html>
