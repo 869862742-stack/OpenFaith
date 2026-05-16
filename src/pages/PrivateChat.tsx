@@ -903,10 +903,11 @@ function PrivateChat() {
                   )}
                   
                   <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                    {/* 对方头像：在左边 */}
                     {!isOwn && (
                       <button 
                         onClick={() => navigate(`/profile/${userId}`)}
-                        className="shrink-0 mr-2 rounded-full overflow-hidden"
+                        className="shrink-0 mr-2 self-end"
                       >
                         {getAvatarUrl(senderProfile) ? (
                           <img
@@ -925,13 +926,13 @@ function PrivateChat() {
                       </button>
                     )}
                     
-                    <div className={`max-w-[75%] ${isOwn ? 'order-1' : ''}`}>
+                    <div className="max-w-[70%]">
                       {/* 语音消息特殊渲染 */}
                       {message.message_type === 'voice' ? (
                         <div
                           className="px-4 py-2.5 rounded-2xl flex items-center gap-2 cursor-pointer"
                           style={{
-                            backgroundColor: isOwn ? 'rgba(225,29,72,0.08)' : cardBgSecondary,
+                            backgroundColor: isOwn ? 'rgba(225,29,72,0.05)' : cardBgSecondary,
                             color: isOwn ? PRIMARY_COLOR : textColor,
                             borderRadius: isOwn ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                             minWidth: '100px',
@@ -942,7 +943,7 @@ function PrivateChat() {
                             {[1,2,3].map(i => (
                               <div key={i} className="w-0.5 rounded-full" style={{ 
                                 height: `${8 + i * 4}px`, 
-                                backgroundColor: isOwn ? 'rgba(225,29,72,0.4)' : 'rgba(0,0,0,0.3)' 
+                                backgroundColor: isOwn ? 'rgba(225,29,72,0.3)' : 'rgba(0,0,0,0.3)' 
                               }} />
                             ))}
                           </div>
@@ -955,7 +956,7 @@ function PrivateChat() {
                         <div
                           className="px-4 py-2.5 rounded-2xl text-sm leading-relaxed"
                           style={{
-                            backgroundColor: isOwn ? 'rgba(225,29,72,0.08)' : cardBgSecondary,
+                            backgroundColor: isOwn ? 'rgba(225,29,72,0.05)' : cardBgSecondary,
                             color: isOwn ? textColor : textColor,
                             borderRadius: isOwn ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                           }}
@@ -971,13 +972,14 @@ function PrivateChat() {
                       </div>
                     </div>
 
+                    {/* 我的头像：在右边 */}
                     {isOwn && (
                       <button 
                         onClick={() => {
                           const authUserId = JSON.parse(localStorage.getItem('user_info') || '{}').user_id || JSON.parse(localStorage.getItem('user_info') || '{}').id;
                           if (authUserId) navigate(`/profile/${authUserId}`);
                         }}
-                        className="shrink-0 ml-2 rounded-full overflow-hidden"
+                        className="shrink-0 ml-2 self-end"
                       >
                         {getAvatarUrl(senderProfile) ? (
                           <img
