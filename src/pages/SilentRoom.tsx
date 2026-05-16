@@ -461,7 +461,7 @@ function SilentRoom() {
   
   // 新增状态
   const [showLyrics, setShowLyrics] = useState(false);
-  const [panelPos, setPanelPos] = useState({ x: Math.max(10, (window.innerWidth - 300) / 2), y: Math.round(window.innerHeight * 0.35) });
+  const [panelPos, setPanelPos] = useState({ x: Math.max(10, (window.innerWidth - 300) / 2), y: Math.round(window.innerHeight * 0.22) });
   const [isPanelDragging, setIsPanelDragging] = useState(false);
   
   // 音频播放状态
@@ -1318,7 +1318,7 @@ function SilentRoom() {
           <div className="text-white/90 text-sm font-medium mb-2">{currentTrack?.name || '未知曲目'}</div>
           {currentTrack?.lyrics ? (
             <div className="text-white/60 text-xs leading-relaxed whitespace-pre-line max-h-32 overflow-y-auto">
-              {currentTrack.lyrics}
+              {typeof currentTrack.lyrics === 'string' ? currentTrack.lyrics : JSON.stringify(currentTrack.lyrics)}
             </div>
           ) : (
             <div className="text-white/30 text-xs py-2">
