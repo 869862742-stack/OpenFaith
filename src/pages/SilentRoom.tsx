@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Share2, Volume2, VolumeX, Moon, Music, BookOpen, Brain, Flower2, HeartHandshake, Sparkles, Upload, X, Power, SkipBack, SkipForward, Play, Pause, Repeat, Repeat1, Shuffle, ListMusic, Trash2, GripVertical, Type } from 'lucide-react';
 import * as mm from 'music-metadata';
@@ -1260,6 +1260,25 @@ function SilentRoom() {
   // 获取当前播放的曲目
   const currentTrack = audioTracks[currentTrackIndex];
 
+  // 解析歌词
+  const parsedLyrics = useMemo(() => {
+    if (!currentTrack?.lyrics) return { isLrc: false, lines: [], rawText: '' };
+    const lyricsText = typeof currentTrack.lyrics === 'string' ? currentTrack.lyrics : JSON.stringify(currentTrack.lyrics);
+    if (!lyricsText) return { isLrc: false, lines: [], rawText: '' };
+    const isLrc = isLrcFormat(lyricsText);
+    const lines = isLrc ? parseLrc(lyricsText) : [];
+    return { isLrc, lines, rawText: lyricsText };
+  }, [currentTrack?.lyrics]);
+
+  // 当前高亮歌词行
+  const activeLyricIndex = useMemo(() => {
+    if (!parsedLyrics.isLrc || parsedLyrics.lines.length === 0) return -1;
+    for (let i = parsedLyrics.lines.length - 1; i >= 0; i--) {
+      if (currentPlayTime >= parsedLyrics.lines[i].time) return i;
+    }
+    return -1;
+  }, [parsedLyrics, currentPlayTime]);
+
   // 获取播放模式图标
   const getPlayModeIcon = () => {
     switch (playMode) {
@@ -1361,60 +1380,44 @@ function SilentRoom() {
       ))}
 
       {/* 歌词显示区域 - 同步滚动 */}
-      {showLyrics && currentTrack && (() => {
-        const lyricsText = typeof currentTrack.lyrics === 'string' ? currentTrack.lyrics : '';
-        const isLrc = isLrcFormat(lyricsText);
-        const lrcLines = isLrc ? parseLrc(lyricsText) : [];
-        // 找当前高亮行
-        let activeIndex = -1;
-        if (lrcLines.length > 0) {
-          for (let i = lrcLines.length - 1; i >= 0; i--) {
-            if (currentPlayTime >= lrcLines[i].time) {
-              activeIndex = i;
-              break;
-            }
-          }
-        }
-        return (
-          <div className="absolute top-1/3 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-15 w-80 max-w-[90%] p-4 rounded-2xl text-center" 
-               style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(12px)' }}>
-            <div className="text-white/90 text-sm font-medium mb-2">{currentTrack?.name || '未知曲目'}</div>
-            {lyricsText ? (
-              isLrc && lrcLines.length > 0 ? (
-                <div className="max-h-40 overflow-y-auto scroll-smooth" id="lyrics-scroll"
-                     style={{ scrollBehavior: 'smooth' }}>
-                  {lrcLines.map((line, i) => (
-                    <div
-                      key={i}
-                      ref={i === activeIndex ? (el => { if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }) : undefined}
-                      className="text-xs leading-relaxed py-0.5 transition-all duration-300"
-                      style={{
-                        color: i === activeIndex ? 'white' : 'rgba(255,255,255,0.35)',
-                        fontWeight: i === activeIndex ? 600 : 400,
-                        fontSize: i === activeIndex ? '14px' : '11px',
-                      }}
-                    >
-                      {line.text}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-white/60 text-xs leading-relaxed whitespace-pre-line max-h-32 overflow-y-auto">
-                  {lyricsText}
-                </div>
-              )
+      {showLyrics && currentTrack && (
+        <div className="absolute top-1/3 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-15 w-80 max-w-[90%] p-4 rounded-2xl text-center" 
+             style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(12px)' }}>
+          <div className="text-white/90 text-sm font-medium mb-2">{currentTrack?.name || '未知曲目'}</div>
+          {parsedLyrics.rawText ? (
+            parsedLyrics.isLrc && parsedLyrics.lines.length > 0 ? (
+              <div className="max-h-40 overflow-y-auto scroll-smooth">
+                {parsedLyrics.lines.map((line, i) => (
+                  <div
+                    key={i}
+                    ref={i === activeLyricIndex ? (el => { if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }) : undefined}
+                    className="leading-relaxed py-0.5 transition-all duration-300"
+                    style={{
+                      color: i === activeLyricIndex ? 'white' : 'rgba(255,255,255,0.35)',
+                      fontWeight: i === activeLyricIndex ? 600 : 400,
+                      fontSize: i === activeLyricIndex ? '14px' : '11px',
+                    }}
+                  >
+                    {line.text}
+                  </div>
+                ))}
+              </div>
             ) : (
-              <div className="text-white/30 text-xs py-2">暂无歌词</div>
-            )}
-            <button 
-              onClick={() => setShowLyrics(false)}
-              className="absolute top-1 right-1 p-1 rounded-full hover:bg-white/10"
-            >
-              <X className="w-3 h-3 text-white/40" />
-            </button>
-          </div>
-        );
-      })()}
+              <div className="text-white/60 text-xs leading-relaxed whitespace-pre-line max-h-32 overflow-y-auto">
+                {parsedLyrics.rawText}
+              </div>
+            )
+          ) : (
+            <div className="text-white/30 text-xs py-2">暂无歌词</div>
+          )}
+          <button 
+            onClick={() => setShowLyrics(false)}
+            className="absolute top-1 right-1 p-1 rounded-full hover:bg-white/10"
+          >
+            <X className="w-3 h-3 text-white/40" />
+          </button>
+        </div>
+      )}
 
       {/* 环境音控制 - 右上角声音按钮 */}
       <div className="absolute top-20 right-4 z-10">
