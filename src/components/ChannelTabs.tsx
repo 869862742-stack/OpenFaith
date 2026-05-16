@@ -39,7 +39,7 @@ function ChannelTabs({ activeTab, onTabChange }: ChannelTabsProps) {
       ))}
       <button
         onClick={handleGongjing}
-        className="flex items-center gap-1 px-3 py-1.5 ml-1 text-sm font-medium whitespace-nowrap text-white bg-[#E11D48] rounded-full"
+        className="relative px-4 py-2 text-sm font-medium whitespace-nowrap text-gray-500 transition-colors"
       >
         共境
       </button>
