@@ -988,7 +988,7 @@ function SilentRoom() {
     const body = JSON.stringify({
       room_id: roomId,
       user_id: uid,
-      content: sentenceText.trim().slice(0, 30),
+      content: sentenceText.trim().slice(0, 200),
     });
     console.log('[sendSentence] request body:', body);
     
@@ -1832,14 +1832,14 @@ function SilentRoom() {
                   <input
                     type="text"
                     value={sentenceText}
-                    onChange={e => setSentenceText(e.target.value.slice(0, 30))}
-                    placeholder="轻轻留下一句话（30字内）..."
-                    maxLength={30}
+                    onChange={e => setSentenceText(e.target.value.slice(0, 200))}
+                    placeholder="轻轻留下一句话..."
+                    maxLength={200}
                     className="flex-1 h-11 px-4 rounded-full text-sm backdrop-blur-sm"
                     style={{ 
                       backgroundColor: 'rgba(255, 255, 255, 0.15)',
                       color: 'white',
-                      border: sentenceText.length >= 30 ? '2px solid #ef4444' : '2px solid transparent',
+                      border: sentenceText.length >= 200 ? '2px solid #ef4444' : '2px solid transparent',
                     }}
                     autoFocus
                     onKeyDown={e => e.key === 'Enter' && sendSentence()}
@@ -1864,11 +1864,11 @@ function SilentRoom() {
                   <span 
                     className="text-xs px-2 py-0.5 rounded-full backdrop-blur-sm"
                     style={{ 
-                      backgroundColor: sentenceText.length >= 30 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255, 255, 255, 0.1)',
-                      color: sentenceText.length >= 30 ? '#fca5a5' : 'rgba(255, 255, 255, 0.5)',
+                      backgroundColor: sentenceText.length >= 200 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+                      color: sentenceText.length >= 200 ? '#fca5a5' : 'rgba(255, 255, 255, 0.5)',
                     }}
                   >
-                    {sentenceText.length}/30
+                    {sentenceText.length}/200
                   </span>
                 </div>
               </div>
