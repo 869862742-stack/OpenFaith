@@ -20,7 +20,7 @@ const ContentAudit = lazy(() => import('./pages/ContentAudit'));
 const TicketManagement = lazy(() => import('./pages/TicketManagement'));
 const RankingManagement = lazy(() => import('./pages/RankingManagement'));
 const BannedWordManagement = lazy(() => import('./pages/BannedWordManagement'));
-const GroupTagReview = lazy(() => import('./pages/GroupTagReview'));
+
 const NoteRequestManagement = lazy(() => import('./pages/NoteRequestManagement'));
 const AdminLayout = lazy(() => import('./components/AdminLayout'));
 
@@ -80,7 +80,6 @@ function AdminRoutes() {
           <Route path="tickets" element={<TicketManagement />} />
           <Route path="ranking" element={<RankingManagement />} />
           <Route path="banned-words" element={<BannedWordManagement />} />
-          <Route path="group-tags" element={<GroupTagReview />} />
           <Route path="note-requests" element={<NoteRequestManagement />} />
         </Routes>
       </AdminLayout>

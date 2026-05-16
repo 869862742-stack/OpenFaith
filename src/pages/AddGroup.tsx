@@ -83,9 +83,6 @@ function AddGroup() {
       // Service Role Key 用于写入 tag_requests
       const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE';
       
-      // 非自定义标签的群聊直接发布，有自定义标签的需要审核
-      const needsReview = customSelectedTags.length > 0;
-
       // 首先写入 posts 表创建群聊记录（用 __group_chat__ 标签标记）
       const groupPost = {
         id: crypto.randomUUID(),
@@ -93,7 +90,7 @@ function AddGroup() {
         title: groupName.trim(),
         content: groupDesc.trim(),
         tags: ['__group_chat__', `member_${user.id}`, ...selectedTags],
-        status: needsReview ? 'pending' : 'published', // 有自定义标签才需要审核
+        status: 'published', // 直接发布，无需审核
         created_at: new Date().toISOString(),
         likes_count: 0,
         heat_count: 0,
@@ -115,39 +112,8 @@ function AddGroup() {
         const errText = await postRes.text();
         throw new Error(`创建群聊失败: ${errText}`);
       }
-
-      // 如果有自定义标签，插入 tag_requests 表等待审核
-      if (customSelectedTags.length > 0) {
-        const tagRequests = customSelectedTags.map(tag => ({
-          id: crypto.randomUUID(),
-          user_id: user.id,
-          tag_name: tag,
-          tag_type: 'group',
-          description: `群聊「${groupName}」申请标签: ${tag}`,
-          status: 'pending',
-          created_at: new Date().toISOString(),
-        }));
-        
-        for (const req of tagRequests) {
-          await fetch('/sb-api/rest/v1/tag_requests', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': SERVICE_ROLE_KEY,
-              'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
-              'Prefer': 'return=representation',
-            },
-            body: JSON.stringify(req),
-          });
-        }
-      }
       
-      // 区分提示信息
-      if (needsReview) {
-        alert(`群聊「${groupName}」创建申请已提交！\n\n自定义标签「${customSelectedTags.join('、')}」需要审核，通过后群聊将显示在列表中。`);
-      } else {
-        alert(`群聊「${groupName}」创建成功！\n\n已发布到群聊列表。`);
-      }
+      alert(`群聊「${groupName}」创建成功！`);
       
       // 延迟3秒后跳转
       setTimeout(() => {
@@ -323,9 +289,6 @@ function AddGroup() {
               <label className="block text-sm font-medium mb-2 theme-transition" style={{ color: textColor }}>
                 {t('common.addCustomTag') || '添加自定义标签'}
               </label>
-              <p className="text-xs mb-2 theme-transition" style={{ color: textSecondary }}>
-                自定义标签需要后台审核
-              </p>
               <div className="flex gap-2">
                 <input
                   type="text"
