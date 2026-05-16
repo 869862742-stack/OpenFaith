@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Heart, MessageCircle, Star, Share2, X, ChevronLeft, ChevronRight, Flame, Send, Image, Mic, Trash2, ChevronDown, ChevronUp, Download, Smile } from 'lucide-react';
+import { Heart, MessageCircle, Star, Share2, X, ChevronLeft, ChevronRight, Flame, Send, Image, Mic, Trash2, ChevronDown, ChevronUp, Download, Smile, ThumbsUp, Laugh, Frown, Angry, Sun, Moon, CloudRain, Wind, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useThemeContext } from '../contexts/ThemeContext';
 import { useAuthStore } from '../stores/auth';
@@ -19,8 +19,28 @@ const MAX_COMMENT_MADE = 20;    // 发表评论每日上限
 const MAX_COMMENT_RECEIVED = 15; // 收到评论每日上限
 const MAX_HEAT_PER_POST_PER_DAY = 3; // 问题8d：每篇笔记每天最多加热3次
 
-// 表情列表
-const EMOJI_LIST = ['😀', '😃', '😄', '😁', '😅', '😂', '🤣', '😊', '😇', '🙂', '😉', '😌', '😍', '🥰', '😘', '😋', '😛', '🤔', '🤨', '😐', '😑', '😶', '🙄', '😏', '😣', '😥', '😮', '🤐', '😯', '😪', '😫', '😴', '😌', '😛', '😜', '😝', '🤤', '😒', '😓', '😔', '😕', '🙃', '🤑', '😲', '☹️', '🙁', '😖', '😞', '😟', '😤', '😢', '😭', '😦', '😧', '😨', '😩', '🤯', '😬', '😰', '😱', '🥵', '🥶', '😳', '🤪', '😵', '🥴', '😠', '😡', '🤬', '😷', '🤒', '🤕', '🤢', '🤮', '🤧', '😵', '🥲', '🥹', '😇', '🤠', '🤡', '🤥', '🤫', '🤭', '🧐', '🤓', '😈', '👿', '👋', '🤚', '🖐️', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝', '🙏', '✍️', '💪', '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '🔥', '✨', '🌟', '💫', '⭐', '🌈', '☀️', '🌤️', '⛅', '🌥️', '☁️', '🌧️', '⛈️', '🌩️', '🌨️', '❄️', '☃️', '⛄', '🌬️', '💨', '🌪️', '🌫️', '🌪️', '☔', '⛱️', '⚡', '💥', '💢', '💦', '💧', '🔥', '🌊', '🎉', '🎊', '🎈', '🎁', '🏆', '🥇', '🥈', '🥉', '🏅', '🎖️', '🎗️', '🎪', '🎭', '🎨', '🎬', '🎤', '🎧', '🎼', '🎹', '🥁', '🎷', '🎺', '🎸', '🪕', '🎻', '🎬', '🎞️', '📷', '📸', '📹', '🎥', '📽️', '🎬', '📺', '📻', '🔔', '🔕', '🔇', '🔈', '🔉', '🔊', '📢', '📣', '💬', '💭', '🗯️', '💭', '💫', '✨', '🌟', '💥', '💢', '💦', '💧', '🔥'];
+// 表情列表（简笔画风格，使用 lucide 图标 + 主题色）
+// 每个元素为 { icon: React.ReactNode, emoji: string }
+const EMOJI_ICONS = [
+  { icon: <Smile className="w-5 h-5" />, emoji: '😊' },
+  { icon: <Laugh className="w-5 h-5" />, emoji: '😂' },
+  { icon: <Frown className="w-5 h-5" />, emoji: '😢' },
+  { icon: <Heart className="w-5 h-5" />, emoji: '❤️' },
+  { icon: <ThumbsUp className="w-5 h-5" />, emoji: '👍' },
+  { icon: <Flame className="w-5 h-5" />, emoji: '🔥' },
+  { icon: <Angry className="w-5 h-5" />, emoji: '😡' },
+  { icon: <Sun className="w-5 h-5" />, emoji: '☀️' },
+  { icon: <Moon className="w-5 h-5" />, emoji: '🌙' },
+  { icon: <CloudRain className="w-5 h-5" />, emoji: '🌧️' },
+  { icon: <Wind className="w-5 h-5" />, emoji: '💨' },
+  { icon: <Star className="w-5 h-5" />, emoji: '⭐' },
+  { icon: <Heart className="w-5 h-5 fill-current" />, emoji: '💕' },
+  { icon: <Sparkles className="w-5 h-5" />, emoji: '✨' },
+  { icon: <MessageCircle className="w-5 h-5" />, emoji: '💬' },
+  { icon: <CloudRain className="w-5 h-5" />, emoji: '🌧️' },
+  { icon: <Sun className="w-5 h-5" />, emoji: '🌈' },
+  { icon: <Flame className="w-5 h-5" />, emoji: '🎉' },
+];
 
 // 计算等级
 function calculateLevel(exp: number): number {
@@ -463,6 +483,8 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
   const [postImageTouchStart, setPostImageTouchStart] = useState(0);
   // 是否首次加载评论
   const [hasLoadedComments, setHasLoadedComments] = useState(false);
+  // 本地加热数字状态（用于实时显示+1）
+  const [localHeatCount, setLocalHeatCount] = useState(0);
   
   const containerRef = useRef<HTMLDivElement>(null);
   const commentsRef = useRef<HTMLDivElement>(null);
@@ -477,8 +499,8 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
   const faithTag = author.faith_tag || '寻求者';
   const postUserId = currentPost?.user_id || currentPost?.author?.id;
   
-  // 获取加热数 — 统一用 heat_count 字段
-  const heatCount = currentPost.heat_count || 0;
+  // 获取加热数 — 使用本地状态 + 数据库值（本地状态用于实时显示+1）
+  const heatCount = (localHeatCount > 0 ? localHeatCount : (currentPost.heat_count || 0));
   // 获取点赞数 — 兼容 likes_count 和 likes
   const likesCount = currentPost.likes_count ?? currentPost.likes ?? 0;
   // 获取评论数 — 优先使用实际加载的评论数量，兼容 comments_count 和 comments
@@ -486,6 +508,9 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
 
   // ========== 问题8c/8d：加热状态持久化 - 按每天每篇记录 ==========
   const HEAT_KEY = 'of_heated_posts';
+  const HEAT_EVER_KEY = 'of_heated_posts_ever'; // 永久记录（用于颜色持久化）
+
+  // 获取今天加热数据
   const getHeatedPostsData = (): Record<string, { count: number; date: string }> => {
     try {
       const stored = localStorage.getItem(HEAT_KEY);
@@ -503,6 +528,27 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
       return result;
     } catch { return {}; }
   };
+
+  // 获取曾经加热过的笔记（永久记录，用于颜色持久化）
+  const getEverHeatedPosts = (): Set<string> => {
+    try {
+      const stored = localStorage.getItem(HEAT_EVER_KEY);
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch { return new Set(); }
+  };
+
+  // 标记笔记为曾加热过（永久记录）
+  const markPostEverHeated = (postId: string) => {
+    const heatedSet = getEverHeatedPosts();
+    heatedSet.add(postId);
+    localStorage.setItem(HEAT_EVER_KEY, JSON.stringify([...heatedSet]));
+  };
+
+  // 检查笔记是否曾被加热过（用于颜色持久化）
+  const isEverHeated = (postId: string): boolean => {
+    return getEverHeatedPosts().has(postId);
+  };
+
   const getHeatedInfo = (postId: string): { count: number; date: string } | null => {
     const data = getHeatedPostsData();
     return data[postId] || null;
@@ -516,10 +562,16 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
       data[postId] = { count: 1, date: today };
     }
     localStorage.setItem(HEAT_KEY, JSON.stringify(data));
+    // 同时标记为曾加热过（用于颜色持久化）
+    markPostEverHeated(postId);
   };
   const isHeatedToday = (postId: string): boolean => {
     const info = getHeatedInfo(postId);
     return info !== null && info.count > 0;
+  };
+  // 加热状态：今天加热过 或 曾经加热过（用于颜色显示）
+  const hasHeated = (postId: string): boolean => {
+    return isHeatedToday(postId) || isEverHeated(postId);
   };
   const getHeatCountToday = (postId: string): number => {
     const info = getHeatedInfo(postId);
@@ -634,8 +686,14 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
   // 重置点赞/加热/收藏状态
   useEffect(() => {
     setIsLiked(false);
-    // 问题8c/8d：加热状态从 localStorage 读取，只要今日加热过就显示
-    setIsHeated(isHeatedToday(currentPost?.id));
+    // 加热状态：今天加热过 或 曾经加热过（颜色持久化不受日期限制）
+    setIsHeated(hasHeated(currentPost?.id));
+    // 初始化本地加热数字（如果今天加热过则+1）
+    if (isHeatedToday(currentPost?.id)) {
+      setLocalHeatCount((currentPost.heat_count || 0) + 1);
+    } else {
+      setLocalHeatCount(0);
+    }
     // 问题8c：收藏状态从 localStorage 读取
     setIsFavorited(getFavorites().has(currentPost?.id));
     setShowComments(false);
@@ -1208,7 +1266,9 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
       return;
     }
     
+    // 立即更新本地状态（颜色和数字）
     setIsHeated(true);
+    setLocalHeatCount(prev => prev + 1);
     markPostHeated(currentPost.id);
     const postUserIdValue = currentPost.user_id || currentPost.author?.id;
     const stats = getTodayStats();
@@ -1704,17 +1764,17 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
         className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50"
         style={{ paddingBottom: 'max(0.25rem, env(safe-area-inset-bottom))' }}
       >
-        {/* 表情选择器 */}
+        {/* 表情选择器 - 简笔画风格主题色 */}
         {showEmojiPicker && (
           <div className="flex flex-wrap gap-1 p-2 bg-gray-50 max-h-[120px] overflow-y-auto border-b border-gray-100">
-            {EMOJI_LIST.map((emoji) => (
+            {EMOJI_ICONS.map((item, idx) => (
               <button
-                key={emoji}
-                onClick={() => handleEmojiClick(emoji)}
-                className="w-8 h-8 flex items-center justify-center text-lg hover:bg-gray-200 rounded transition-colors"
-                style={{ filter: 'grayscale(1)' }}
+                key={idx}
+                onClick={() => handleEmojiClick(item.emoji)}
+                className="w-8 h-8 flex items-center justify-center hover:bg-gray-200 rounded transition-colors"
+                style={{ color: '#E11D48' }}
               >
-                {emoji}
+                {item.icon}
               </button>
             ))}
           </div>

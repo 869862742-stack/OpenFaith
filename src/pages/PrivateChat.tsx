@@ -4,14 +4,32 @@ import { useTranslation } from 'react-i18next';
 import { 
   ArrowLeft, Send, Loader2, Mic, Smile, Plus, 
   Image, Camera, FileText, BookOpen,
-  X, ChevronDown, Volume2
+  X, ChevronDown, Volume2, Heart, Laugh, Frown, Angry, Sun, Moon, CloudRain, Wind, Star, ThumbsUp, Flame, MessageCircle, Sparkles
 } from 'lucide-react';
 
 const PRIMARY_COLOR = '#E11D48';
 const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE';
 
-// 完整表情列表（约200个emoji）
-const EMOJI_LIST = ['😀', '😃', '😄', '😁', '😅', '😂', '🤣', '😊', '😇', '🙂', '😉', '😌', '😍', '🥰', '😘', '😋', '😛', '🤔', '🤨', '😐', '😑', '😶', '🙄', '😏', '😣', '😥', '😮', '🤐', '😯', '😪', '😫', '😴', '😌', '😛', '😜', '😝', '🤤', '😒', '😓', '😔', '😕', '🙃', '🤑', '😲', '☹️', '🙁', '😖', '😞', '😟', '😤', '😢', '😭', '😦', '😧', '😨', '😩', '🤯', '😬', '😰', '😱', '🥵', '🥶', '😳', '🤪', '😵', '🥴', '😠', '😡', '🤬', '😷', '🤒', '🤕', '🤢', '🤮', '🤧', '😵', '🥲', '🥹', '😇', '🤠', '🤡', '🤥', '🤫', '🤭', '🧐', '🤓', '😈', '👿', '👋', '🤚', '🖐️', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤝', '🙏', '✍️', '💪', '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '🔥', '✨', '🌟', '💫', '⭐', '🌈', '☀️', '🌤️', '⛅', '🌥️', '☁️', '🌧️', '⛈️', '🌩️', '🌨️', '❄️', '☃️', '⛄', '🌬️', '💨', '🌪️', '🌫️', '🌪️', '☔', '⛱️', '⚡', '💥', '💢', '💦', '💧', '🔥', '🌊', '🎉', '🎊', '🎈', '🎁', '🏆', '🥇', '🥈', '🥉', '🏅', '🎖️', '🎗️', '🎪', '🎭', '🎨', '🎬', '🎤', '🎧', '🎼', '🎹', '🥁', '🎷', '🎺', '🎸', '🪕', '🎻', '🎬', '🎞️', '📷', '📸', '📹', '🎥', '📽️', '🎬', '📺', '📻', '🔔', '🔕', '🔇', '🔈', '🔉', '🔊', '📢', '📣', '💬', '💭', '🗯️', '💭', '💫', '✨', '🌟', '💥', '💢', '💦', '💧', '🔥'];
+// 表情列表（简笔画风格，使用 lucide 图标 + 主题色）
+const EMOJI_ICONS = [
+  { icon: <Smile className="w-5 h-5" />, emoji: '😊' },
+  { icon: <Laugh className="w-5 h-5" />, emoji: '😂' },
+  { icon: <Frown className="w-5 h-5" />, emoji: '😢' },
+  { icon: <Heart className="w-5 h-5" />, emoji: '❤️' },
+  { icon: <ThumbsUp className="w-5 h-5" />, emoji: '👍' },
+  { icon: <Flame className="w-5 h-5" />, emoji: '🔥' },
+  { icon: <Angry className="w-5 h-5" />, emoji: '😡' },
+  { icon: <Sun className="w-5 h-5" />, emoji: '☀️' },
+  { icon: <Moon className="w-5 h-5" />, emoji: '🌙' },
+  { icon: <CloudRain className="w-5 h-5" />, emoji: '🌧️' },
+  { icon: <Wind className="w-5 h-5" />, emoji: '💨' },
+  { icon: <Star className="w-5 h-5" />, emoji: '⭐' },
+  { icon: <Heart className="w-5 h-5 fill-current" />, emoji: '💕' },
+  { icon: <Sparkles className="w-5 h-5" />, emoji: '✨' },
+  { icon: <MessageCircle className="w-5 h-5" />, emoji: '💬' },
+  { icon: <Sun className="w-5 h-5" />, emoji: '🌈' },
+  { icon: <Flame className="w-5 h-5" />, emoji: '🎉' },
+];
 
 interface Message {
   id: string;
@@ -89,8 +107,8 @@ function PrivateChat() {
   const textSecondary = 'var(--text-secondary)';
   const borderColor = 'var(--border-color)';
 
-  // 完整表情列表（使用 EMOJI_LIST）
-  const quickEmojis = EMOJI_LIST;
+  // 表情列表（简笔画风格）
+  const quickEmojis = EMOJI_ICONS;
 
   // 获取当前用户信息并查询 profiles.id
   useEffect(() => {
@@ -817,21 +835,21 @@ function PrivateChat() {
         )}
       </div>
 
-      {/* 快捷表情栏 */}
+      {/* 快捷表情栏 - 简笔画风格主题色 */}
       {showEmojiPicker && (
         <div 
           className="px-4 py-3 border-t"
           style={{ backgroundColor: cardBg, borderColor }}
         >
           <div className="flex flex-wrap gap-3">
-            {quickEmojis.map((emoji, index) => (
+            {quickEmojis.map((item, index) => (
               <button
                 key={index}
-                onClick={() => handleQuickEmoji(emoji)}
-                className="text-2xl hover:scale-125 transition-transform p-1"
-                style={{ filter: 'grayscale(1)' }}
+                onClick={() => handleQuickEmoji(item.emoji)}
+                className="w-9 h-9 flex items-center justify-center hover:scale-125 transition-transform rounded-full hover:bg-gray-100"
+                style={{ color: PRIMARY_COLOR }}
               >
-                {emoji}
+                {item.icon}
               </button>
             ))}
           </div>

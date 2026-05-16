@@ -271,19 +271,7 @@ function Home() {
           </div>
         )}
         <header className="sticky top-0 z-40 px-4 py-3 border-b theme-transition" style={{ backgroundColor: bgColor, borderColor }}>
-          {/* 在线人数标签 */}
-          <div className="flex items-center gap-2 mb-3">
-            <div 
-              className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium"
-              style={{ 
-                backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                color: '#22c55e'
-              }}
-            >
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-              <span>在线</span>
-            </div>
-          </div>
+
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setSidebarOpen(true)} 
