@@ -1,10 +1,28 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Share2, Volume2, VolumeX, Moon, Music, BookOpen, Brain, Flower2, HeartHandshake, Sparkles, Upload, X, Power, SkipBack, SkipForward, Play, Pause, Repeat, Repeat1, Shuffle, ListMusic, Trash2, GripVertical, Type } from 'lucide-react';
+import * as mm from 'music-metadata';
 
 // Service Role Key
 const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE';
 const SUPABASE_URL = 'https://rdhwmeittgdosmkxtpak.supabase.co';
+
+// 从音频文件提取歌词
+const extractLyricsFromFile = async (file: File): Promise<string> => {
+  try {
+    const metadata = await mm.parseBlob(file);
+    // 尝试多种歌词字段
+    const lyrics = 
+      metadata.native?.['ID3v2.3']?.find((tag: any) => tag.id === 'USLT')?.value?.lyrics
+      || metadata.native?.['ID3v2.4']?.find((tag: any) => tag.id === 'USLT')?.value?.lyrics
+      || metadata.common.lyrics?.[0]
+      || '';
+    return lyrics;
+  } catch (err) {
+    console.warn('Failed to parse audio metadata:', err);
+    return '';
+  }
+};
 
 // 状态选项
 const STATUS_OPTIONS = [
@@ -430,8 +448,6 @@ function SilentRoom() {
   const [isDisbanding, setIsDisbanding] = useState(false);
   const [uploadingAudio, setUploadingAudio] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string>('');
-  const [showLyricsInput, setShowLyricsInput] = useState<string | null>(null);
-  const [lyricsText, setLyricsText] = useState('');
   const [panelHeight, setPanelHeight] = useState(200);
   const [isDragging, setIsDragging] = useState(false);
   
@@ -1056,6 +1072,14 @@ function SilentRoom() {
         const file = files[i];
         setUploadProgress(`上传中 ${i + 1}/${files.length}...`);
         
+        // 先解析歌词
+        let lyrics = '';
+        try {
+          lyrics = await extractLyricsFromFile(file);
+        } catch (err) {
+          console.warn('Failed to extract lyrics:', err);
+        }
+        
         const arrayBuffer = await file.arrayBuffer();
         const fileName = `${Date.now()}_${file.name}`;
         
@@ -1091,6 +1115,7 @@ function SilentRoom() {
           name: file.name.replace(/\.[^/.]+$/, ''),
           url: audioUrl,
           duration: duration || undefined,
+          lyrics: lyrics || '',
           uploaded_at: new Date().toISOString(),
         });
       }
@@ -1170,19 +1195,6 @@ function SilentRoom() {
     await updateAudioTracksInRoom(updatedTracks);
   };
   
-  // 添加歌词
-  const addLyricsToTrack = async (trackId: string, lyrics: string) => {
-    if (!roomId || room?.creator_id !== userId) return;
-    
-    const updatedTracks = audioTracks.map(t => 
-      t.id === trackId ? { ...t, lyrics } : t
-    );
-    setAudioTracks(updatedTracks);
-    await updateAudioTracksInRoom(updatedTracks);
-    setShowLyricsInput(null);
-    setLyricsText('');
-  };
-
   // 移除过期的句子
   const removeSentence = (id: string) => {
     setSentences(prev => prev.filter(s => s.id !== id));
@@ -1291,7 +1303,7 @@ function SilentRoom() {
         />
       ))}
 
-      {/* 歌词显示区域 - 在房间状态面板上方 - 即使没有歌词也显示歌名 */}
+      {/* 歌词显示区域 - 在房间状态面板上方 */}
       {showLyrics && currentTrack && (
         <div className="absolute top-1/3 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-15 w-80 max-w-[90%] p-4 rounded-2xl text-center" 
              style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(12px)' }}>
@@ -1303,19 +1315,6 @@ function SilentRoom() {
           ) : (
             <div className="text-white/30 text-xs py-2">
               暂无歌词
-              {room?.creator_id === userId && (
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (currentTrack?.id) {
-                      setShowLyricsInput(currentTrack.id);
-                    }
-                  }}
-                  className="block mx-auto mt-2 px-3 py-1 rounded-full text-rose-400 border border-rose-400/30 hover:bg-rose-400/10 transition-colors"
-                >
-                  + 添加歌词
-                </button>
-              )}
             </div>
           )}
           <button 
@@ -1459,13 +1458,6 @@ function SilentRoom() {
                     {room?.creator_id === userId && (
                       <>
                         <button
-                          onClick={() => setShowLyricsInput(track.id)}
-                          className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
-                          title="添加歌词"
-                        >
-                          <Music className="w-3.5 h-3.5 text-white/40" />
-                        </button>
-                        <button
                           onClick={() => deleteAudioTrack(track.id)}
                           className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
                           title="删除"
@@ -1518,47 +1510,6 @@ function SilentRoom() {
                 </button>
               </div>
             </>
-          )}
-          
-          {/* 歌词输入弹窗 */}
-          {showLyricsInput && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-              <div className="w-80 p-4 rounded-2xl" style={{ backgroundColor: 'rgba(30, 30, 50, 0.98)' }}>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-white text-sm font-medium">添加歌词</span>
-                  <button onClick={() => { setShowLyricsInput(null); setLyricsText(''); }}>
-                    <X className="w-4 h-4 text-white/40" />
-                  </button>
-                </div>
-                <textarea
-                  value={lyricsText}
-                  onChange={e => setLyricsText(e.target.value)}
-                  placeholder="粘贴歌词文本..."
-                  className="w-full h-32 p-2 rounded-lg text-sm resize-none"
-                  style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                    color: 'white',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                  }}
-                />
-                <div className="flex gap-2 mt-3">
-                  <button
-                    onClick={() => { setShowLyricsInput(null); setLyricsText(''); }}
-                    className="flex-1 py-2 rounded-lg text-sm text-white/60"
-                    style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
-                  >
-                    取消
-                  </button>
-                  <button
-                    onClick={() => addLyricsToTrack(showLyricsInput, lyricsText)}
-                    className="flex-1 py-2 rounded-lg text-sm text-white"
-                    style={{ backgroundColor: '#E11D48' }}
-                  >
-                    保存
-                  </button>
-                </div>
-              </div>
-            </div>
           )}
           
           {/* 关闭按钮 */}

@@ -2,10 +2,28 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { X, Upload, Music, Moon } from 'lucide-react';
+import * as mm from 'music-metadata';
 
 // Service Role Key
 const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE';
 const SUPABASE_URL = 'https://rdhwmeittgdosmkxtpak.supabase.co';
+
+// 从音频文件提取歌词
+const extractLyricsFromFile = async (file: File): Promise<string> => {
+  try {
+    const metadata = await mm.parseBlob(file);
+    // 尝试多种歌词字段
+    const lyrics = 
+      metadata.native?.['ID3v2.3']?.find((tag: any) => tag.id === 'USLT')?.value?.lyrics
+      || metadata.native?.['ID3v2.4']?.find((tag: any) => tag.id === 'USLT')?.value?.lyrics
+      || metadata.common.lyrics?.[0]
+      || '';
+    return lyrics;
+  } catch (err) {
+    console.warn('Failed to parse audio metadata:', err);
+    return '';
+  }
+};
 
 // 宗教标签列表
 const RELIGION_TAGS = [
@@ -97,10 +115,18 @@ function CreateRoom({ onClose }: CreateRoomProps) {
       }
 
       let customAudioUrl = '';
+      let customAudioLyrics = '';
       
       // 如果有自定义音频，上传到 Supabase Storage
       if (customAudio) {
         try {
+          // 先解析歌词
+          try {
+            customAudioLyrics = await extractLyricsFromFile(customAudio);
+          } catch (err) {
+            console.warn('Failed to extract lyrics:', err);
+          }
+          
           // Supabase Storage 需要文件内容作为 body，不是 FormData
           const arrayBuffer = await customAudio.arrayBuffer();
           const fileName = `${Date.now()}_${customAudio.name}`;
@@ -184,7 +210,7 @@ function CreateRoom({ onClose }: CreateRoomProps) {
           name: customAudio.name.replace(/\.[^/.]+$/, ''),
           url: customAudioUrl,
           duration: 0,
-          lyrics: '',
+          lyrics: customAudioLyrics || '',
           uploaded_at: new Date().toISOString(),
         }] : [],
       };
