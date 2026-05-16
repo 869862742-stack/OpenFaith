@@ -378,7 +378,7 @@ function SilentRoom() {
   // 新增状态
   const [showLyrics, setShowLyrics] = useState(false);
   const [currentPlayTime, setCurrentPlayTime] = useState(0);
-  const [panelPos, setPanelPos] = useState({ x: Math.round((window.innerWidth - 360) / 2), y: Math.round(window.innerHeight - 280) });
+  const [panelPos, setPanelPos] = useState({ x: Math.round((window.innerWidth - 360) / 2), y: Math.round(window.innerHeight - 200) });
   const [isPanelDragging, setIsPanelDragging] = useState(false);
   const [isSearchingLyrics, setIsSearchingLyrics] = useState(false);
   const [lyricsSearchFailed, setLyricsSearchFailed] = useState(false);
@@ -1388,7 +1388,7 @@ function SilentRoom() {
 
       {/* 在线用户头像行 - 渐入渐出从左往右循环 */}
       {participants.length > 0 && (
-        <div className="absolute z-20 overflow-hidden" style={{ bottom: '180px', left: 0, right: 0, maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)' }}>
+        <div className="absolute z-20 overflow-hidden" style={{ bottom: '260px', left: 0, right: 0, maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)' }}>
           <div className="flex animate-marquee-horizontal">
             {[...participants, ...participants, ...participants].map((p, i) => (
               <div key={i} className="flex flex-col items-center mx-2 shrink-0">
