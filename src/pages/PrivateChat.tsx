@@ -700,7 +700,7 @@ function PrivateChat() {
           <div
             className="rounded-2xl overflow-hidden max-w-[260px]"
             style={{
-              backgroundColor: isOwn ? 'rgba(225,29,72,0.08)' : 'rgba(225,29,72,0.05)',
+              backgroundColor: isOwn ? 'rgba(225,29,72,0.08)' : 'rgba(225,29,72,0.02)',
               border: `1px solid rgba(225,29,72,0.15)`,
             }}
           >
@@ -932,7 +932,7 @@ function PrivateChat() {
                         <div
                           className="px-4 py-2.5 rounded-2xl flex items-center gap-2 cursor-pointer"
                           style={{
-                            backgroundColor: isOwn ? 'rgba(225,29,72,0.05)' : cardBgSecondary,
+                            backgroundColor: isOwn ? 'rgba(225,29,72,0.02)' : cardBgSecondary,
                             color: isOwn ? PRIMARY_COLOR : textColor,
                             borderRadius: isOwn ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                             minWidth: '100px',
@@ -943,7 +943,7 @@ function PrivateChat() {
                             {[1,2,3].map(i => (
                               <div key={i} className="w-0.5 rounded-full" style={{ 
                                 height: `${8 + i * 4}px`, 
-                                backgroundColor: isOwn ? 'rgba(225,29,72,0.3)' : 'rgba(0,0,0,0.3)' 
+                                backgroundColor: isOwn ? 'rgba(225,29,72,0.2)' : 'rgba(0,0,0,0.3)' 
                               }} />
                             ))}
                           </div>
@@ -956,7 +956,7 @@ function PrivateChat() {
                         <div
                           className="px-4 py-2.5 rounded-2xl text-sm leading-relaxed"
                           style={{
-                            backgroundColor: isOwn ? 'rgba(225,29,72,0.05)' : cardBgSecondary,
+                            backgroundColor: isOwn ? 'rgba(225,29,72,0.02)' : cardBgSecondary,
                             color: isOwn ? textColor : textColor,
                             borderRadius: isOwn ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                           }}
