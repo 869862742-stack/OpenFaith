@@ -457,7 +457,7 @@ function SilentRoom() {
   
   // 新增状态
   const [showLyrics, setShowLyrics] = useState(false);
-  const [panelPos, setPanelPos] = useState({ x: 0, y: window.innerHeight - 100 });
+  const [panelPos, setPanelPos] = useState({ x: Math.max(10, (window.innerWidth - 300) / 2), y: 100 });
   const [isPanelDragging, setIsPanelDragging] = useState(false);
   
   // 音频播放状态
