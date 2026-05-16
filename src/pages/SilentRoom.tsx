@@ -497,10 +497,18 @@ function SilentRoom() {
 
   // 获取当前用户ID
   useEffect(() => {
+    // 优先从独立user_id key获取，再从user_info对象获取
+    const savedUserId = localStorage.getItem('user_id');
+    if (savedUserId) {
+      setUserId(savedUserId);
+      return;
+    }
     const userInfo = localStorage.getItem('user_info');
     if (userInfo) {
-      const parsed = JSON.parse(userInfo);
-      setUserId(parsed.user_id || parsed.id);
+      try {
+        const parsed = JSON.parse(userInfo);
+        setUserId(parsed.user_id || parsed.id);
+      } catch {}
     }
   }, []);
 
@@ -1046,7 +1054,9 @@ function SilentRoom() {
 
   // 发送句子
   const sendSentence = async () => {
-    if (!sentenceText.trim() || !roomId || !userId) return;
+    if (!sentenceText.trim()) return;
+    if (!roomId) { console.warn('sendSentence: no roomId'); return; }
+    if (!userId) { console.warn('sendSentence: no userId'); return; }
     
     try {
       const res = await fetch('/sb-api/rest/v1/room_sentences', {
@@ -1067,6 +1077,9 @@ function SilentRoom() {
         setSentenceText('');
         setShowSentenceInput(false);
         fetchSentences();
+      } else {
+        const errText = await res.text();
+        console.error('sendSentence failed:', res.status, errText);
       }
     } catch (err) {
       console.error('Failed to send sentence:', err);
