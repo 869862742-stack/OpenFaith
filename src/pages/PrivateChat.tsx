@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { 
   ArrowLeft, Send, Loader2, Mic, Smile, Plus, 
   Image, Camera, FileText, BookOpen,
-  X, ChevronDown, Volume2, Heart, Laugh, Frown, Angry, Sun, Moon, CloudRain, Wind, Star, ThumbsUp, Flame, MessageCircle, Sparkles
+  X, ChevronDown, Volume2, Heart, Laugh, Frown, Angry, Sun, Moon, CloudRain, Wind, Star, ThumbsUp, Flame, MessageCircle, Sparkles,
+  Landmark, Bird, Award, HeartHandshake, Mountain, Compass, Shield, GitBranch
 } from 'lucide-react';
 
 const PRIMARY_COLOR = '#E11D48';
@@ -12,23 +13,37 @@ const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhY
 
 // 表情列表（简笔画风格，使用 lucide 图标 + 主题色）
 const EMOJI_ICONS = [
-  { icon: <Smile className="w-5 h-5" />, emoji: '😊' },
-  { icon: <Laugh className="w-5 h-5" />, emoji: '😂' },
-  { icon: <Frown className="w-5 h-5" />, emoji: '😢' },
-  { icon: <Heart className="w-5 h-5" />, emoji: '❤️' },
-  { icon: <ThumbsUp className="w-5 h-5" />, emoji: '👍' },
-  { icon: <Flame className="w-5 h-5" />, emoji: '🔥' },
-  { icon: <Angry className="w-5 h-5" />, emoji: '😡' },
-  { icon: <Sun className="w-5 h-5" />, emoji: '☀️' },
-  { icon: <Moon className="w-5 h-5" />, emoji: '🌙' },
-  { icon: <CloudRain className="w-5 h-5" />, emoji: '🌧️' },
-  { icon: <Wind className="w-5 h-5" />, emoji: '💨' },
-  { icon: <Star className="w-5 h-5" />, emoji: '⭐' },
-  { icon: <Heart className="w-5 h-5 fill-current" />, emoji: '💕' },
-  { icon: <Sparkles className="w-5 h-5" />, emoji: '✨' },
-  { icon: <MessageCircle className="w-5 h-5" />, emoji: '💬' },
-  { icon: <Sun className="w-5 h-5" />, emoji: '🌈' },
-  { icon: <Flame className="w-5 h-5" />, emoji: '🎉' },
+  // 基础情感
+  { icon: <Smile className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '😊', label: '微笑' },
+  { icon: <Laugh className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '😂', label: '大笑' },
+  { icon: <Frown className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '😢', label: '难过' },
+  { icon: <ThumbsUp className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '👍', label: '赞同' },
+  { icon: <Heart className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '❤️', label: '爱心' },
+  { icon: <Angry className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '😡', label: '义怒' },
+  
+  // OpenFaith 主题
+  { icon: <BookOpen className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '📖', label: '经文' },
+  { icon: <Landmark className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '⛪', label: '教堂' },
+  { icon: <Sparkles className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '✨', label: '恩典' },
+  { icon: <Sun className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '☀️', label: '光明' },
+  { icon: <Moon className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🌙', label: '沉思' },
+  { icon: <Bird className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🕊️', label: '和平' },
+  { icon: <HeartHandshake className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🤝', label: '和解' },
+  { icon: <Flame className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🔥', label: '热忱' },
+  { icon: <Star className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '⭐', label: '希望' },
+  { icon: <MessageCircle className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '💬', label: '对话' },
+  { icon: <CloudRain className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🌧️', label: '试炼' },
+  { icon: <Wind className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '💨', label: '圣灵' },
+  { icon: <Mountain className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '⛰️', label: '坚定' },
+  { icon: <Compass className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🧭', label: '指引' },
+  { icon: <HeartHandshake className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🫶', label: '关怀' },
+  { icon: <Shield className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🛡️', label: '庇护' },
+  { icon: <Award className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '👑', label: '荣耀' },
+  
+  // 额外常用表情
+  { icon: <Heart className="w-5 h-5" style={{ color: PRIMARY_COLOR, fill: PRIMARY_COLOR }} />, emoji: '💕', label: '双心' },
+  { icon: <Sun className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🌈', label: '彩虹' },
+  { icon: <Flame className="w-5 h-5" style={{ color: PRIMARY_COLOR }} />, emoji: '🎉', label: '庆祝' },
 ];
 
 interface Message {
@@ -114,53 +129,76 @@ function PrivateChat() {
   useEffect(() => {
     const fetchCurrentUserProfile = async () => {
       const userInfo = localStorage.getItem('user_info');
-      if (!userInfo) return;
+      if (!userInfo) {
+        console.warn('[Chat] No user_info in localStorage');
+        return;
+      }
       
       try {
         const parsed = JSON.parse(userInfo);
         const authUserId = parsed.user_id || parsed.id;
         
-        if (authUserId) {
-          const res = await fetch(`/sb-api/rest/v1/profiles?user_id=eq.${authUserId}&select=id,username,nickname,avatar_url,user_id&limit=1`, {
-            headers: {
-              'apikey': SERVICE_ROLE_KEY,
-              'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
-            }
-          });
-          
-          if (res.ok) {
-            const data = await res.json();
-            if (Array.isArray(data) && data.length > 0) {
-              const profile = data[0];
-              setCurrentUserProfile(profile);
-              setCurrentUserProfileId(profile.id);
-            } else {
-              setCurrentUserProfile({
-                id: authUserId,
-                user_id: authUserId,
-                username: parsed.username || 'Unknown',
-                nickname: parsed.nickname || null,
-                avatar_url: parsed.avatar_url || null,
-              });
-              setCurrentUserProfileId(authUserId);
-            }
+        if (!authUserId) {
+          console.warn('[Chat] No authUserId found in user_info');
+          return;
+        }
+        
+        console.log('[Chat] Fetching profile for authUserId:', authUserId);
+        
+        const res = await fetch(`/sb-api/rest/v1/profiles?user_id=eq.${authUserId}&select=id,username,nickname,avatar_url,user_id&limit=1`, {
+          headers: {
+            'apikey': SERVICE_ROLE_KEY,
+            'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
           }
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          console.log('[Chat] Profile query result:', data);
+          
+          if (Array.isArray(data) && data.length > 0) {
+            const profile = data[0];
+            setCurrentUserProfile(profile);
+            setCurrentUserProfileId(profile.id);
+            console.log('[Chat] Set currentUserProfileId to profiles.id:', profile.id);
+          } else {
+            // ⚠️ 关键修复：不要用 authUserId 作为 fallback！
+            // 如果没有 profile 记录，应该提示用户重新登录，而不是用 auth UUID
+            console.error('[Chat] CRITICAL: No profile found for user, auth UUID will not work for messages!');
+            setError('用户资料异常，请重新登录');
+            
+            // 仍然设置但加上标记，方便排查
+            setCurrentUserProfile({
+              id: authUserId,
+              user_id: authUserId,
+              username: parsed.username || 'Unknown',
+              nickname: parsed.nickname || null,
+              avatar_url: parsed.avatar_url || null,
+            });
+            // 不要设置 currentUserProfileId！这样消息就发不出去，防止数据混乱
+            // setCurrentUserProfileId(authUserId); // 注释掉这个危险的 fallback
+          }
+        } else {
+          console.error('[Chat] Failed to query profile:', res.status);
         }
       } catch (e) {
-        console.error('Error fetching current user profile:', e);
+        console.error('[Chat] Error fetching current user profile:', e);
       }
     };
     
     fetchCurrentUserProfile();
   }, []);
 
-  // 获取好友信息
+  // 获取好友信息 - 兼容两种 ID 格式（auth UUID 和 profiles.id）
   useEffect(() => {
     const fetchFriendProfile = async () => {
       if (!userId) return;
       
+      console.log('[Chat] Fetching friend profile for userId:', userId);
+      
       try {
-        const res = await fetch(`/sb-api/rest/v1/profiles?user_id=eq.${userId}&select=id,username,nickname,avatar_url,user_id&limit=1`, {
+        // 先尝试用 user_id 查询（auth UUID）
+        let res = await fetch(`/sb-api/rest/v1/profiles?user_id=eq.${userId}&select=id,username,nickname,avatar_url,user_id&limit=1`, {
           headers: {
             'apikey': SERVICE_ROLE_KEY,
             'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
@@ -168,13 +206,34 @@ function PrivateChat() {
         });
 
         if (res.ok) {
-          const data = await res.json();
+          let data = await res.json();
+          console.log('[Chat] Query by user_id result:', data);
+          
+          // 如果没查到，尝试用 id 查询（profiles.id）
+          if (!Array.isArray(data) || data.length === 0) {
+            console.log('[Chat] No result by user_id, trying by id...');
+            res = await fetch(`/sb-api/rest/v1/profiles?id=eq.${userId}&select=id,username,nickname,avatar_url,user_id&limit=1`, {
+              headers: {
+                'apikey': SERVICE_ROLE_KEY,
+                'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+              }
+            });
+            
+            if (res.ok) {
+              data = await res.json();
+              console.log('[Chat] Query by id result:', data);
+            }
+          }
+          
           if (Array.isArray(data) && data.length > 0) {
             setFriendProfile(data[0]);
+          } else {
+            console.error('[Chat] Friend profile not found for userId:', userId);
+            setError('找不到对方用户信息');
           }
         }
       } catch (error) {
-        console.error('Error fetching friend profile:', error);
+        console.error('[Chat] Error fetching friend profile:', error);
       }
     };
 
@@ -279,11 +338,33 @@ function PrivateChat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // 发送消息
+  // 发送消息 - 包含详细日志
   const handleSendMessage = async (overrideContent?: string, overrideType?: string) => {
     const content = overrideContent || inputText.trim();
     const msgType = overrideType || 'text';
-    if (!content || !currentUserProfileId || !friendProfile?.id || isSending) return;
+    
+    // 详细日志帮助排查
+    if (!content) {
+      console.warn('[Chat] Empty content, skipping send');
+      return;
+    }
+    if (!currentUserProfileId) {
+      console.error('[Chat] currentUserProfileId is null, cannot send!', {
+        currentUserProfile,
+        error
+      });
+      setError('用户信息加载中，请稍后再试');
+      return;
+    }
+    if (!friendProfile?.id) {
+      console.error('[Chat] friendProfile.id is null, cannot send!', {
+        friendProfile,
+        userId
+      });
+      setError('对方信息加载中，请稍后再试');
+      return;
+    }
+    if (isSending) return;
 
     setIsSending(true);
     const newMessage = {
@@ -292,6 +373,13 @@ function PrivateChat() {
       content: content,
       message_type: msgType,
     };
+
+    console.log('[Chat] Sending message:', { 
+      sender: currentUserProfileId, 
+      receiver: friendProfile.id, 
+      content: content.substring(0, 50),
+      type: msgType 
+    });
 
     try {
       const res = await fetch('/sb-api/rest/v1/private_messages', {
@@ -305,17 +393,18 @@ function PrivateChat() {
       });
 
       if (res.ok) {
+        console.log('[Chat] Message sent successfully!');
         if (!overrideContent) setInputText('');
         inputRef.current?.focus();
         loadMessages();
       } else {
         const errText = await res.text().catch(() => '');
         console.error('[Chat] Send failed:', res.status, errText);
-        setError('发送失败，请重试');
+        setError(`发送失败(${res.status})，请重试`);
       }
     } catch (error) {
-      console.error('Error sending message:', error);
-      setError('发送失败，请重试');
+      console.error('[Chat] Network error:', error);
+      setError('网络错误，请重试');
     } finally {
       setIsSending(false);
     }

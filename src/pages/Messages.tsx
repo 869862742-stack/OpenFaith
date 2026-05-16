@@ -888,7 +888,10 @@ function Messages() {
     switch (message.type) {
       case 'private':
         const friendData = message.rawData;
-        navigate(`/chat/${friendData.user_id || friendData.id}`);
+        // 确保使用 user_id (auth UUID)，而不是 profiles.id
+        const targetUserId = friendData.user_id || friendData.id;
+        console.log('[Messages] Navigate to chat with userId:', targetUserId);
+        navigate(`/chat/${targetUserId}`);
         break;
       case 'group':
         navigate(`/group-chat/${message.rawData.id}`);
@@ -1491,7 +1494,7 @@ function Messages() {
                     key={friend.id}
                     className="flex items-center gap-3 p-3 rounded-xl theme-transition cursor-pointer"
                     style={{ backgroundColor: 'var(--bg-secondary)' }}
-                    onClick={() => navigate(`/chat/${friend.user_id}`)}
+                    onClick={() => navigate(`/chat/${friend.user_id || friend.id}`)}
                   >
                     <div
                       className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
