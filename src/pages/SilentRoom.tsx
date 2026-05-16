@@ -1676,14 +1676,15 @@ function SilentRoom() {
         </div>
       )}
 
-      {/* 可拖动音乐控制面板 - 默认在状态栏上方，可拖动 */}
+      {/* 可拖动音乐控制面板 - 默认水平居中，可拖动 */}
       {audioTracks.length > 0 && room?.creator_id === userId && (
         <div
           className="fixed z-30 flex items-center gap-1 px-3 py-2 rounded-full backdrop-blur-md"
           style={{
             backgroundColor: 'rgba(30, 30, 50, 0.9)',
-            left: panelPos.x,
+            left: isPanelDragging ? panelPos.x : '50%',
             top: panelPos.y,
+            transform: isPanelDragging ? 'none' : 'translateX(-50%)',
             cursor: isPanelDragging ? 'grabbing' : 'grab',
           }}
         >
