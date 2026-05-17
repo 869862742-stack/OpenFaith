@@ -63,7 +63,7 @@ function Dashboard() {
         todayNotesRes,
         todayCommentsRes
       ] = await Promise.all([
-        // 今日新增帖子
+        // 今日新增笔记
         fetch(`${supabaseUrl}/rest/v1/posts?created_at=gte.${todayStart}&created_at=lte.${todayEnd}&select=id`, { headers }),
         // 今日新增用户
         fetch(`${supabaseUrl}/rest/v1/profiles?created_at=gte.${todayStart}&created_at=lte.${todayEnd}&select=id`, { headers }),
@@ -181,7 +181,7 @@ function Dashboard() {
         <div className="loading-spinner" style={{ 
           width: '40px', height: '40px', 
           border: '3px solid #f3f3f3', 
-          borderTop: '3px solid #3498db',
+          borderTop: '3px solid #E11D48',
           borderRadius: '50%',
           animation: 'spin 1s linear infinite'
         }}></div>
@@ -221,7 +221,7 @@ function Dashboard() {
         gap: '20px', 
         marginBottom: '20px',
         padding: '20px',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'linear-gradient(135deg, #E11D48 0%, #BE123C 100%)',
         borderRadius: '12px',
         color: 'white',
       }}>
@@ -271,25 +271,25 @@ function Dashboard() {
             title="新增笔记"
             value={stats.todayNotes}
             icon={<BookOpen size={24} />}
-            color="#3498db"
+            color="#E11D48"
           />
           <StatCard
             title="新增评论"
             value={stats.todayComments}
             icon={<MessageCircle size={24} />}
-            color="#2ecc71"
+            color="#E11D48"
           />
           <StatCard
             title="新增用户"
             value={stats.todayUsers}
             icon={<Users size={24} />}
-            color="#9b59b6"
+            color="#E11D48"
           />
           <StatCard
             title="待处理举报"
             value={stats.pendingReports}
             icon={<Flag size={24} />}
-            color="#e74c3c"
+            color="#E11D48"
           />
         </div>
       </div>
@@ -297,12 +297,12 @@ function Dashboard() {
       {/* 总体统计 */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '30px' }}>
         <StatCard
-          title="总帖子数"
+          title="总笔记数"
           value={stats.totalPosts}
           change="+12%"
           positive={true}
           icon={<FileText size={24} />}
-          color="#3498db"
+          color="#E11D48"
         />
         <StatCard
           title="总注册用户"
@@ -310,7 +310,7 @@ function Dashboard() {
           change="+8%"
           positive={true}
           icon={<Users size={24} />}
-          color="#2ecc71"
+          color="#E11D48"
         />
         <StatCard
           title="待审核内容"
@@ -318,15 +318,15 @@ function Dashboard() {
           change="-5%"
           positive={false}
           icon={<ShieldCheck size={24} />}
-          color="#f39c12"
+          color="#E11D48"
         />
         <StatCard
-          title="今日新增帖子"
+          title="今日新增笔记"
           value={stats.todayPosts}
           change="+5%"
           positive={true}
           icon={<MessageSquare size={24} />}
-          color="#e67e22"
+          color="#E11D48"
         />
       </div>
 
@@ -349,8 +349,8 @@ function Dashboard() {
               <XAxis dataKey="date" />
               <YAxis />
               <Tooltip />
-              <Line type="monotone" dataKey="posts" stroke="#3498db" strokeWidth={2} name="帖子" />
-              <Line type="monotone" dataKey="users" stroke="#e74c3c" strokeWidth={2} name="用户" />
+              <Line type="monotone" dataKey="posts" stroke="#E11D48" strokeWidth={2} name="笔记" />
+              <Line type="monotone" dataKey="users" stroke="#BE123C" strokeWidth={2} name="用户" />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -362,19 +362,19 @@ function Dashboard() {
           title="藏书管理"
           description="管理经典藏书和章节"
           href="#/admin/books"
-          color="#3498db"
+          color="#E11D48"
         />
         <QuickAction
           title="信仰百科"
           description="管理宗教百科内容"
           href="#/admin/religions"
-          color="#2ecc71"
+          color="#E11D48"
         />
         <QuickAction
           title="标签管理"
           description="管理笔记标签"
           href="#/admin/tags"
-          color="#f39c12"
+          color="#E11D48"
         />
       </div>
 
@@ -409,7 +409,7 @@ function StatCard({ title, value, change, positive, icon, color }: {
           <h2 style={{ margin: '10px 0', fontSize: '32px' }}>{value}</h2>
           {change && (
             <p style={{ 
-              color: positive ? '#2ecc71' : '#e74c3c', 
+              color: positive ? '#BE123C' : '#E11D48', 
               margin: 0, 
               fontSize: '14px',
               display: 'flex',
