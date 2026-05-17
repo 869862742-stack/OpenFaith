@@ -367,6 +367,8 @@ export type Database = {
           avatar_url: string | null
           background_url: string | null
           bio: string | null
+          continent: string | null
+          country: string | null
           created_at: string | null
           downloads_count: number | null
           email: string
@@ -383,6 +385,7 @@ export type Database = {
           is_vip: boolean | null
           level: number | null
           likes_count: number | null
+          region: string | null
           sticky_cards: number | null
           tag_last_modified_at: string | null
           theme_color: string | null
@@ -395,6 +398,8 @@ export type Database = {
           avatar_url?: string | null
           background_url?: string | null
           bio?: string | null
+          continent?: string | null
+          country?: string | null
           created_at?: string | null
           downloads_count?: number | null
           email: string
@@ -411,6 +416,7 @@ export type Database = {
           is_vip?: boolean | null
           level?: number | null
           likes_count?: number | null
+          region?: string | null
           sticky_cards?: number | null
           tag_last_modified_at?: string | null
           theme_color?: string | null
@@ -423,6 +429,8 @@ export type Database = {
           avatar_url?: string | null
           background_url?: string | null
           bio?: string | null
+          continent?: string | null
+          country?: string | null
           created_at?: string | null
           downloads_count?: number | null
           email?: string
@@ -439,6 +447,7 @@ export type Database = {
           is_vip?: boolean | null
           level?: number | null
           likes_count?: number | null
+          region?: string | null
           sticky_cards?: number | null
           tag_last_modified_at?: string | null
           theme_color?: string | null
