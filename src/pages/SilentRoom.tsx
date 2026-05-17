@@ -909,12 +909,28 @@ function SilentRoom() {
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
 
-    // 清理 - 只清理定时器和事件监听，不调用 leaveRoom
-    // leaveRoom 只在用户主动退出时调用
+    // 清理 - 离开房间时自动退出
+    // leaveRoom 只在用户主动退出时调用，但组件卸载时也需要退出
     return () => {
       clearInterval(dataInterval);
       clearInterval(heartbeatInterval);
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      // 组件卸载时自动退出房间
+      if (roomId && userId) {
+        try {
+          fetch(
+            `/sb-api/rest/v1/room_participants?room_id=eq.${roomId}&user_id=eq.${userId}`,
+            {
+              method: 'DELETE',
+              headers: {
+                'apikey': SERVICE_ROLE_KEY,
+                'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+              },
+              keepalive: true,
+            }
+          );
+        } catch {}
+      }
       if (playerRef.current) {
         playerRef.current.pause();
         playerRef.current = null;
