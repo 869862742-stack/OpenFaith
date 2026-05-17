@@ -355,6 +355,57 @@ const BANNED_WORDS_DB: Record<string, BannedWord[]> = {
     { word: 'бесплатный', language: 'ru-RU', category: 'spam', variants: ['бесплатно'] },
   ],
 
+  // 阿拉伯语 (RTL语言)
+  'ar-EG': [
+    // Profanity (辱骂)
+    { word: 'زب', language: 'ar-EG', category: 'profanity' },
+    { word: 'كس', language: 'ar-EG', category: 'profanity' },
+    { word: 'شرموطة', language: 'ar-EG', category: 'profanity' },
+    { word: 'عاهر', language: 'ar-EG', category: 'profanity' },
+    { word: 'بغل', language: 'ar-EG', category: 'profanity' },
+    { word: 'قحبة', language: 'ar-EG', category: 'profanity' },
+    { word: 'وسخة', language: 'ar-EG', category: 'profanity' },
+
+    // Drug (毒品)
+    { word: 'حشيش', language: 'ar-EG', category: 'drug', variants: ['ماريجوانا', 'بانجو'] },
+    { word: 'هيروين', language: 'ar-EG', category: 'drug', variants: ['هيروين'] },
+    { word: 'كوكايين', language: 'ar-EG', category: 'drug' },
+    { word: 'كرياك', language: 'ar-EG', category: 'drug' },
+    { word: 'إكستاسي', language: 'ar-EG', category: 'drug' },
+    { word: 'مخدرات', language: 'ar-EG', category: 'drug' },
+
+    // Violence (暴力)
+    { word: 'قتل', language: 'ar-EG', category: 'violence' },
+    { word: 'إرهابي', language: 'ar-EG', category: 'violence' },
+    { word: 'تفجير', language: 'ar-EG', category: 'violence' },
+    { word: 'قنبلة', language: 'ar-EG', category: 'violence' },
+    { word: 'اغتصاب', language: 'ar-EG', category: 'violence' },
+    { word: 'تعذيب', language: 'ar-EG', category: 'violence' },
+    { word: 'خطف', language: 'ar-EG', category: 'violence' },
+
+    // Sexual (色情)
+    { word: 'إباحية', language: 'ar-EG', category: 'sexual', variants: ['بورنو', 'جنس'] },
+    { word: 'عريان', language: 'ar-EG', category: 'sexual' },
+    { word: 'مومس', language: 'ar-EG', category: 'sexual' },
+    { word: 'زنا', language: 'ar-EG', category: 'sexual' },
+
+    // Politics (政治)
+    { word: 'ثورة', language: 'ar-EG', category: 'politics' },
+    { word: 'انقلاب', language: 'ar-EG', category: 'politics' },
+    { word: 'تمرد', language: 'ar-EG', category: 'politics' },
+    { word: 'إرهاب', language: 'ar-EG', category: 'politics' },
+
+    // Religion Abuse (宗教亵渎)
+    { word: 'نبي كاذب', language: 'ar-EG', category: 'religion_abuse' },
+    { word: 'زندقة', language: 'ar-EG', category: 'religion_abuse' },
+    { word: 'ملحد', language: 'ar-EG', category: 'religion_abuse' },
+
+    // Spam (垃圾信息)
+    { word: 'أضفني', language: 'ar-EG', category: 'spam', variants: ['أرسل لي'] },
+    { word: 'اربح المال', language: 'ar-EG', category: 'spam' },
+    { word: 'هدية مجانية', language: 'ar-EG', category: 'spam' },
+  ],
+
   // 通用（所有语言）
   'all': [],
 };

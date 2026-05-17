@@ -41,6 +41,7 @@ const languageOptions = [
   { value: 'fr-FR', label: 'Français' },
   { value: 'es-ES', label: 'Español' },
   { value: 'ru-RU', label: 'Русский' },
+  { value: 'ar-EG', label: 'العربية' },
 ];
 
 // 类别选项（扩展版本）

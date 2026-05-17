@@ -361,6 +361,16 @@ export default function SplashPage() {
           console.log('[Splash] Supabase 获取 session 失败（已跳过）:', supabaseError);
         }
 
+        // 3. 预加载违规词列表（后台静默执行，不阻塞初始化）
+        try {
+          const { loadBannedWordsFromDatabase } = await import('../utils/badWordFilter');
+          const SUPABASE_URL = 'https://rdhwmeittgdosmkxtpak.supabase.co';
+          loadBannedWordsFromDatabase(SUPABASE_URL).catch(() => {});
+          console.log('[Splash] 违规词列表预加载已启动');
+        } catch (e) {
+          console.warn('[Splash] 违规词预加载失败（已跳过）:', e);
+        }
+
         console.log('[Splash] 初始化完成');
 
       } catch (error) {

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Share2, Volume2, VolumeX, Moon, Music, BookOpen, Brain, Flower2, HeartHandshake, Sparkles, Upload, X, Power, SkipBack, SkipForward, Play, Pause, Repeat, Repeat1, Shuffle, ListMusic, Trash2, GripVertical, Type, Search } from 'lucide-react';
 import * as mm from 'music-metadata';
+import { checkBadWords } from '../utils/badWordFilter';
 
 // Service Role Key
 const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE';
@@ -978,6 +979,15 @@ function SilentRoom() {
   // 发送句子
   const sendSentence = async () => {
     if (!sentenceText.trim()) return;
+    
+    // ========== 违规词检测 ==========
+    const currentLang = localStorage.getItem('openfaith-language') || 'zh-CN';
+    const filterResult = checkBadWords(sentenceText.trim(), currentLang);
+    if (filterResult.hasViolation) {
+      alert(filterResult.message || '内容包含违规词汇，请修改后重新发送');
+      return;
+    }
+    // =================================
     
     // 获取auth UUID（room_sentences外键需要）
     let uid = userId;
