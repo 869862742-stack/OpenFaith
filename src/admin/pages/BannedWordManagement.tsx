@@ -24,20 +24,54 @@ const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhY
 type BannedWordItem = {
   id: string;
   word: string;
+  language?: string;
   category: string;
+  severity?: string;
+  variants?: string[];
+  description?: string;
   created_by: string | null;
   created_at: string;
 };
 
+// 语言选项
+const languageOptions = [
+  { value: 'all', label: '通用' },
+  { value: 'zh-CN', label: '简体中文' },
+  { value: 'en-US', label: 'English' },
+  { value: 'fr-FR', label: 'Français' },
+  { value: 'es-ES', label: 'Español' },
+  { value: 'ru-RU', label: 'Русский' },
+];
+
+// 类别选项（扩展版本）
 const categoryOptions = [
-  { value: 'political', label: '政治', color: 'bg-red-100 text-red-700' },
-  { value: 'obscene', label: '色情', color: 'bg-pink-100 text-pink-700' },
+  { value: 'profanity', label: '脏话', color: 'bg-red-100 text-red-700' },
   { value: 'insult', label: '侮辱', color: 'bg-orange-100 text-orange-700' },
+  { value: 'drug', label: '毒品', color: 'bg-purple-100 text-purple-700' },
+  { value: 'violence', label: '暴力', color: 'bg-red-100 text-red-800' },
+  { value: 'sexual', label: '色情', color: 'bg-pink-100 text-pink-700' },
+  { value: 'politics', label: '政治', color: 'bg-blue-100 text-blue-700' },
+  { value: 'religion_abuse', label: '宗教亵渎', color: 'bg-yellow-100 text-yellow-700' },
+  { value: 'spam', label: '垃圾信息', color: 'bg-gray-100 text-gray-700' },
+  { value: 'general', label: '通用', color: 'bg-gray-100 text-gray-700' },
   { value: 'other', label: '其他', color: 'bg-gray-100 text-gray-700' },
 ];
 
+// 兼容旧类别名称的映射
+const categoryMapping: Record<string, string> = {
+  'political': 'politics',
+  'obscene': 'sexual',
+  'porn': 'sexual',
+  'violence': 'violence',
+  'religion': 'religion_abuse',
+  'general': 'general',
+  'other': 'other',
+};
+
 const getCategoryBadge = (category: string) => {
-  const option = categoryOptions.find((o) => o.value === category);
+  // 映射旧类别名称到新名称
+  const mappedCategory = categoryMapping[category] || category;
+  const option = categoryOptions.find((o) => o.value === mappedCategory);
   return (
     <span className={`px-2 py-1 rounded-full text-xs font-medium ${option?.color || 'bg-gray-100 text-gray-700'}`}>
       {option?.label || category}
@@ -45,22 +79,34 @@ const getCategoryBadge = (category: string) => {
   );
 };
 
+const getLanguageBadge = (language: string) => {
+  const option = languageOptions.find((o) => o.value === language);
+  return option?.label || language;
+};
+
 export default function BannedWordManagement() {
   const [words, setWords] = useState<BannedWordItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [languageFilter, setLanguageFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
   const [showBatchModal, setShowBatchModal] = useState(false);
   const [editingWord, setEditingWord] = useState<BannedWordItem | null>(null);
   const [formData, setFormData] = useState({
     word: '',
-    category: 'other',
+    language: 'all',
+    category: 'general',
+    severity: 'medium',
+    variants: '',
+    description: '',
   });
   const [batchContent, setBatchContent] = useState('');
-  const [batchCategory, setBatchCategory] = useState('other');
+  const [batchLanguage, setBatchLanguage] = useState('all');
+  const [batchCategory, setBatchCategory] = useState('general');
   const [processing, setProcessing] = useState(false);
+  const [stats, setStats] = useState({ total: 0, byCategory: {} as Record<string, number>, byLanguage: {} as Record<string, number> });
   const pageSize = 10;
 
   const supabaseUrl = getSupabaseUrl();
@@ -84,7 +130,22 @@ export default function BannedWordManagement() {
         },
       });
       const data = await res.json();
-      setWords(Array.isArray(data) ? data : []);
+      const wordsData = Array.isArray(data) ? data : [];
+      setWords(wordsData);
+      
+      // 计算统计数据
+      const byCategory: Record<string, number> = {};
+      const byLanguage: Record<string, number> = {};
+      wordsData.forEach((word: BannedWordItem) => {
+        byCategory[word.category] = (byCategory[word.category] || 0) + 1;
+        const lang = word.language || 'all';
+        byLanguage[lang] = (byLanguage[lang] || 0) + 1;
+      });
+      setStats({
+        total: wordsData.length,
+        byCategory,
+        byLanguage,
+      });
     } catch (error) {
       console.error('加载违规词失败:', error);
       setWords([]);
@@ -101,12 +162,11 @@ export default function BannedWordManagement() {
     if (searchQuery) {
       return word.word.toLowerCase().includes(searchQuery.toLowerCase());
     }
+    if (languageFilter !== 'all') {
+      return (word.language || 'all') === languageFilter;
+    }
     return true;
   });
-
-  const totalCount = filteredWords.length;
-  const totalPages = Math.ceil(totalCount / pageSize);
-  const paginatedWords = filteredWords.slice((page - 1) * pageSize, page * pageSize);
 
   // 添加违规词
   const handleAdd = async () => {
@@ -117,6 +177,11 @@ export default function BannedWordManagement() {
 
     setProcessing(true);
     try {
+      // 解析变体词（逗号分隔）
+      const variantsArray = formData.variants
+        ? formData.variants.split(',').map(v => v.trim()).filter(v => v)
+        : [];
+      
       await fetch(`${supabaseUrl}/rest/v1/banned_words`, {
         method: 'POST',
         headers: {
@@ -126,13 +191,17 @@ export default function BannedWordManagement() {
         },
         body: JSON.stringify([{
           word: formData.word.trim(),
+          language: formData.language,
           category: formData.category,
+          severity: formData.severity,
+          variants: variantsArray,
+          description: formData.description,
           created_at: new Date().toISOString(),
         }]),
       });
       await loadWords();
       setShowModal(false);
-      setFormData({ word: '', category: 'other' });
+      setFormData({ word: '', language: 'all', category: 'general', severity: 'medium', variants: '', description: '' });
       setEditingWord(null);
     } catch (error) {
       console.error('添加失败:', error);
@@ -150,6 +219,11 @@ export default function BannedWordManagement() {
 
     setProcessing(true);
     try {
+      // 解析变体词（逗号分隔）
+      const variantsArray = formData.variants
+        ? formData.variants.split(',').map(v => v.trim()).filter(v => v)
+        : [];
+      
       await fetch(`${supabaseUrl}/rest/v1/banned_words?id=eq.${editingWord.id}`, {
         method: 'PATCH',
         headers: {
@@ -159,12 +233,16 @@ export default function BannedWordManagement() {
         },
         body: JSON.stringify({
           word: formData.word.trim(),
+          language: formData.language,
           category: formData.category,
+          severity: formData.severity,
+          variants: variantsArray,
+          description: formData.description,
         }),
       });
       await loadWords();
       setShowModal(false);
-      setFormData({ word: '', category: 'other' });
+      setFormData({ word: '', language: 'all', category: 'general', severity: 'medium', variants: '', description: '' });
       setEditingWord(null);
     } catch (error) {
       console.error('编辑失败:', error);
@@ -225,6 +303,7 @@ export default function BannedWordManagement() {
         body: JSON.stringify(
           wordsToImport.map(word => ({
             word,
+            language: batchLanguage,
             category: batchCategory,
             created_at: new Date().toISOString(),
           }))
@@ -233,7 +312,8 @@ export default function BannedWordManagement() {
       await loadWords();
       setShowBatchModal(false);
       setBatchContent('');
-      setBatchCategory('other');
+      setBatchLanguage('all');
+      setBatchCategory('general');
       alert(`成功导入 ${wordsToImport.length} 个违规词`);
     } catch (error) {
       console.error('批量导入失败:', error);
@@ -244,27 +324,54 @@ export default function BannedWordManagement() {
 
   const startEdit = (word: BannedWordItem) => {
     setEditingWord(word);
-    setFormData({ word: word.word, category: word.category });
+    setFormData({ 
+      word: word.word, 
+      language: word.language || 'all',
+      category: categoryMapping[word.category] || word.category,
+      severity: word.severity || 'medium',
+      variants: word.variants?.join(', ') || '',
+      description: word.description || '',
+    });
     setShowModal(true);
   };
 
   const openAddModal = () => {
     setEditingWord(null);
-    setFormData({ word: '', category: 'other' });
+    setFormData({ word: '', language: 'all', category: 'general', severity: 'medium', variants: '', description: '' });
     setShowModal(true);
   };
 
   const resetForm = () => {
-    setFormData({ word: '', category: 'other' });
+    setFormData({ word: '', language: 'all', category: 'general', severity: 'medium', variants: '', description: '' });
   };
 
   return (
     <div className="p-6">
+      {/* 统计卡片 */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <div className="text-2xl font-bold text-[#E11D48]">{stats.total}</div>
+          <div className="text-sm text-gray-500">总违规词数</div>
+        </div>
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <div className="text-2xl font-bold text-orange-600">{stats.byCategory['insult'] || stats.byCategory['general'] || 0}</div>
+          <div className="text-sm text-gray-500">侮辱/脏话</div>
+        </div>
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <div className="text-2xl font-bold text-purple-600">{stats.byCategory['drug'] || 0}</div>
+          <div className="text-sm text-gray-500">毒品相关</div>
+        </div>
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <div className="text-2xl font-bold text-yellow-600">{stats.byCategory['religion_abuse'] || 0}</div>
+          <div className="text-sm text-gray-500">宗教亵渎</div>
+        </div>
+      </div>
+
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">违规词库</h1>
+          <h1 className="text-2xl font-bold text-gray-900">违规词库管理</h1>
           <p className="text-sm text-gray-500 mt-1">
-            前台发布笔记时会自动检查违规词，匹配到则阻止发布
+            支持多语言违规词过滤，前台发布笔记/消息/评论时会自动检查
           </p>
         </div>
         <div className="flex gap-2">
@@ -315,9 +422,22 @@ export default function BannedWordManagement() {
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
+            <select
+              value={languageFilter}
+              onChange={(e) => {
+                setLanguageFilter(e.target.value);
+                setPage(1);
+              }}
+              className="h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+            >
+              <option value="all">全部语言</option>
+              {languageOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
           </div>
           <div className="ml-auto text-sm text-gray-500">
-            共 {totalCount} 个违规词
+            共 {filteredWords.length} 个违规词
           </div>
         </div>
       </div>
@@ -328,6 +448,7 @@ export default function BannedWordManagement() {
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">违规词</th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">语言</th>
               <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">分类</th>
               <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">添加时间</th>
               <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">操作</th>
@@ -336,24 +457,29 @@ export default function BannedWordManagement() {
           <tbody className="divide-y divide-gray-200">
             {loading ? (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-gray-500">
+                <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
                   加载中...
                 </td>
               </tr>
-            ) : paginatedWords.length === 0 ? (
+            ) : filteredWords.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-gray-500">
+                <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
                   暂无违规词
                 </td>
               </tr>
             ) : (
-              paginatedWords.map((word) => (
+              filteredWords.slice((page - 1) * pageSize, page * pageSize).map((word) => (
                 <tr key={word.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="w-4 h-4 text-red-500" />
                       <span className="font-medium text-gray-900">{word.word}</span>
                     </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                      {getLanguageBadge(word.language || 'all')}
+                    </span>
                   </td>
                   <td className="px-4 py-3">{getCategoryBadge(word.category)}</td>
                   <td className="px-4 py-3 text-sm text-gray-500">
@@ -387,7 +513,7 @@ export default function BannedWordManagement() {
         {/* Pagination */}
         <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
           <p className="text-sm text-gray-500">
-            共 {totalCount} 条记录，第 {page} / {totalPages} 页
+            共 {filteredWords.length} 条记录，第 {page} / {Math.ceil(filteredWords.length / pageSize)} 页
           </p>
           <div className="flex items-center gap-2">
             <button
@@ -399,7 +525,7 @@ export default function BannedWordManagement() {
             </button>
             <button
               onClick={() => setPage(page + 1)}
-              disabled={page >= totalPages}
+              disabled={page >= Math.ceil(filteredWords.length / pageSize)}
               className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ChevronRight className="w-4 h-4" />
@@ -440,6 +566,27 @@ export default function BannedWordManagement() {
                   />
                 </div>
 
+                {/* Language */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    语言 <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={formData.language}
+                    onChange={(e) => setFormData({ ...formData, language: e.target.value })}
+                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+                  >
+                    {languageOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    选择"通用"将应用于所有语言
+                  </p>
+                </div>
+
                 {/* Category */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -456,6 +603,53 @@ export default function BannedWordManagement() {
                       </option>
                     ))}
                   </select>
+                </div>
+
+                {/* Severity */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    严重程度
+                  </label>
+                  <select
+                    value={formData.severity}
+                    onChange={(e) => setFormData({ ...formData, severity: e.target.value })}
+                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+                  >
+                    <option value="low">低</option>
+                    <option value="medium">中</option>
+                    <option value="high">高</option>
+                  </select>
+                </div>
+
+                {/* Variants */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    变体词（可选）
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.variants}
+                    onChange={(e) => setFormData({ ...formData, variants: e.target.value })}
+                    placeholder="输入常见变体，用逗号分隔，如: 傻比,傻屌"
+                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    常见规避手段，如谐音、简写等
+                  </p>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    描述（可选）
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="简要描述该违规词的来源或用途"
+                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+                  />
                 </div>
               </div>
 
@@ -516,6 +710,24 @@ export default function BannedWordManagement() {
                   <p className="text-xs text-gray-500 mt-1">
                     每行一个违规词，空行将被忽略
                   </p>
+                </div>
+
+                {/* Language */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    语言 <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={batchLanguage}
+                    onChange={(e) => setBatchLanguage(e.target.value)}
+                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+                  >
+                    {languageOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Category */}

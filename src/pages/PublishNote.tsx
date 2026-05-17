@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase/client';
 import { useAuthStore } from '../stores/auth';
+import { checkBadWords } from '../utils/badWordFilter';
 
 const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE';
 
@@ -308,6 +309,24 @@ function PublishNote() {
       alert('请填写标题');
       return;
     }
+    
+    // ========== 违规词检测 ==========
+    const currentLang = localStorage.getItem('openfaith-language') || 'zh-CN';
+    
+    // 检查标题
+    const titleFilterResult = checkBadWords(title.trim(), currentLang);
+    if (titleFilterResult.hasViolation) {
+      alert(`标题${titleFilterResult.message || '包含违规词汇，请修改后重新发布'}`);
+      return;
+    }
+    
+    // 检查内容
+    const contentFilterResult = checkBadWords(content.trim(), currentLang);
+    if (contentFilterResult.hasViolation) {
+      alert(`内容${contentFilterResult.message || '包含违规词汇，请修改后重新发布'}`);
+      return;
+    }
+    // =================================
     
     // ---- 每日笔记限制检查 ----
     const auth = useAuthStore.getState();
