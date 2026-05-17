@@ -10,6 +10,7 @@ import {
   Sunrise, CloudSun, CloudMoon, Snowflake, Flower2, TreePine, Scale, Waves,
   Signpost, Gift, Route, Flag
 } from 'lucide-react';
+import { checkBadWords, loadBannedWordsFromDatabase } from '../utils/badWordFilter';
 
 const PRIMARY_COLOR = '#E11D48';
 const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE';
@@ -401,7 +402,7 @@ function PrivateChat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // 发送消息 - 包含详细日志
+  // 发送消息 - 包含详细日志和违规词检测
   const handleSendMessage = async (overrideContent?: string, overrideType?: string) => {
     const content = overrideContent || inputText.trim();
     const msgType = overrideType || 'text';
@@ -428,6 +429,22 @@ function PrivateChat() {
       return;
     }
     if (isSending) return;
+
+    // ========== 违规词检测 ==========
+    // 获取当前语言设置
+    const currentLang = localStorage.getItem('openfaith-language') || 'zh-CN';
+    
+    // 检查违规词（只检测文本类型消息）
+    if (msgType === 'text' || msgType === 'faith_bubble') {
+      const filterResult = checkBadWords(content, currentLang);
+      if (filterResult.hasViolation) {
+        setError(filterResult.message || '内容包含违规词汇，请修改后重新发送');
+        // 显示错误提示后自动清除
+        setTimeout(() => setError(null), 3000);
+        return;
+      }
+    }
+    // =================================
 
     setIsSending(true);
     const newMessage = {

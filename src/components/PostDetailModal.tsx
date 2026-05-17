@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useThemeContext } from '../contexts/ThemeContext';
 import { useAuthStore } from '../stores/auth';
 import { cachedFetch } from '../utils/apiCache';
+import { checkBadWords } from '../utils/badWordFilter';
 
 const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE';
 
@@ -978,7 +979,7 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
     }
   };
 
-  // 提交评论 - 实时显示，不全量重载
+  // 提交评论 - 实时显示，不全量重载，包含违规词检测
   const handleSubmitComment = async (content?: string) => {
     console.log('[Comment] handleSubmitComment called, content:', content, 'newComment:', newComment);
     const commentContent = content || newComment.trim();
@@ -986,6 +987,15 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
       console.log('[Comment] 内容为空，跳过');
       return;
     }
+    
+    // ========== 违规词检测 ==========
+    const currentLang = localStorage.getItem('openfaith-language') || 'zh-CN';
+    const filterResult = checkBadWords(commentContent, currentLang);
+    if (filterResult.hasViolation) {
+      alert(filterResult.message || '内容包含违规词汇，请修改后重新发送');
+      return;
+    }
+    // =================================
     
     // 多级 fallback 获取 userId
     const getUserId = (): string | null => {

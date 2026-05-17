@@ -73,8 +73,8 @@ function Dashboard() {
         fetch(`${supabaseUrl}/rest/v1/reports?status=eq.pending&select=id`, { headers }),
         // 待审核评论
         fetch(`${supabaseUrl}/rest/v1/comments?status=eq.pending&select=id`, { headers }),
-        // 总帖子数
-        fetch(`${supabaseUrl}/rest/v1/posts?select=id`, { headers }),
+        // 总笔记数
+        fetch(`${supabaseUrl}/rest/v1/posts?status=eq.published&select=id`, { headers }),
         // 总用户数
         fetch(`${supabaseUrl}/rest/v1/profiles?select=id`, { headers }),
         // 在线人数（最近5分钟内有活动）
