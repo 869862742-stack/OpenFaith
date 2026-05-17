@@ -14,6 +14,7 @@ interface GroupChat {
   user_id: string;
   heat_count: number;
   created_at: string;
+  announcement?: string;
   profiles?: {
     username: string;
     avatar_url: string;
@@ -32,6 +33,8 @@ function GroupChatDetail() {
   const [isMuted, setIsMuted] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [isJoining, setIsJoining] = useState(false);
+  const [showAnnounceModal, setShowAnnounceModal] = useState(false);
+  const [announceText, setAnnounceText] = useState('');
 
   const currentUserId = localStorage.getItem('user_id');
   const isMember = currentUserId ? group?.tags?.includes(`member_${currentUserId}`) : false;
@@ -56,7 +59,7 @@ function GroupChatDetail() {
       setIsLoading(true);
       try {
         const params = new URLSearchParams();
-        params.append('select', 'id,title,content,tags,user_id,heat_count,created_at');
+        params.append('select', 'id,title,content,tags,user_id,heat_count,created_at,announcement');
         params.append('id', `eq.${id}`);
 
         const res = await fetch(`/sb-api/rest/v1/posts?${params.toString()}`, {
@@ -375,7 +378,14 @@ function GroupChatDetail() {
             {/* 公告卡片 */}
             <div className="p-4 rounded-xl" style={{ backgroundColor: cardBgSecondary }}>
               <h3 className="font-medium mb-3" style={{ color: textColor }}>群公告</h3>
-              <p style={{ color: textSecondary }}>暂无公告</p>
+              {group.announcement ? (
+                <div className="text-left">
+                  <p style={{ color: textColor }}>{group.announcement}</p>
+                  <p className="text-xs mt-2" style={{ color: textSecondary }}>群主发布</p>
+                </div>
+              ) : (
+                <p style={{ color: textSecondary }}>暂无公告</p>
+              )}
             </div>
           </div>
         )}
@@ -421,12 +431,22 @@ function GroupChatDetail() {
 
         {activeTab === 'announce' && (
           <div className="p-4 rounded-xl text-center" style={{ backgroundColor: cardBgSecondary }}>
-            <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-30" style={{ color: textSecondary }} />
-            <p style={{ color: textSecondary }}>暂无公告</p>
+            {group?.announcement ? (
+              <div className="text-left">
+                <p className="text-base" style={{ color: textColor }}>{group.announcement}</p>
+                <p className="text-xs mt-2" style={{ color: textSecondary }}>群主发布</p>
+              </div>
+            ) : (
+              <>
+                <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-30" style={{ color: textSecondary }} />
+                <p style={{ color: textSecondary }}>暂无公告</p>
+              </>
+            )}
             {isOwner && (
               <button
                 className="mt-4 px-4 py-2 rounded-xl text-sm font-medium text-white"
                 style={{ backgroundColor: PRIMARY_COLOR }}
+                onClick={() => { setAnnounceText(group?.announcement || ''); setShowAnnounceModal(true); }}
               >
                 发布公告
               </button>
@@ -434,6 +454,61 @@ function GroupChatDetail() {
           </div>
         )}
       </div>
+
+      {/* 发布公告弹窗 */}
+      {showAnnounceModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setShowAnnounceModal(false)}>
+          <div className="absolute inset-0 bg-black/60" />
+          <div className="relative w-80 bg-white rounded-2xl p-6" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">发布公告</h3>
+            <textarea
+              value={announceText}
+              onChange={e => setAnnounceText(e.target.value)}
+              className="w-full h-32 p-3 border border-gray-200 rounded-xl text-sm resize-none focus:outline-none focus:border-[#E11D48]"
+              placeholder="输入公告内容..."
+              autoFocus
+            />
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={() => setShowAnnounceModal(false)}
+                className="flex-1 py-2.5 rounded-xl text-sm text-gray-500 bg-gray-100"
+              >
+                取消
+              </button>
+              <button
+                onClick={async () => {
+                  if (!announceText.trim()) return;
+                  try {
+                    const res = await fetch(`/sb-api/rest/v1/posts?id=eq.${group?.id}`, {
+                      method: 'PATCH',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': SERVICE_ROLE_KEY,
+                        'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+                      },
+                      body: JSON.stringify({ announcement: announceText.trim() }),
+                    });
+                    if (res.ok) {
+                      setGroup(prev => prev ? { ...prev, announcement: announceText.trim() } : prev);
+                      setShowAnnounceModal(false);
+                      showToast('公告发布成功');
+                    } else {
+                      showToast('公告发布失败');
+                    }
+                  } catch (err) {
+                    console.error('Failed to publish announcement:', err);
+                    showToast('公告发布失败');
+                  }
+                }}
+                className="flex-1 py-2.5 rounded-xl text-sm text-white"
+                style={{ backgroundColor: PRIMARY_COLOR }}
+              >
+                发布
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 设置弹窗 */}
       {showSettings && (
