@@ -696,18 +696,53 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
   };
 
   // 重置点赞/加热/收藏状态
+  // 【修复】依赖 currentPost?.id 确保每次打开不同帖子时正确初始化
   useEffect(() => {
+    const postId = currentPost?.id;
+    console.log('[状态初始化] useEffect triggered, postId:', postId, 'currentIndex:', currentIndex);
+    
     setIsLiked(false);
     // 加热状态：今天加热过 或 曾经加热过（颜色持久化不受日期限制）
-    setIsHeated(hasHeated(currentPost?.id));
+    const heated = postId ? hasHeated(postId) : false;
+    console.log('[状态初始化] 加热状态:', heated, 'postId:', postId);
+    setIsHeated(heated);
+    
     // 初始化本地加热数字（如果今天加热过则+1）
-    if (isHeatedToday(currentPost?.id)) {
+    if (postId && isHeatedToday(postId)) {
       setLocalHeatCount((currentPost.heat_count || 0) + 1);
     } else {
       setLocalHeatCount(0);
     }
-    // 问题8c：收藏状态从 localStorage 读取
-    setIsFavorited(getFavorites().has(currentPost?.id));
+    
+    // 【修复】收藏状态：从 Supabase 查询 + localStorage 双保险
+    const initFavoriteState = async () => {
+      const localFav = postId ? getFavorites().has(postId) : false;
+      console.log('[状态初始化] localStorage 收藏状态:', localFav, 'postId:', postId);
+      
+      // 从 Supabase 查询真实状态
+      const userId = useAuthStore.getState().userInfo?.id;
+      if (userId && postId) {
+        try {
+          const res = await fetch(
+            `/sb-api/rest/v1/favorites?user_id=eq.${userId}&post_id=eq.${postId}&select=id`,
+            { headers: { 'apikey': SERVICE_ROLE_KEY, 'Authorization': `Bearer ${SERVICE_ROLE_KEY}` } }
+          );
+          if (res.ok) {
+            const data = await res.json();
+            const isFav = Array.isArray(data) && data.length > 0;
+            console.log('[状态初始化] Supabase 收藏状态:', isFav, 'data:', data);
+            setIsFavorited(isFav);
+            return; // 以 Supabase 为准
+          }
+        } catch (e) {
+          console.error('[状态初始化] 查询收藏状态失败:', e);
+        }
+      }
+      // fallback 到 localStorage
+      setIsFavorited(localFav);
+    };
+    initFavoriteState();
+    
     setShowComments(false);
     // 重置评论状态 - 但不重置 hasLoadedComments，让它根据帖子ID判断
     setNewComment('');
@@ -720,22 +755,22 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
     setPostImageIndex(0);
     
     // ========== 浏览计数：首次打开笔记时 +1（24小时防刷）==========
-    if (currentPost?.id) {
-      const viewedKey = `of_viewed_${currentPost.id}`;
+    if (postId) {
+      const viewedKey = `of_viewed_${postId}`;
       const lastViewed = localStorage.getItem(viewedKey);
       const now = Date.now();
       if (!lastViewed || now - parseInt(lastViewed) > 24 * 60 * 60 * 1000) {
         // 记录浏览时间
         localStorage.setItem(viewedKey, String(now));
         // 更新数据库中的浏览数
-        fetch(`/sb-api/rest/v1/posts?id=eq.${currentPost.id}`, {
+        fetch(`/sb-api/rest/v1/posts?id=eq.${postId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', 'apikey': SERVICE_ROLE_KEY, 'Authorization': `Bearer ${SERVICE_ROLE_KEY}` },
           body: JSON.stringify({ views_count: (currentPost.views_count || 0) + 1 })
         }).catch(err => console.error('[Views] Failed to update views_count:', err));
       }
     }
-  }, [currentIndex]);
+  }, [currentIndex, currentPost?.id]);
 
   // 加载评论 - 只在首次打开时加载一次
   useEffect(() => {
