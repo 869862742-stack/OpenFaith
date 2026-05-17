@@ -1,5 +1,20 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 
+// ============= API 配置 =============
+// 生产环境直接使用 Supabase，避免依赖未部署的 /sb-api 代理
+const SUPABASE_URL = 'https://rdhwmeittgdosmkxtpak.supabase.co';
+const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE';
+
+// API 基础路径 - 生产环境直接使用 Supabase
+const API_BASE = `${SUPABASE_URL}/rest/v1`;
+
+// 带认证的 fetch 选项
+const authHeaders = {
+  'apikey': SERVICE_KEY,
+  'Authorization': `Bearer ${SERVICE_KEY}`,
+  'Content-Type': 'application/json'
+};
+
 // ============= SmartImportModal 组件内联 =============
 
 interface SmartImportBook {
@@ -12,12 +27,6 @@ interface SmartImportBook {
   group_id?: string;
 }
 
-// 生成唯一ID
-const generateImportId = () => crypto.randomUUID();
-
-// ============= 独立的智能导入组件 =============
-
-const SERVICE_ROLE_KEY_BM = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE';
 function SmartImportModalInline(props: { 
   onClose: () => void; 
   refreshBooks: () => void;
@@ -283,9 +292,9 @@ function SmartImportModalInline(props: {
         if (!book.title) continue;
         
         const bookId = genId();
-        const res = await fetch('/sb-api/rest/v1/books', {
+        const res = await fetch(`${API_BASE}/books`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' },
+          headers: authHeaders,
           body: JSON.stringify({
             id: bookId,
             title: book.title,
@@ -304,9 +313,9 @@ function SmartImportModalInline(props: {
             for (const ch of book.chapters) {
               if (!ch.title && !ch.content) continue;
               
-              await fetch('/sb-api/rest/v1/chapters', {
+              await fetch(`${API_BASE}/chapters`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'apikey': SERVICE_ROLE_KEY_BM, 'Authorization': 'Bearer ' + SERVICE_ROLE_KEY_BM },
+                headers: { 'Content-Type': 'application/json', 'apikey': SERVICE_KEY, 'Authorization': 'Bearer ' + SERVICE_KEY },
                 body: JSON.stringify({
                   id: genId(),
                   book_id: bookId,
@@ -532,9 +541,9 @@ export default function BookManagement() {
     const book = books.find(b => b.id === bookId);
     if (!book) return;
     const newStatus = book.status === 'published' ? 'draft' : 'published';
-    await fetch(`/sb-api/rest/v1/books?id=eq.${bookId}`, {
+    await fetch(`${API_BASE}/books?id=eq.${bookId}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' },
+      headers: authHeaders,
       body: JSON.stringify({ status: newStatus, updated_at: new Date().toISOString() }),
     });
     setSelectedPublishedBooks(prev => {
@@ -549,9 +558,9 @@ export default function BookManagement() {
   const batchPublish = async () => {
     if (selectedUngroupedBooks.size === 0) return;
     for (const bookId of selectedUngroupedBooks) {
-      await fetch(`/sb-api/rest/v1/books?id=eq.${bookId}`, {
+      await fetch(`${API_BASE}/books?id=eq.${bookId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' },
+        headers: authHeaders,
         body: JSON.stringify({ status: 'published', updated_at: new Date().toISOString() }),
       });
     }
@@ -563,9 +572,9 @@ export default function BookManagement() {
   const batchUnpublish = async () => {
     if (selectedPublishedBooks.size === 0) return;
     for (const bookId of selectedPublishedBooks) {
-      await fetch(`/sb-api/rest/v1/books?id=eq.${bookId}`, {
+      await fetch(`${API_BASE}/books?id=eq.${bookId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' },
+        headers: authHeaders,
         body: JSON.stringify({ status: 'draft', updated_at: new Date().toISOString() }),
       });
     }
@@ -578,8 +587,8 @@ export default function BookManagement() {
     if (selectedPublishedBooks.size === 0) return;
     if (!confirm(`确定删除选中的 ${selectedPublishedBooks.size} 本已发布书籍吗？`)) return;
     for (const bookId of selectedPublishedBooks) {
-      await fetch(`/sb-api/rest/v1/chapters?book_id=eq.${bookId}`, { method: 'DELETE', headers: { 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' } });
-      await fetch(`/sb-api/rest/v1/books?id=eq.${bookId}`, { method: 'DELETE', headers: { 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' } });
+      await fetch(`${API_BASE}/chapters?book_id=eq.${bookId}`, { method: 'DELETE', headers: authHeaders });
+      await fetch(`${API_BASE}/books?id=eq.${bookId}`, { method: 'DELETE', headers: authHeaders });
     }
     setSelectedPublishedBooks(new Set());
     await loadData();
@@ -593,9 +602,9 @@ export default function BookManagement() {
       return direction === 'asc' ? orderA - orderB : orderB - orderA;
     });
     for (let i = 0; i < sorted.length; i++) {
-      await fetch(`/sb-api/rest/v1/books?id=eq.${sorted[i].id}`, {
+      await fetch(`${API_BASE}/books?id=eq.${sorted[i].id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' },
+        headers: authHeaders,
         body: JSON.stringify({ sort_order: i + 1, updated_at: new Date().toISOString() }),
       });
     }
@@ -605,9 +614,9 @@ export default function BookManagement() {
   // 切换群组发布状态
   const handleToggleGroupPublish = async (groupId: string, isCurrentlyPublished: boolean) => {
     const newStatus = isCurrentlyPublished ? 'draft' : 'published';
-    await fetch(`/sb-api/rest/v1/book_groups?id=eq.${groupId}`, {
+    await fetch(`${API_BASE}/book_groups?id=eq.${groupId}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' },
+      headers: authHeaders,
       body: JSON.stringify({ status: newStatus }),
     });
     await loadData();
@@ -620,9 +629,9 @@ export default function BookManagement() {
     setLoading(true);
     try {
       const [booksRes, chaptersRes, groupsRes] = await Promise.all([
-        fetch('/sb-api/rest/v1/books?select=*&order=created_at.desc', { headers: { 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' } }),
-        fetch('/sb-api/rest/v1/chapters?select=*&order=number.asc', { headers: { 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' } }),
-        fetch('/sb-api/rest/v1/book_groups?select=*', { headers: { 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' } }),
+        fetch(`${API_BASE}/books?select=*&order=created_at.desc`, { headers: authHeaders }),
+        fetch(`${API_BASE}/chapters?select=*&order=number.asc`, { headers: authHeaders }),
+        fetch(`${API_BASE}/book_groups?select=*`, { headers: authHeaders }),
       ]);
       const [booksData, chaptersData, groupsData] = await Promise.all([booksRes.json(), chaptersRes.json(), groupsRes.json()]);
       // 确保返回的是数组，防止 map 报错
@@ -729,15 +738,15 @@ export default function BookManagement() {
   const handleSaveBook = async (data: Partial<Book>) => {
     try {
       if (editingBook) {
-        await fetch(`/sb-api/rest/v1/books?id=eq.${editingBook.id}`, {
+        await fetch(`${API_BASE}/books?id=eq.${editingBook.id}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' },
+          headers: authHeaders,
           body: JSON.stringify({ ...data, updated_at: new Date().toISOString() }),
         });
       } else {
-        await fetch('/sb-api/rest/v1/books', {
+        await fetch(`${API_BASE}/books`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' },
+          headers: authHeaders,
           body: JSON.stringify([{ ...data, id: 'book_' + Date.now(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() }]),
         });
       }
@@ -754,8 +763,8 @@ export default function BookManagement() {
   const handleDeleteBook = async (id: string) => {
     if (!confirm('确定删除此书籍及其所有章节吗？')) return;
     try {
-      await fetch(`/sb-api/rest/v1/chapters?book_id=eq.${id}`, { method: 'DELETE', headers: { 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' } });
-      await fetch(`/sb-api/rest/v1/books?id=eq.${id}`, { method: 'DELETE', headers: { 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' } });
+      await fetch(`${API_BASE}/chapters?book_id=eq.${id}`, { method: 'DELETE', headers: authHeaders });
+      await fetch(`${API_BASE}/books?id=eq.${id}`, { method: 'DELETE', headers: authHeaders });
       await loadData();
       if (selectedBookId === id) setSelectedBookId(null);
     } catch (err) {
@@ -769,15 +778,15 @@ export default function BookManagement() {
     if (!targetBookId) return;
     try {
       if (editingChapter) {
-        await fetch(`/sb-api/rest/v1/chapters?id=eq.${editingChapter.id}`, {
+        await fetch(`${API_BASE}/chapters?id=eq.${editingChapter.id}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' },
+          headers: authHeaders,
           body: JSON.stringify({ ...data, updated_at: new Date().toISOString() }),
         });
       } else {
-        await fetch('/sb-api/rest/v1/chapters', {
+        await fetch(`${API_BASE}/chapters`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' },
+          headers: authHeaders,
           body: JSON.stringify([{ ...data, id: 'ch_' + Date.now(), book_id: targetBookId, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }]),
         });
       }
@@ -792,7 +801,7 @@ export default function BookManagement() {
   const handleDeleteChapter = async (id: string) => {
     if (!confirm('确定删除此章节吗？')) return;
     try {
-      await fetch(`/sb-api/rest/v1/chapters?id=eq.${id}`, { method: 'DELETE', headers: { 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' } });
+      await fetch(`${API_BASE}/chapters?id=eq.${id}`, { method: 'DELETE', headers: authHeaders });
       await loadData();
     } catch (err) {
       console.error('删除失败:', err);
@@ -813,14 +822,14 @@ export default function BookManagement() {
     const currentChapter = bookChapters[idx];
     
     try {
-      await fetch(`/sb-api/rest/v1/chapters?id=eq.${currentChapter.id}`, {
+      await fetch(`${API_BASE}/chapters?id=eq.${currentChapter.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' },
+        headers: authHeaders,
         body: JSON.stringify({ number: targetChapter.number, updated_at: new Date().toISOString() }),
       });
-      await fetch(`/sb-api/rest/v1/chapters?id=eq.${targetChapter.id}`, {
+      await fetch(`${API_BASE}/chapters?id=eq.${targetChapter.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' },
+        headers: authHeaders,
         body: JSON.stringify({ number: currentChapter.number, updated_at: new Date().toISOString() }),
       });
       await loadData();
@@ -853,36 +862,36 @@ export default function BookManagement() {
       oldCollect(editingGroupId);
       
       // 通过 API 更新群组
-      await fetch(`/sb-api/rest/v1/book_groups?id=eq.${editingGroupId}`, {
+      await fetch(`${API_BASE}/book_groups?id=eq.${editingGroupId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' },
+        headers: authHeaders,
         body: JSON.stringify({ name, religion, description, book_ids: bookIds, group_ids: groupIds, parent_id: parentId, status, updated_at: new Date().toISOString() }),
       });
       
       // 清除移出群组的书籍的 group_id
       const removedBookIds = [...oldAllBookIds].filter(id => !allBookIds.has(id));
       for (const bookId of removedBookIds) {
-        await fetch(`/sb-api/rest/v1/books?id=eq.${bookId}`, {
+        await fetch(`${API_BASE}/books?id=eq.${bookId}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' },
+          headers: authHeaders,
           body: JSON.stringify({ group_id: null, updated_at: new Date().toISOString() }),
         });
       }
       
       // 设置加入群组的书籍的 group_id
       for (const bookId of allBookIds) {
-        await fetch(`/sb-api/rest/v1/books?id=eq.${bookId}`, {
+        await fetch(`${API_BASE}/books?id=eq.${bookId}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' },
+          headers: authHeaders,
           body: JSON.stringify({ group_id: editingGroupId, updated_at: new Date().toISOString() }),
         });
       }
     } else {
       // 新建群组
       const newGroupId = 'group_' + Date.now();
-      await fetch('/sb-api/rest/v1/book_groups', {
+      await fetch(`${API_BASE}/book_groups`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' },
+        headers: authHeaders,
         body: JSON.stringify({
           id: newGroupId,
           name,
@@ -898,9 +907,9 @@ export default function BookManagement() {
       
       // 设置书籍的 group_id
       for (const bookId of allBookIds) {
-        await fetch(`/sb-api/rest/v1/books?id=eq.${bookId}`, {
+        await fetch(`${API_BASE}/books?id=eq.${bookId}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' },
+          headers: authHeaders,
           body: JSON.stringify({ group_id: newGroupId, updated_at: new Date().toISOString() }),
         });
       }
@@ -930,15 +939,15 @@ export default function BookManagement() {
     
     // 清除这些书籍的 group_id
     for (const bookId of allBookIds) {
-      await fetch(`/sb-api/rest/v1/books?id=eq.${bookId}`, {
+      await fetch(`${API_BASE}/books?id=eq.${bookId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' },
+        headers: authHeaders,
         body: JSON.stringify({ group_id: null, updated_at: new Date().toISOString() }),
       });
     }
     
     // 通过 API 删除群组
-    await fetch(`/sb-api/rest/v1/book_groups?id=eq.${groupId}`, { method: 'DELETE', headers: { 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' } });
+    await fetch(`${API_BASE}/book_groups?id=eq.${groupId}`, { method: 'DELETE', headers: authHeaders });
     
     await loadData();
     if (selectedGroupId === groupId) setSelectedGroupId(null);
@@ -971,8 +980,8 @@ export default function BookManagement() {
     if (!confirm(`确定删除选中的 ${selectedUngroupedBooks.size} 本书籍吗？`)) return;
     
     for (const bookId of selectedUngroupedBooks) {
-      await fetch(`/sb-api/rest/v1/books?id=eq.${bookId}`, { method: 'DELETE', headers: { 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' } });
-      await fetch(`/sb-api/rest/v1/chapters?book_id=eq.${bookId}`, { method: 'DELETE', headers: { 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' } });
+      await fetch(`${API_BASE}/books?id=eq.${bookId}`, { method: 'DELETE', headers: authHeaders });
+      await fetch(`${API_BASE}/chapters?book_id=eq.${bookId}`, { method: 'DELETE', headers: authHeaders });
     }
     setSelectedUngroupedBooks(new Set());
     await loadData();
@@ -994,17 +1003,17 @@ export default function BookManagement() {
     const existingBookIds = new Set(targetGroup.book_ids || []);
     const newBookIds = [...existingBookIds, ...Array.from(selectedUngroupedBooks)];
     
-    await fetch(`/sb-api/rest/v1/book_groups?id=eq.${moveTargetGroupId}`, {
+    await fetch(`${API_BASE}/book_groups?id=eq.${moveTargetGroupId}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' },
+      headers: authHeaders,
       body: JSON.stringify({ book_ids: newBookIds, updated_at: new Date().toISOString() }),
     });
     
     // 更新书籍的 group_id
     for (const bookId of selectedUngroupedBooks) {
-      await fetch(`/sb-api/rest/v1/books?id=eq.${bookId}`, {
+      await fetch(`${API_BASE}/books?id=eq.${bookId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' },
+        headers: authHeaders,
         body: JSON.stringify({ group_id: moveTargetGroupId, updated_at: new Date().toISOString() }),
       });
     }
@@ -1041,9 +1050,9 @@ export default function BookManagement() {
     if (!confirm(`确定从 "${selectedGroup.name}" 移除选中的 ${selectedGroupBooks.size} 本书籍吗？`)) return;
     
     const updatedBookIds = (selectedGroup.book_ids || []).filter((id: string) => !selectedGroupBooks.has(id));
-    await fetch(`/sb-api/rest/v1/book_groups?id=eq.${selectedGroup.id}`, {
+    await fetch(`${API_BASE}/book_groups?id=eq.${selectedGroup.id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' },
+      headers: authHeaders,
       body: JSON.stringify({ book_ids: updatedBookIds, updated_at: new Date().toISOString() }),
     });
     setSelectedGroupBooks(new Set());
@@ -1060,18 +1069,18 @@ export default function BookManagement() {
     if (!group) return;
     
     const newBookIds = (group.book_ids || []).filter((id: string) => id !== bookId);
-    await fetch(`/sb-api/rest/v1/book_groups?id=eq.${groupId}`, {
+    await fetch(`${API_BASE}/book_groups?id=eq.${groupId}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' },
+      headers: authHeaders,
       body: JSON.stringify([{ book_ids: newBookIds }]),
     });
     
     // 检查这本书是否还被其他群组包含，如果没有则清除 group_id
     const stillInGroup = groups.some(g => g.id !== groupId && (g.book_ids || []).includes(bookId));
     if (!stillInGroup) {
-      await fetch(`/sb-api/rest/v1/books?id=eq.${bookId}`, {
+      await fetch(`${API_BASE}/books?id=eq.${bookId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' },
+        headers: authHeaders,
         body: JSON.stringify({ group_id: null, updated_at: new Date().toISOString() }),
       });
     }
@@ -1085,9 +1094,9 @@ export default function BookManagement() {
     if (!group) return;
     
     const newGroupIds = (group.group_ids || []).filter((id: string) => id !== subGroupId);
-    await fetch(`/sb-api/rest/v1/book_groups?id=eq.${groupId}`, {
+    await fetch(`${API_BASE}/book_groups?id=eq.${groupId}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' },
+      headers: authHeaders,
       body: JSON.stringify({ group_ids: newGroupIds, updated_at: new Date().toISOString() }),
     });
     
@@ -1116,9 +1125,9 @@ export default function BookManagement() {
     
     try {
       for (const item of items) {
-        await fetch('/sb-api/rest/v1/chapters', {
+        await fetch(`${API_BASE}/chapters`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE' },
+          headers: authHeaders,
           body: JSON.stringify([{
             id: 'ch_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
             book_id: targetBookId,
