@@ -688,12 +688,9 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
     set.delete(postId);
     syncFavoritesToLocal([...set]);
     
-    // 3. 更新数据库中的收藏数（扣减）
-    fetch(`/sb-api/rest/v1/posts?id=eq.${postId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'apikey': SERVICE_ROLE_KEY, 'Authorization': `Bearer ${SERVICE_ROLE_KEY}` },
-      body: JSON.stringify({ favorites_count: Math.max(0, (currentPost.favorites_count || 0) - 1) })
-    }).catch(err => console.error('[Favorites] Failed to update favorites_count:', err));
+    // 3. 使用原子 RPC 更新数据库中的收藏数（扣减）
+    callRPC('decrement_favorites_count', { post_id: postId })
+      .catch(err => console.error('[Favorites] Failed to update favorites_count:', err));
   };
 
   // 重置点赞/加热/收藏状态
@@ -1317,6 +1314,25 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
     return true;
   };
 
+  // ========== RPC 调用辅助函数（原子操作）==========
+  const callRPC = async (funcName: string, params: Record<string, any>): Promise<any> => {
+    const res = await fetch(`/sb-api/rest/v1/rpc/${funcName}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SERVICE_ROLE_KEY,
+        'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+      },
+      body: JSON.stringify(params)
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      console.error(`[RPC] ${funcName} failed:`, err);
+      throw new Error(err);
+    }
+    return res.json();
+  };
+
   const handleHeat = async () => {
     if (!requireLogin()) return;
     
@@ -1327,157 +1343,78 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
       return;
     }
     
-    // 立即更新本地状态（颜色和数字）
+    // 保存回滚状态（用于失败时恢复）
+    const rollbackState = {
+      isHeated: isHeated,
+      localHeatCount: localHeatCount,
+      currentPost: { ...currentPost }
+    };
+    
+    // 立即更新本地状态（颜色和数字），提供即时UI反馈
     setIsHeated(true);
     setLocalHeatCount(prev => prev + 1);
     markPostHeated(currentPost.id);
-    // 记录本次加热前的本地累计次数（用于PATCH）
-    const newLocalHeat = localHeatCount + 1;
+    
     const postUserIdValue = currentPost.user_id || currentPost.author?.id;
-    const stats = getTodayStats();
-    
-    // 问题8d：每次加热消耗1热点
     const myUserId = useAuthStore.getState().userInfo?.id;
-    if (myUserId) {
-      try {
-        const profileRes = await fetch(
-          `/sb-api/rest/v1/profiles?user_id=eq.${myUserId}&select=hot_points`,
-          { headers: { 'apikey': SERVICE_ROLE_KEY, 'Authorization': `Bearer ${SERVICE_ROLE_KEY}` } }
-        );
-        if (profileRes.ok) {
-          const profiles = await profileRes.json();
-          if (profiles?.length > 0 && profiles[0].hot_points > 0) {
-            await fetch(
-              `/sb-api/rest/v1/profiles?user_id=eq.${myUserId}`,
-              {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', 'apikey': SERVICE_ROLE_KEY, 'Authorization': `Bearer ${SERVICE_ROLE_KEY}` },
-                body: JSON.stringify({ hot_points: profiles[0].hot_points - 1 })
-              }
-            );
-          }
-        }
-      } catch (err) {
-        console.error('[Heat] Failed to deduct hot_points:', err);
-      }
-    }
     
-    // 调用 API 增加加热数
+    // 获取必要的 profile 信息用于 RPC
+    let authorIsVip = false;
+    let heaterIsVip = false;
+    
     try {
-      await fetch(`/sb-api/rest/v1/posts?id=eq.${currentPost.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SERVICE_ROLE_KEY,
-          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
-        },
-        body: JSON.stringify({
-          heat_count: (currentPost.heat_count || 0) + newLocalHeat,
-        })
-      });
-
-      // 给笔记作者增加经验值（被加热 +3，每日上限500）
-      // 注意：被加热不增加作者的热点(hot_points)，热点只来自每日登录和等级权益
+      // 获取作者 VIP 状态
       if (postUserIdValue) {
-        await fetch(`/sb-api/rest/v1/profiles?user_id=eq.${postUserIdValue}&select=user_id,experience,level,is_vip`, {
-          method: 'GET',
-          headers: {
-            'apikey': SERVICE_ROLE_KEY,
-            'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
-          }
-        }).then(async (res) => {
-          if (res.ok) {
-            const authorProfiles = await res.json();
-            if (authorProfiles && authorProfiles.length > 0) {
-              const authorProfile = authorProfiles[0];
-              const authorStats = getTodayStats();
-              if ((authorStats.heat_received || 0) < MAX_HEAT_RECEIVED) {
-                const multiplier = authorProfile.is_vip ? VIP_MULTIPLIER : 1;
-                const expAmount = Math.ceil(3 * multiplier);
-                const newExp = (authorProfile.experience || 0) + expAmount;
-                const newLevel = calculateLevel(newExp);
-                
-                console.log('[加热] 作者获得经验, userId:', postUserIdValue, 'oldExp:', authorProfile.experience, 'newExp:', newExp);
-                const authorUpdateRes = await fetch(`/sb-api/rest/v1/profiles?user_id=eq.${postUserIdValue}`, {
-                  method: 'PATCH',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'apikey': SERVICE_ROLE_KEY,
-                    'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
-                  },
-                  body: JSON.stringify({
-                    experience: newExp,
-                    level: newLevel,
-                  })
-                });
-                
-                if (authorUpdateRes.ok) {
-                  // 更新作者每日统计
-                  authorStats.heat_received = (authorStats.heat_received || 0) + 1;
-                  saveTodayStats(authorStats);
-                  console.log('[加热] 作者经验更新成功, newExp:', newExp);
-                } else {
-                  console.error('[加热] 作者经验PATCH失败, status:', authorUpdateRes.status);
-                }
-              }
-            } else {
-              console.error('[加热] 未找到作者profile, userId:', postUserIdValue);
-            }
-          } else {
-            console.error('[加热] 查询作者profile失败, status:', res.status);
-          }
-        });
+        const authorProfile = await callRPC('get_profile_info', { target_user_id: postUserIdValue });
+        if (authorProfile?.is_vip) authorIsVip = true;
       }
-
-      // 给操作者（自己）增加经验值（加热他人 +1，每日上限10）
+      
+      // 获取自己 VIP 状态
       if (myUserId) {
-        await fetch(`/sb-api/rest/v1/profiles?user_id=eq.${myUserId}&select=experience,level,is_vip`, {
-          headers: { 'apikey': SERVICE_ROLE_KEY, 'Authorization': `Bearer ${SERVICE_ROLE_KEY}` }
-        }).then(async (res) => {
-          if (res.ok) {
-            const myProfiles = await res.json();
-            if (myProfiles?.length > 0) {
-              const myProfile = myProfiles[0];
-              const myStats = getTodayStats();
-              if ((myStats.heat_given || 0) < MAX_HEAT_GIVEN) {
-                const multiplier = myProfile.is_vip ? VIP_MULTIPLIER : 1;
-                const expAmount = Math.ceil(1 * multiplier);
-                const newExp = (myProfile.experience || 0) + expAmount;
-                const newLevel = calculateLevel(newExp);
-                
-                console.log('[加热] 操作者获得经验, userId:', myUserId, 'oldExp:', myProfile.experience, 'newExp:', newExp);
-                const myUpdateRes = await fetch(`/sb-api/rest/v1/profiles?user_id=eq.${myUserId}`, {
-                  method: 'PATCH',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'apikey': SERVICE_ROLE_KEY,
-                    'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
-                  },
-                  body: JSON.stringify({
-                    experience: newExp,
-                    level: newLevel,
-                  })
-                });
-                
-                if (myUpdateRes.ok) {
-                  // 更新操作者每日统计
-                  myStats.heat_given = (myStats.heat_given || 0) + 1;
-                  saveTodayStats(myStats);
-                  console.log('[加热] 操作者经验更新成功, newExp:', newExp);
-                } else {
-                  console.error('[加热] 操作者经验PATCH失败, status:', myUpdateRes.status);
-                }
-              }
-            } else {
-              console.error('[加热] 未找到操作者profile, userId:', myUserId);
-            }
-          } else {
-            console.error('[加热] 查询操作者profile失败, status:', res.status);
-          }
-        });
+        const myProfile = await callRPC('get_profile_info', { target_user_id: myUserId });
+        if (myProfile?.is_vip) heaterIsVip = true;
       }
     } catch (err) {
-      console.error('Failed to heat post:', err);
+      console.error('[Heat] Failed to get profile info:', err);
+    }
+    
+    // 调用统一的原子 RPC 完成所有操作
+    try {
+      const result = await callRPC('heat_post', {
+        p_post_id: currentPost.id,
+        p_heater_user_id: myUserId,
+        p_author_user_id: postUserIdValue,
+        p_author_is_vip: authorIsVip,
+        p_heater_is_vip: heaterIsVip
+      });
+      
+      // 更新 currentPost 的 heat_count（用于后续点击的基准）
+      if (result?.heat_count) {
+        setCurrentPost(prev => ({ ...prev, heat_count: result.heat_count }));
+      }
+      
+      // 更新每日统计
+      const authorStats = getTodayStats();
+      const myStats = getTodayStats();
+      
+      if (postUserIdValue && (authorStats.heat_received || 0) < MAX_HEAT_RECEIVED) {
+        authorStats.heat_received = (authorStats.heat_received || 0) + 1;
+        saveTodayStats(authorStats);
+        console.log('[加热] 作者经验更新成功, userId:', postUserIdValue, 'newExp:', result?.author_exp);
+      }
+      
+      if (myUserId && (myStats.heat_given || 0) < MAX_HEAT_GIVEN) {
+        myStats.heat_given = (myStats.heat_given || 0) + 1;
+        saveTodayStats(myStats);
+        console.log('[加热] 操作者经验更新成功, userId:', myUserId, 'newExp:', result?.heater_exp);
+      }
+      
+    } catch (err) {
+      console.error('[Heat] Failed to heat post:', err);
+      // 回滚本地状态
+      setIsHeated(rollbackState.isHeated);
+      setLocalHeatCount(rollbackState.localHeatCount);
+      alert('加热失败，请重试');
     }
   };
 
@@ -1489,12 +1426,9 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
     const lastShared = localStorage.getItem(sharedKey);
     if (!lastShared) {
       localStorage.setItem(sharedKey, '1');
-      // 更新数据库中的分享数
-      fetch(`/sb-api/rest/v1/posts?id=eq.${currentPost.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'apikey': SERVICE_ROLE_KEY, 'Authorization': `Bearer ${SERVICE_ROLE_KEY}` },
-        body: JSON.stringify({ shares_count: (currentPost.shares_count || 0) + 1 })
-      }).catch(err => console.error('[Shares] Failed to update shares_count:', err));
+      // 使用原子 RPC 更新数据库中的分享数
+      callRPC('increment_shares_count', { post_id: currentPost.id })
+        .catch(err => console.error('[Shares] Failed to update shares_count:', err));
     }
     
     if (navigator.share) {
