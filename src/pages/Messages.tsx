@@ -1303,7 +1303,7 @@ function Messages() {
         {groupChats.map((group) => (
           <button
             key={group.id}
-            onClick={() => navigate(`/group/${group.id}`)}
+            onClick={() => navigate(`/group-chat/${group.id}`)}
             className="w-full text-left p-4 rounded-xl transition-colors hover:opacity-80"
             style={{ backgroundColor: 'var(--bg-secondary)' }}
           >
