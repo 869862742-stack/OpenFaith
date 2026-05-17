@@ -26,8 +26,8 @@ const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhY
 // 排行榜 Tab 类型
 type RankingTabType = 'experience' | 'hot_points' | 'heat_count' | 'post_heat' | 'followers' | 'new_users';
 
-// 时间筛选类型
-type TimeRange = 'today' | 'week' | 'month' | 'year' | 'all';
+// 时间筛选类型 - 与前台 HotRanking.tsx 保持一致
+type TimeRange = 'day' | 'week' | 'month' | 'year' | 'all';
 
 // Tab 配置
 const tabConfig = [
@@ -39,13 +39,13 @@ const tabConfig = [
   { id: 'new_users' as RankingTabType, label: '新用户', icon: Clock, color: 'text-green-500' },
 ];
 
-// 时间筛选配置
+// 时间筛选配置 - 与前台 HotRanking.tsx 保持一致
 const timeRangeOptions = [
-  { value: 'today' as TimeRange, label: '今日' },
-  { value: 'week' as TimeRange, label: '近7天' },
-  { value: 'month' as TimeRange, label: '近30天' },
-  { value: 'year' as TimeRange, label: '本年度' },
-  { value: 'all' as TimeRange, label: '全部时间' },
+  { value: 'day' as TimeRange, label: '日榜' },
+  { value: 'week' as TimeRange, label: '周榜' },
+  { value: 'month' as TimeRange, label: '月榜' },
+  { value: 'year' as TimeRange, label: '年榜' },
+  { value: 'all' as TimeRange, label: '总榜' },
 ];
 
 // 用户排行榜数据
@@ -82,15 +82,17 @@ interface PostRanking {
   author_nickname?: string;
   author_faith_tag?: string;
   hot_value: number;
+  original_hot_value?: number;
   rank: number;
 }
 
 // 导出快捷选项
 const exportQuickOptions = [
-  { value: 'today', label: '今日' },
-  { value: 'week', label: '近7天' },
-  { value: 'month', label: '近30天' },
-  { value: 'all', label: '全部数据' },
+  { value: 'day', label: '日榜' },
+  { value: 'week', label: '周榜' },
+  { value: 'month', label: '月榜' },
+  { value: 'year', label: '年榜' },
+  { value: 'all', label: '总榜' },
 ];
 
 // 格式化数字（添加千分位）
@@ -114,7 +116,9 @@ const getRankIcon = (rank: number): React.ReactNode => {
   return null;
 };
 
-// 计算热值
+// ========== 热值计算公式 ==========
+// 热值 = (浏览数×0.5) + (加热数×5) + (评论数×2) + (分享数×3) + (收藏数×2)
+// 与前台 HotRanking.tsx 保持一致
 const calculateHotValue = (post: any): number => {
   const views = post.views_count || 0;
   const heat = post.heat_count || 0;
@@ -123,6 +127,30 @@ const calculateHotValue = (post: any): number => {
   const favorites = post.favorites_count || 0;
   return (views * 0.5) + (heat * 5) + (comments * 2) + (shares * 3) + (favorites * 2);
 };
+
+// 指数衰减计算 - 与前台 HotRanking.tsx 保持一致
+// 衰减公式：最终热度 = 原始热度 × e^(-λ × 天数)
+const applyDecay = (hotValue: number, daysAgo: number, lambda: number = 0.1): number => {
+  return hotValue * Math.exp(-lambda * daysAgo);
+};
+
+// 计算距离今天的天数
+const getDaysAgo = (createdAt: string): number => {
+  const created = new Date(createdAt);
+  const now = new Date();
+  const diff = now.getTime() - created.getTime();
+  return Math.max(0, diff / (1000 * 60 * 60 * 24));
+};
+
+// 热度格式化（抖音风格）
+function formatHotValue(num: number): string {
+  if (num < 10000) return String(Math.floor(num));
+  const wan = num / 10000;
+  if (wan < 10) {
+    return wan % 1 === 0 ? `${wan}W` : `${wan.toFixed(1)}W`;
+  }
+  return `${Math.floor(wan)}W`;
+}
 
 export default function RankingManagement() {
   const [activeTab, setActiveTab] = useState<RankingTabType>('experience');
@@ -143,16 +171,18 @@ export default function RankingManagement() {
   const supabaseUrl = getSupabaseUrl();
   const pageSize = 20;
 
-  // 获取时间范围开始日期
+  // 获取时间范围开始日期 - 与前台 HotRanking.tsx 保持一致
   const getStartDate = useCallback((range: TimeRange): string | null => {
     const now = new Date();
     switch (range) {
-      case 'today':
+      case 'day':
         return new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
       case 'week':
-        return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        return weekAgo.toISOString();
       case 'month':
-        return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        return monthAgo.toISOString();
       case 'year':
         return new Date(now.getFullYear(), 0, 1).toISOString();
       case 'all':
@@ -249,11 +279,11 @@ export default function RankingManagement() {
     setLoading(false);
   }, [supabaseUrl, activeTab, timeRange, levelFilter, vipFilter, searchKeyword, getStartDate]);
 
-  // 加载笔记排行榜数据
+  // 加载笔记排行榜数据 - 与前台 HotRanking.tsx 保持一致
   const loadPostRankings = useCallback(async () => {
     setLoading(true);
     try {
-      let url = `${supabaseUrl}/rest/v1/posts?select=id,title,user_id,views_count,heat_count,comments_count,shares_count,favorites_count,created_at&status=eq.published&order=heat_count.desc.nullslast&limit=200`;
+      let url = `${supabaseUrl}/rest/v1/posts?select=id,title,user_id,views_count,heat_count,comments_count,shares_count,favorites_count,created_at&status=eq.published&order=created_at.desc.nullslast&limit=200`;
 
       const res = await fetch(url, {
         headers: {
@@ -291,21 +321,38 @@ export default function RankingManagement() {
         }
 
         // 添加作者信息和热值
-        data = data.map((p: any) => ({
-          ...p,
-          author_username: userMap[p.user_id]?.username || '未知',
-          author_nickname: userMap[p.user_id]?.nickname || '',
-          author_faith_tag: userMap[p.user_id]?.faith_tag || '',
-          hot_value: calculateHotValue(p)
-        }));
+        const postsWithHotValue = data.map((p: any) => {
+          const hotValue = calculateHotValue(p);
+          const daysAgo = p.created_at ? getDaysAgo(p.created_at) : 0;
+          
+          // 根据时间维度应用衰减 - 与前台 HotRanking.tsx 保持一致
+          let finalHotValue = hotValue;
+          if (timeRange === 'week' || timeRange === 'month') {
+            // 周榜/月榜：指数衰减 λ=0.1
+            finalHotValue = applyDecay(hotValue, daysAgo, 0.1);
+          }
+          // 日榜/年榜/总榜：不衰减
+          
+          return {
+            ...p,
+            author_username: userMap[p.user_id]?.username || '未知',
+            author_nickname: userMap[p.user_id]?.nickname || '',
+            author_faith_tag: userMap[p.user_id]?.faith_tag || '',
+            hot_value: finalHotValue,
+            original_hot_value: hotValue // 保存原始热值用于显示
+          };
+        });
 
         // 按热值排序
-        data.sort((a: any, b: any) => b.hot_value - a.hot_value);
+        postsWithHotValue.sort((a: any, b: any) => b.hot_value - a.hot_value);
+
+        // 过滤热值为0的帖子
+        const filtered = postsWithHotValue.filter((p: any) => p.hot_value > 0);
 
         // 过滤搜索关键词
         if (searchKeyword) {
           const keyword = searchKeyword.toLowerCase();
-          data = data.filter((p: any) => 
+          filtered.filter((p: any) => 
             p.title?.toLowerCase().includes(keyword) ||
             p.author_username?.toLowerCase().includes(keyword) ||
             p.author_nickname?.toLowerCase().includes(keyword)
@@ -313,7 +360,7 @@ export default function RankingManagement() {
         }
 
         // 添加排名
-        data = data.map((p: any, index: number) => ({
+        data = filtered.map((p: any, index: number) => ({
           ...p,
           rank: index + 1
         }));
@@ -363,9 +410,9 @@ export default function RankingManagement() {
     let csvContent = '';
     
     if (activeTab === 'post_heat') {
-      csvContent = '排名,笔记标题,作者,信仰标签,浏览数,加热数,评论数,分享数,收藏数,热值,发布时间\n';
+      csvContent = '排名,笔记标题,作者,信仰标签,浏览数,加热数,评论数,分享数,收藏数,热值,原始热值,发布时间\n';
       dataToExport.forEach((post: any) => {
-        csvContent += `${post.rank},"${post.title}","${post.author_username || ''}","${post.author_faith_tag || ''}",${post.views_count},${post.heat_count},${post.comments_count},${post.shares_count},${post.favorites_count},${post.hot_value.toFixed(2)},"${post.created_at}"\n`;
+        csvContent += `${post.rank},"${post.title}","${post.author_username || ''}","${post.author_faith_tag || ''}",${post.views_count},${post.heat_count},${post.comments_count},${post.shares_count},${post.favorites_count},${post.hot_value.toFixed(2)},${post.original_hot_value?.toFixed(2) || 0},"${post.created_at}"\n`;
       });
     } else {
       csvContent = '排名,用户名,昵称,信仰标签,等级,经验值,热点数,加热数,粉丝数,关注数,VIP状态,注册时间\n';
@@ -381,8 +428,9 @@ export default function RankingManagement() {
     link.setAttribute('href', url);
     
     const tabName = tabConfig.find(t => t.id === activeTab)?.label || activeTab;
-    const timeName = timeRangeOptions.find(t => t.value === timeRange)?.label || '全部';
-    const fileName = `${tabName}_${timeName}_${new Date().toISOString().split('T')[0]}.csv`;
+    const timeName = timeRangeOptions.find(t => t.value === timeRange)?.label || '总榜';
+    const today = new Date().toISOString().split('T')[0];
+    const fileName = `${tabName}-${timeName}-${today}.csv`;
     
     link.setAttribute('download', fileName);
     link.style.visibility = 'hidden';
@@ -447,25 +495,33 @@ export default function RankingManagement() {
           })}
         </div>
 
-        {/* 筛选栏 */}
-        <div className="p-4 bg-gray-50 border-b border-gray-100">
-          <div className="flex flex-wrap items-center gap-4">
-            {/* 时间筛选 */}
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-gray-400" />
-              <select
-                value={timeRange}
-                onChange={(e) => setTimeRange(e.target.value as TimeRange)}
-                className="h-9 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+        {/* 时间筛选按钮组 - 与前台 HotRanking.tsx 保持一致 */}
+        <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
+          <div className="flex items-center gap-2 overflow-x-auto">
+            {timeRangeOptions.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setTimeRange(opt.value)}
+                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                  timeRange === opt.value
+                    ? 'bg-[#E11D48] text-white shadow-md'
+                    : 'bg-white text-gray-600 hover:bg-pink-50 hover:text-[#E11D48] border border-gray-200'
+                }`}
               >
-                {timeRangeOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          {activeTab === 'post_heat' && (timeRange === 'week' || timeRange === 'month') && (
+            <p className="mt-2 text-xs text-gray-500">
+              注：周榜/月榜使用指数衰减计算热值（λ=0.1），发布时间越久远，热度衰减越多
+            </p>
+          )}
+        </div>
 
+        {/* 筛选栏 */}
+        <div className="p-4 bg-white border-b border-gray-100">
+          <div className="flex flex-wrap items-center gap-4">
             {/* 搜索框 */}
             <div className="flex items-center gap-2 flex-1 min-w-[200px]">
               <div className="relative flex-1">
@@ -534,7 +590,8 @@ export default function RankingManagement() {
           {/* 统计信息 */}
           <div className="mt-3 flex items-center gap-4 text-sm">
             <span className="text-gray-500">
-              共 <span className="font-semibold text-gray-900">{formatNumber(totalCount)}</span> 条记录
+              <span className="font-medium text-[#E11D48]">{timeRangeOptions.find(t => t.value === timeRange)?.label}</span>
+              {' '}共 <span className="font-semibold text-gray-900">{formatNumber(totalCount)}</span> 条记录
             </span>
             {activeTab !== 'post_heat' && (
               <span className="text-gray-500">
@@ -685,6 +742,9 @@ export default function RankingManagement() {
                       <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">笔记标题</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">作者</th>
                       <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">热值</th>
+                      {(timeRange === 'week' || timeRange === 'month') && (
+                        <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">原始热值</th>
+                      )}
                       <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">浏览</th>
                       <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">加热</th>
                       <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">评论</th>
@@ -723,8 +783,13 @@ export default function RankingManagement() {
                             </div>
                           </td>
                           <td className="px-4 py-3 text-right">
-                            <span className="font-bold text-[#E11D48]">{post.hot_value.toFixed(0)}</span>
+                            <span className="font-bold text-[#E11D48]">{formatHotValue(post.hot_value)}</span>
                           </td>
+                          {(timeRange === 'week' || timeRange === 'month') && (
+                            <td className="px-4 py-3 text-right text-gray-400 text-sm">
+                              {formatHotValue(post.original_hot_value || 0)}
+                            </td>
+                          )}
                           <td className="px-4 py-3 text-right text-gray-600">
                             {formatNumber(post.views_count || 0)}
                           </td>
@@ -821,7 +886,7 @@ export default function RankingManagement() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">快捷选项</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">选择时段</label>
                 <div className="flex flex-wrap gap-2">
                   {exportQuickOptions.map((opt) => (
                     <button
@@ -875,7 +940,13 @@ export default function RankingManagement() {
                   <span className="font-medium">导出内容:</span> {tabConfig.find(t => t.id === activeTab)?.label}
                 </p>
                 <p className="text-sm text-gray-600 mt-1">
+                  <span className="font-medium">导出时段:</span> {exportStartDate ? `${exportStartDate} 至 ${exportEndDate}` : exportQuickOptions.find(t => t.value === exportTimeRange)?.label || '全部'}
+                </p>
+                <p className="text-sm text-gray-600 mt-1">
                   <span className="font-medium">记录数量:</span> {formatNumber(totalCount)} 条
+                </p>
+                <p className="text-sm text-gray-600 mt-1">
+                  <span className="font-medium">文件名:</span> <span className="text-[#E11D48]">{tabConfig.find(t => t.id === activeTab)?.label}-{exportQuickOptions.find(t => t.value === exportTimeRange)?.label || '全部'}-{new Date().toISOString().split('T')[0]}.csv</span>
                 </p>
               </div>
 
