@@ -11,7 +11,6 @@ type TagItem = {
   id: string;
   name: string;
   type: string;
-  icon: string | null;
   sort_order: number;
   is_active: boolean;
   created_at: string;
@@ -53,7 +52,6 @@ export default function TagManagement() {
   const [formData, setFormData] = useState({
     name: '',
     type: 'post',
-    icon: '',
     sort_order: 0,
     is_active: true,
   });
@@ -195,7 +193,6 @@ export default function TagManagement() {
           body: JSON.stringify({
             name: formData.name,
             type: formData.type,
-            icon: formData.icon || null,
             sort_order: formData.sort_order,
             is_active: formData.is_active,
           }),
@@ -210,7 +207,6 @@ export default function TagManagement() {
           body: JSON.stringify([{
             name: formData.name,
             type: formData.type,
-            icon: formData.icon || null,
             sort_order: formData.sort_order || maxSort + 1,
             is_active: formData.is_active,
             created_at: new Date().toISOString(),
@@ -221,7 +217,7 @@ export default function TagManagement() {
       await loadTags();
       setShowModal(false);
       setEditingTag(null);
-      setFormData({ name: '', type: 'post', icon: '', sort_order: 0, is_active: true });
+      setFormData({ name: '', type: 'post', sort_order: 0, is_active: true });
     } catch (error) {
       console.error('保存失败:', error);
       alert('保存失败');
@@ -233,7 +229,6 @@ export default function TagManagement() {
     setFormData({
       name: tag.name,
       type: tag.type,
-      icon: tag.icon || '',
       sort_order: tag.sort_order,
       is_active: tag.is_active,
     });
@@ -332,7 +327,7 @@ export default function TagManagement() {
           <button
             onClick={() => {
               setEditingTag(null);
-              setFormData({ name: '', type: activeTab, icon: '', sort_order: 0, is_active: true });
+              setFormData({ name: '', type: activeTab, sort_order: 0, is_active: true });
               setShowModal(true);
             }}
             className="flex items-center gap-2 px-4 py-2 bg-[#E11D48] text-white rounded-lg hover:bg-[#C41E3A] transition-colors"
@@ -402,7 +397,7 @@ export default function TagManagement() {
               <button
                 onClick={() => {
                   setEditingTag(null);
-                  setFormData({ name: '', type: activeTab, icon: '', sort_order: 0, is_active: true });
+                  setFormData({ name: '', type: activeTab, sort_order: 0, is_active: true });
                   setShowModal(true);
                 }}
                 className="mt-4 text-[#E11D48] hover:underline"
@@ -416,7 +411,6 @@ export default function TagManagement() {
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">名称</th>
-                <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">图标</th>
                 <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">排序</th>
                 <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">状态</th>
                 <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
@@ -437,9 +431,6 @@ export default function TagManagement() {
                       <Tag className="w-4 h-4 text-gray-400" />
                       <span className="font-medium text-gray-900">{tag.name}</span>
                     </div>
-                  </td>
-                  <td className="px-4 py-3 text-center text-lg">
-                    {tag.icon || '🏷️'}
                   </td>
                   <td className="px-4 py-3 text-center">
                     {editingSortId === tag.id ? (
@@ -606,21 +597,6 @@ export default function TagManagement() {
                     )}
                   </div>
                 )}
-
-                {/* Icon */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    图标 <span className="text-gray-400">(可选)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.icon}
-                    onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                    placeholder="输入 emoji 或图标名称，如 ✝️"
-                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">建议使用 emoji 表情符号</p>
-                </div>
 
                 {/* Sort Order */}
                 <div>
