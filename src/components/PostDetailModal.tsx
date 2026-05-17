@@ -499,8 +499,8 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
   const faithTag = author.faith_tag || '寻求者';
   const postUserId = currentPost?.user_id || currentPost?.author?.id;
   
-  // 获取加热数 — 使用本地状态 + 数据库值（本地状态用于实时显示+1）
-  const heatCount = (localHeatCount > 0 ? localHeatCount : (currentPost.heat_count || 0));
+  // 获取加热数 — 直接用数据库值 + 本地累计点击次数
+  const heatCount = (currentPost.heat_count || 0) + (localHeatCount > 0 ? localHeatCount : 0);
   // 获取点赞数 — 兼容 likes_count 和 likes
   const likesCount = currentPost.likes_count ?? currentPost.likes ?? 0;
   // 获取评论数 — 优先使用实际加载的评论数量，兼容 comments_count 和 comments
@@ -707,12 +707,8 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
     console.log('[状态初始化] 加热状态:', heated, 'postId:', postId);
     setIsHeated(heated);
     
-    // 初始化本地加热数字（如果今天加热过则+1）
-    if (postId && isHeatedToday(postId)) {
-      setLocalHeatCount((currentPost.heat_count || 0) + 1);
-    } else {
-      setLocalHeatCount(0);
-    }
+    // 初始化本地加热累计次数为0（localHeatCount只记录本次会话点击次数）
+    setLocalHeatCount(0);
     
     // 【修复】收藏状态：从 Supabase 查询 + localStorage 双保险
     const initFavoriteState = async () => {
@@ -1325,6 +1321,8 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
     setIsHeated(true);
     setLocalHeatCount(prev => prev + 1);
     markPostHeated(currentPost.id);
+    // 记录本次加热前的本地累计次数（用于PATCH）
+    const newLocalHeat = localHeatCount + 1;
     const postUserIdValue = currentPost.user_id || currentPost.author?.id;
     const stats = getTodayStats();
     
@@ -1364,7 +1362,7 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
           'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
         },
         body: JSON.stringify({
-          heat_count: (heatCount || 0) + 1,
+          heat_count: (currentPost.heat_count || 0) + newLocalHeat,
         })
       });
 
