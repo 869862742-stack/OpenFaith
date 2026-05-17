@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase/client';
 import { ChevronDown } from 'lucide-react';
+import { getTagNames } from '../services/tagService';
 
 // 生成8位字母+数字混合的随机显示ID
 const generateDisplayId = () => {
@@ -13,7 +14,8 @@ const generateDisplayId = () => {
   return id;
 };
 
-const faithTags = [
+// Fallback 身份标签
+const FALLBACK_FAITH_TAGS = [
   '基督教', '伊斯兰教', '犹太教', '佛教', '印度教', '道教', '锡克教',
   '巴哈伊教', '摩门教', '耶和华见证人', '琐罗亚斯德教', '诺斯替',
   '卡巴拉', '神道教', '耆那教', '德鲁兹教', '约鲁巴教', '伏都教',
@@ -27,8 +29,25 @@ function Register() {
   const [password, setPassword] = useState('');
   const [nickname, setNickname] = useState('');
   const [faithTag, setFaithTag] = useState('');
+  const [faithTags, setFaithTags] = useState<string[]>(FALLBACK_FAITH_TAGS);
   const [isLoading, setIsLoading] = useState(false);
   const [showTagDropdown, setShowTagDropdown] = useState(false);
+
+  // 加载身份标签
+  useEffect(() => {
+    const loadTags = async () => {
+      try {
+        const tags = await getTagNames('identity');
+        if (tags && tags.length > 0) {
+          setFaithTags(tags);
+        }
+      } catch (error) {
+        console.error('Failed to load identity tags:', error);
+        // 使用 fallback
+      }
+    };
+    loadTags();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

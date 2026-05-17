@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase/client';
 import { useAuthStore } from '../stores/auth';
 import { checkBadWords } from '../utils/badWordFilter';
+import { getTagNames } from '../services/tagService';
 
 const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE';
 
-const faithTags = [
+// Fallback 笔记标签
+const FALLBACK_NOTE_TAGS = [
   '基督教', '伊斯兰教', '犹太教', '佛教', '印度教', '道教', '锡克教',
   '巴哈伊教', '摩门教', '耶和华见证人', '琐罗亚斯德教', '诺斯替',
   '卡巴拉', '神道教', '耆那教', '德鲁兹教', '约鲁巴教', '伏都教',
@@ -54,10 +56,26 @@ function PublishNote() {
     }
   }, []);
 
+  // 加载笔记标签
+  useEffect(() => {
+    const loadTags = async () => {
+      try {
+        const tags = await getTagNames('post');
+        if (tags && tags.length > 0) {
+          setNoteTags(tags);
+        }
+      } catch (error) {
+        console.error('Failed to load post tags:', error);
+      }
+    };
+    loadTags();
+  }, []);
+
   const [images, setImages] = useState<string[]>([]);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [noteTags, setNoteTags] = useState<string[]>(FALLBACK_NOTE_TAGS);
   const [showTagModal, setShowTagModal] = useState(false);
   const [customTag, setCustomTag] = useState('');
   const [isPublishing, setIsPublishing] = useState(false);
@@ -555,7 +573,7 @@ function PublishNote() {
 
             {/* 预设标签 */}
             <div className="flex flex-wrap gap-2">
-              {faithTags.map((tag) => (
+              {noteTags.map((tag) => (
                 <button
                   key={tag}
                   onClick={() => toggleTag(tag)}

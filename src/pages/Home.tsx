@@ -12,8 +12,10 @@ import PostDetailModal from '../components/PostDetailModal';
 import { useTranslation } from 'react-i18next';
 import { cachedFetch } from '../utils/apiCache';
 import { filterOutGroupChats } from '../utils/postUtils';
+import { getTagNames } from '../services/tagService';
 
-const defaultTags = [
+// Fallback 首页标签
+const FALLBACK_DEFAULT_TAGS = [
   '基督教', '伊斯兰教', '犹太教', '佛教', '印度教', '道教', '锡克教',
   '巴哈伊教', '摩门教', '耶和华见证人', '琐罗亚斯德教', '诺斯替',
   '卡巴拉', '神道教', '耆那教', '德鲁兹教', '约鲁巴教', '伏都教',
@@ -29,6 +31,7 @@ function Home() {
   const [activeTab, setActiveTab] = useState('recommend');
   const [posts, setPosts] = useState<any[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [defaultTags, setDefaultTags] = useState<string[]>(FALLBACK_DEFAULT_TAGS);
   const [showTagModal, setShowTagModal] = useState(false);
   const [customTag, setCustomTag] = useState('');
   const [selectedPostIndex, setSelectedPostIndex] = useState<number | null>(null);
@@ -83,6 +86,18 @@ function Home() {
     fetchPosts();
     fetchOnlineUsers();
     fetchRooms();
+    // 加载首页标签
+    const loadHomepageTags = async () => {
+      try {
+        const tags = await getTagNames('homepage');
+        if (tags && tags.length > 0) {
+          setDefaultTags(tags);
+        }
+      } catch (error) {
+        console.error('Failed to load homepage tags:', error);
+      }
+    };
+    loadHomepageTags();
     // 每30秒刷新在线人数
     const interval = setInterval(fetchOnlineUsers, 30000);
     // 每分钟刷新房间列表

@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabase/client';
 import { useThemeContext } from '../contexts/ThemeContext';
+import { getTagNames } from '../services/tagService';
 
-const defaultTags = [
+// Fallback 群聊标签
+const FALLBACK_GROUP_TAGS = [
   '基督教', '伊斯兰教', '犹太教', '佛教', '印度教', '道教', '锡克教',
   '巴哈伊教', '摩门教', '耶和华见证人', '琐罗亚斯德教', '诺斯替',
   '卡巴拉', '神道教', '耆那教', '德鲁兹教', '约鲁巴教', '伏都教',
@@ -24,6 +26,7 @@ function AddGroup() {
   const [groupName, setGroupName] = useState('');
   const [groupDesc, setGroupDesc] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [groupTags, setGroupTags] = useState<string[]>(FALLBACK_GROUP_TAGS);
 
   // 夜间模式颜色
   const bgColor = 'var(--bg-color)';
@@ -32,6 +35,21 @@ function AddGroup() {
   const textColor = 'var(--text-color)';
   const textSecondary = 'var(--text-secondary)';
   const borderColor = 'var(--border-color)';
+
+  // 加载群聊标签
+  useEffect(() => {
+    const loadTags = async () => {
+      try {
+        const tags = await getTagNames('group');
+        if (tags && tags.length > 0) {
+          setGroupTags(tags);
+        }
+      } catch (error) {
+        console.error('Failed to load group tags:', error);
+      }
+    };
+    loadTags();
+  }, []);
 
   const toggleTag = (tag: string) => {
     setSelectedTags(prev =>
@@ -78,7 +96,7 @@ function AddGroup() {
       }
 
       // 检查是否有自定义标签
-      const customSelectedTags = selectedTags.filter(tag => !defaultTags.includes(tag));
+      const customSelectedTags = selectedTags.filter(tag => !groupTags.includes(tag));
       
       // Service Role Key 用于写入 tag_requests
       const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE';
@@ -246,7 +264,7 @@ function AddGroup() {
                 {t('common.selectTags') || '选择标签'}
               </label>
               <div className="flex flex-wrap gap-2">
-                {defaultTags.map(tag => (
+                {groupTags.map(tag => (
                   <button
                     key={tag}
                     onClick={() => toggleTag(tag)}

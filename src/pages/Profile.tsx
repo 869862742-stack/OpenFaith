@@ -11,6 +11,7 @@ import { useAuthStore } from '../stores/auth';
 import { supabase } from '../supabase/client';
 import { cachedFetch } from '../utils/apiCache';
 import { filterOutGroupChats } from '../utils/postUtils';
+import { getTagNames } from '../services/tagService';
 
 const PRIMARY_COLOR = '#E11D48';
 
@@ -69,7 +70,8 @@ const levelBenefits: { [key: number]: {
   10: { groups: 999, features: ['全部功能不受限制', '永久会员权益'], badge: '👑' },
 };
 
-const faithTags = [
+// Fallback 身份标签
+const FALLBACK_FAITH_TAGS = [
   '基督教', '伊斯兰教', '犹太教', '佛教', '印度教', '道教', '锡克教',
   '巴哈伊教', '摩门教', '耶和华见证人', '琐罗亚斯德教', '诺斯替',
   '卡巴拉', '神道教', '耆那教', '德鲁兹教', '约鲁巴教', '伏都教',
@@ -133,6 +135,7 @@ function Profile() {
   const [editUsername, setEditUsername] = useState('');
   const [editBio, setEditBio] = useState('');
   const [editFaithTag, setEditFaithTag] = useState('');
+  const [faithTags, setFaithTags] = useState<string[]>(FALLBACK_FAITH_TAGS);
   const [showTagDropdown, setShowTagDropdown] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
@@ -313,6 +316,21 @@ function Profile() {
       fetchFollowing(user.id);
     }
   }, [showFollowing, user?.id, fetchFollowing]);
+
+  // 加载身份标签
+  useEffect(() => {
+    const loadTags = async () => {
+      try {
+        const tags = await getTagNames('identity');
+        if (tags && tags.length > 0) {
+          setFaithTags(tags);
+        }
+      } catch (error) {
+        console.error('Failed to load identity tags:', error);
+      }
+    };
+    loadTags();
+  }, []);
 
   // 页面获得焦点时刷新 profile（确保经验值等数据最新）
   useEffect(() => {

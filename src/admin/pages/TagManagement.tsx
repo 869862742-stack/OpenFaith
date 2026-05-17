@@ -1,69 +1,77 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Edit2, Trash2, Tag, Filter, ChevronDown, Save, X } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Tag, Filter, ChevronDown, Save, X, RefreshCw, AlertTriangle, Check, BarChart3 } from 'lucide-react';
 import { getSupabaseUrl } from '../supabase/client';
 
 // Service Role Key - 绕过 RLS
 const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE';
 
+const PRIMARY_COLOR = '#E11D48';
+
 type TagItem = {
   id: string;
   name: string;
-  category: string;
+  type: string;
+  icon: string | null;
   sort_order: number;
   is_active: boolean;
   created_at: string;
+  usage_count?: number;
 };
 
 type CategoryOption = {
   value: string;
   label: string;
   description: string;
+  color: string;
 };
 
 const CATEGORIES: CategoryOption[] = [
-  { value: 'identity', label: '身份标签', description: '用户身份标识' },
-  { value: 'homepage', label: '首页标签', description: '首页推荐分类' },
-  { value: 'post', label: '笔记标签', description: '笔记内容标签' },
-  { value: 'group', label: '群聊标签', description: '群聊分类标签' },
+  { value: 'identity', label: '身份标签', description: '用户信仰身份标识', color: 'bg-purple-100 text-purple-700' },
+  { value: 'homepage', label: '首页标签', description: '首页推荐分类', color: 'bg-blue-100 text-blue-700' },
+  { value: 'post', label: '笔记标签', description: '笔记内容标签', color: 'bg-green-100 text-green-700' },
+  { value: 'group', label: '群聊标签', description: '群聊分类标签', color: 'bg-orange-100 text-orange-700' },
 ];
 
-const CATEGORY_COLORS: Record<string, string> = {
-  identity: 'bg-purple-100 text-purple-700',
-  homepage: 'bg-blue-100 text-blue-700',
-  post: 'bg-green-100 text-green-700',
-  group: 'bg-orange-100 text-orange-700',
+const getCategoryLabel = (type: string) => {
+  const cat = CATEGORIES.find(c => c.value === type);
+  return cat?.label || type;
 };
 
-const getCategoryLabel = (category: string) => {
-  const cat = CATEGORIES.find(c => c.value === category);
-  return cat?.label || category;
+const getCategoryColor = (type: string) => {
+  const cat = CATEGORIES.find(c => c.value === type);
+  return cat?.color || 'bg-gray-100 text-gray-700';
 };
 
 export default function TagManagement() {
   const [tags, setTags] = useState<TagItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [showModal, setShowModal] = useState(false);
   const [editingTag, setEditingTag] = useState<TagItem | null>(null);
   const [formData, setFormData] = useState({
     name: '',
-    category: 'post',
+    type: 'post',
+    icon: '',
     sort_order: 0,
     is_active: true,
   });
-  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [showTypeDropdown, setShowTypeDropdown] = useState(false);
   const [editingSortId, setEditingSortId] = useState<string | null>(null);
   const [sortValue, setSortValue] = useState<number>(0);
+  const [usageStats, setUsageStats] = useState<Record<string, number>>({});
+  const [activeTab, setActiveTab] = useState<string>('identity');
 
   const supabaseUrl = getSupabaseUrl();
 
+  // 加载标签
   const loadTags = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
         select: '*',
-        order: 'category.asc,sort_order.asc',
+        order: 'type.asc,sort_order.asc',
       });
       
       const res = await fetch(`${supabaseUrl}/rest/v1/tags?${params}`, {
@@ -81,16 +89,70 @@ export default function TagManagement() {
     setLoading(false);
   }, [supabaseUrl]);
 
+  // 加载使用统计
+  const loadUsageStats = useCallback(async () => {
+    try {
+      const headers = {
+        'apikey': SERVICE_ROLE_KEY,
+        'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+      };
+
+      // 获取身份标签使用统计（从 profiles 表）
+      const profilesRes = await fetch(`${supabaseUrl}/rest/v1/profiles?faith_tag=not.is.null&faith_tag=neq.%22%22&select=faith_tag`, {
+        headers,
+      });
+      const profilesData = await profilesRes.json();
+      if (Array.isArray(profilesData)) {
+        const stats: Record<string, number> = {};
+        profilesData.forEach((p: any) => {
+          if (p.faith_tag) {
+            stats[`identity_${p.faith_tag}`] = (stats[`identity_${p.faith_tag}`] || 0) + 1;
+          }
+        });
+        setUsageStats(prev => ({ ...prev, ...stats }));
+      }
+
+      // 获取笔记/群聊标签使用统计（从 posts 表）
+      const postsRes = await fetch(`${supabaseUrl}/rest/v1/posts?select=tags`, {
+        headers,
+      });
+      const postsData = await postsRes.json();
+      if (Array.isArray(postsData)) {
+        postsData.forEach((post: any) => {
+          if (post.tags && Array.isArray(post.tags)) {
+            const filteredTags = post.tags.filter((t: string) => !t.startsWith('__') && !t.startsWith('member_'));
+            filteredTags.forEach((tag: string) => {
+              const isGroupChat = post.tags.includes('__group_chat__');
+              const type = isGroupChat ? 'group' : 'post';
+              stats[`${type}_${tag}`] = (stats[`${type}_${tag}`] || 0) + 1;
+            });
+          }
+        });
+        setUsageStats(stats);
+      }
+    } catch (error) {
+      console.error('加载使用统计失败:', error);
+    }
+  }, [supabaseUrl]);
+
+  // 刷新数据
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([loadTags(), loadUsageStats()]);
+    setRefreshing(false);
+  };
+
   useEffect(() => {
     loadTags();
-  }, [loadTags]);
+    loadUsageStats();
+  }, [loadTags, loadUsageStats]);
 
   // 按分类分组显示
   const groupedTags = tags.reduce((acc, tag) => {
-    if (!acc[tag.category]) {
-      acc[tag.category] = [];
+    if (!acc[tag.type]) {
+      acc[tag.type] = [];
     }
-    acc[tag.category].push(tag);
+    acc[tag.type].push(tag);
     return acc;
   }, {} as Record<string, TagItem[]>);
 
@@ -105,6 +167,11 @@ export default function TagManagement() {
     return categoryTags.filter(tag => 
       tag.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
+  };
+
+  // 获取标签使用次数
+  const getUsageCount = (tag: TagItem) => {
+    return usageStats[`${tag.type}_${tag.name}`] || 0;
   };
 
   const handleSave = async () => {
@@ -127,21 +194,23 @@ export default function TagManagement() {
           headers,
           body: JSON.stringify({
             name: formData.name,
-            category: formData.category,
+            type: formData.type,
+            icon: formData.icon || null,
             sort_order: formData.sort_order,
             is_active: formData.is_active,
           }),
         });
       } else {
         // 新增
-        const maxSort = tags.filter(t => t.category === formData.category)
+        const maxSort = tags.filter(t => t.type === formData.type)
           .reduce((max, t) => Math.max(max, t.sort_order), 0);
         await fetch(`${supabaseUrl}/rest/v1/tags`, {
           method: 'POST',
           headers,
           body: JSON.stringify([{
             name: formData.name,
-            category: formData.category,
+            type: formData.type,
+            icon: formData.icon || null,
             sort_order: formData.sort_order || maxSort + 1,
             is_active: formData.is_active,
             created_at: new Date().toISOString(),
@@ -152,7 +221,7 @@ export default function TagManagement() {
       await loadTags();
       setShowModal(false);
       setEditingTag(null);
-      setFormData({ name: '', category: 'post', sort_order: 0, is_active: true });
+      setFormData({ name: '', type: 'post', icon: '', sort_order: 0, is_active: true });
     } catch (error) {
       console.error('保存失败:', error);
       alert('保存失败');
@@ -163,15 +232,27 @@ export default function TagManagement() {
     setEditingTag(tag);
     setFormData({
       name: tag.name,
-      category: tag.category,
+      type: tag.type,
+      icon: tag.icon || '',
       sort_order: tag.sort_order,
       is_active: tag.is_active,
     });
     setShowModal(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('确定删除此标签吗？')) return;
+  const handleDelete = async (id: string, tag: TagItem) => {
+    const usageCount = getUsageCount(tag);
+    
+    if (usageCount > 0) {
+      const confirmed = confirm(
+        `⚠️ 警告：该标签已被 ${usageCount} 个内容使用！\n\n` +
+        `删除后这些内容将不再显示此标签。\n\n` +
+        `确定要删除吗？`
+      );
+      if (!confirmed) return;
+    } else {
+      if (!confirm('确定删除此标签吗？')) return;
+    }
     
     await fetch(`${supabaseUrl}/rest/v1/tags?id=eq.${id}`, {
       method: 'DELETE',
@@ -181,6 +262,23 @@ export default function TagManagement() {
       },
     });
     await loadTags();
+  };
+
+  const handleToggleActive = async (tag: TagItem) => {
+    try {
+      await fetch(`${supabaseUrl}/rest/v1/tags?id=eq.${tag.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+        },
+        body: JSON.stringify({ is_active: !tag.is_active }),
+      });
+      await loadTags();
+    } catch (error) {
+      console.error('切换状态失败:', error);
+    }
   };
 
   const handleBatchSort = async (tag: TagItem) => {
@@ -202,6 +300,10 @@ export default function TagManagement() {
     setSortValue(tag.sort_order);
   };
 
+  // 获取当前 tab 的标签
+  const currentTags = groupedTags[activeTab] || [];
+  const filteredCurrentTags = filterTags(currentTags);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -214,171 +316,228 @@ export default function TagManagement() {
     <div className="p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">标签管理</h1>
-        <button
-          onClick={() => {
-            setEditingTag(null);
-            setFormData({ name: '', category: 'post', sort_order: 0, is_active: true });
-            setShowModal(true);
-          }}
-          className="flex items-center gap-2 px-4 py-2 bg-[#E11D48] text-white rounded-lg hover:bg-[#C41E3A] transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          添加标签
-        </button>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">标签管理</h1>
+          <p className="text-sm text-gray-500 mt-1">管理前台4种类型的标签</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            刷新
+          </button>
+          <button
+            onClick={() => {
+              setEditingTag(null);
+              setFormData({ name: '', type: activeTab, icon: '', sort_order: 0, is_active: true });
+              setShowModal(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-[#E11D48] text-white rounded-lg hover:bg-[#C41E3A] transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            添加标签
+          </button>
+        </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-6">
-        <div className="flex flex-wrap gap-4">
-          {/* Search */}
-          <div className="flex-1 min-w-[200px]">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="搜索标签名称..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-10 pl-10 pr-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
-              />
-            </div>
-          </div>
-
-          {/* Category Filter */}
-          <div className="relative">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="h-10 pl-10 pr-8 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent appearance-none bg-white"
+      {/* Tab Navigation */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6 overflow-hidden">
+        <div className="flex border-b border-gray-200">
+          {CATEGORIES.map((cat) => (
+            <button
+              key={cat.value}
+              onClick={() => setActiveTab(cat.value)}
+              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors relative ${
+                activeTab === cat.value
+                  ? 'text-[#E11D48] bg-red-50'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
             >
-              <option value="all">全部分类</option>
-              {CATEGORIES.map((cat) => (
-                <option key={cat.value} value={cat.value}>{cat.label}</option>
-              ))}
-            </select>
+              {cat.label}
+              <span className={`ml-2 px-1.5 py-0.5 text-xs rounded-full ${
+                activeTab === cat.value ? 'bg-[#E11D48] text-white' : 'bg-gray-100 text-gray-600'
+              }`}>
+                {groupedTags[cat.value]?.length || 0}
+              </span>
+              {activeTab === cat.value && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#E11D48]" />
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Search Bar */}
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-6">
+        <div className="flex gap-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder={`搜索 ${getCategoryLabel(activeTab)}...`}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-10 pl-10 pr-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+            />
+          </div>
+          <div className={`px-3 py-2 rounded-lg ${getCategoryColor(activeTab)}`}>
+            <span className="text-sm font-medium">{getCategoryLabel(activeTab)}</span>
+            <span className="ml-2 text-sm text-gray-500">共 {currentTags.length} 个</span>
           </div>
         </div>
       </div>
 
-      {/* Tags by Category */}
-      <div className="space-y-6">
-        {filteredCategories.map((category) => {
-          const categoryTags = filterTags(groupedTags[category.value] || []);
-          
-          if (categoryFilter !== 'all' && categoryTags.length === 0) {
-            return null;
-          }
+      {/* Tags List */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        {filteredCurrentTags.length === 0 ? (
+          <div className="px-4 py-12 text-center">
+            <Tag className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500">
+              {searchQuery ? '未找到匹配的标签' : '暂无标签'}
+            </p>
+            {!searchQuery && (
+              <button
+                onClick={() => {
+                  setEditingTag(null);
+                  setFormData({ name: '', type: activeTab, icon: '', sort_order: 0, is_active: true });
+                  setShowModal(true);
+                }}
+                className="mt-4 text-[#E11D48] hover:underline"
+              >
+                添加第一个标签
+              </button>
+            )}
+          </div>
+        ) : (
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">名称</th>
+                <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">图标</th>
+                <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">排序</th>
+                <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">状态</th>
+                <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
+                  <div className="flex items-center justify-center gap-1">
+                    <BarChart3 className="w-4 h-4" />
+                    使用次数
+                  </div>
+                </th>
+                <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">创建时间</th>
+                <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">操作</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {filteredCurrentTags.map((tag) => (
+                <tr key={tag.id} className={`hover:bg-gray-50 ${!tag.is_active ? 'bg-gray-50 opacity-60' : ''}`}>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <Tag className="w-4 h-4 text-gray-400" />
+                      <span className="font-medium text-gray-900">{tag.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-center text-lg">
+                    {tag.icon || '🏷️'}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    {editingSortId === tag.id ? (
+                      <div className="flex items-center justify-center gap-1">
+                        <input
+                          type="number"
+                          value={sortValue}
+                          onChange={(e) => setSortValue(parseInt(e.target.value) || 0)}
+                          className="w-16 h-8 px-2 text-center border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-[#E11D48]"
+                        />
+                        <button
+                          onClick={() => handleBatchSort(tag)}
+                          className="p-1 text-green-600 hover:bg-green-50 rounded"
+                        >
+                          <Save className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setEditingSortId(null)}
+                          className="p-1 text-gray-500 hover:bg-gray-100 rounded"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => startEditSort(tag)}
+                        className="px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded"
+                        title="点击修改排序"
+                      >
+                        {tag.sort_order}
+                      </button>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <button
+                      onClick={() => handleToggleActive(tag)}
+                      className={`px-2 py-1 rounded-full text-xs font-medium transition-colors ${
+                        tag.is_active 
+                          ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                          : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                      }`}
+                    >
+                      {tag.is_active ? (
+                        <span className="flex items-center gap-1">
+                          <Check className="w-3 h-3" /> 启用
+                        </span>
+                      ) : '禁用'}
+                    </button>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <span className={`text-sm font-medium ${
+                      getUsageCount(tag) > 0 ? 'text-[#E11D48]' : 'text-gray-500'
+                    }`}>
+                      {getUsageCount(tag)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-center text-sm text-gray-500">
+                    {new Date(tag.created_at).toLocaleDateString()}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => handleEdit(tag)}
+                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="编辑"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(tag.id, tag)}
+                        className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="删除"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
 
-          return (
-            <div key={category.value} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="px-4 py-3 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${CATEGORY_COLORS[category.value]}`}>
-                    {category.label}
-                  </span>
-                  <span className="text-sm text-gray-500">
-                    ({categoryTags.length} 个标签)
-                  </span>
-                </div>
-                <span className="text-xs text-gray-400">{category.description}</span>
-              </div>
-
-              {categoryTags.length === 0 ? (
-                <div className="px-4 py-8 text-center text-gray-500">
-                  暂无标签
-                </div>
-              ) : (
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">名称</th>
-                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">排序</th>
-                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">状态</th>
-                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">创建时间</th>
-                      <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">操作</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {categoryTags.map((tag) => (
-                      <tr key={tag.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <Tag className="w-4 h-4 text-gray-400" />
-                            <span className="font-medium text-gray-900">{tag.name}</span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          {editingSortId === tag.id ? (
-                            <div className="flex items-center justify-center gap-1">
-                              <input
-                                type="number"
-                                value={sortValue}
-                                onChange={(e) => setSortValue(parseInt(e.target.value) || 0)}
-                                className="w-16 h-8 px-2 text-center border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-[#E11D48]"
-                              />
-                              <button
-                                onClick={() => handleBatchSort(tag)}
-                                className="p-1 text-green-600 hover:bg-green-50 rounded"
-                              >
-                                <Save className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => setEditingSortId(null)}
-                                className="p-1 text-gray-500 hover:bg-gray-100 rounded"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => startEditSort(tag)}
-                              className="px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded"
-                              title="点击修改排序"
-                            >
-                              {tag.sort_order}
-                            </button>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            tag.is_active 
-                              ? 'bg-green-100 text-green-700' 
-                              : 'bg-gray-100 text-gray-500'
-                          }`}>
-                            {tag.is_active ? '启用' : '禁用'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-center text-sm text-gray-500">
-                          {new Date(tag.created_at).toLocaleDateString()}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <button
-                              onClick={() => handleEdit(tag)}
-                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="编辑"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(tag.id)}
-                              className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="删除"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          );
-        })}
+      {/* Usage Tips */}
+      <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-100">
+        <h3 className="font-medium text-blue-900 mb-2 flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4" />
+          使用说明
+        </h3>
+        <ul className="text-sm text-blue-800 space-y-1">
+          <li>• <strong>身份标签</strong>：用户在注册或编辑资料时选择，影响用户 profile 显示</li>
+          <li>• <strong>首页标签</strong>：首页标签筛选栏显示，用于按信仰分类浏览笔记</li>
+          <li>• <strong>笔记标签</strong>：发布笔记时选择的标签，用于内容分类</li>
+          <li>• <strong>群聊标签</strong>：创建群聊时选择的标签，用于群聊分类</li>
+          <li className="mt-2">• 禁用的标签不会在用户端显示，但仍会统计使用次数</li>
+          <li>• 删除标签前会显示该标签当前的使用次数</li>
+        </ul>
       </div>
 
       {/* Add/Edit Modal */}
@@ -388,7 +547,7 @@ export default function TagManagement() {
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-gray-900">
-                  {editingTag ? '编辑标签' : '添加标签'}
+                  {editingTag ? '编辑标签' : `添加${getCategoryLabel(formData.type)}`}
                 </h2>
                 <button
                   onClick={() => setShowModal(false)}
@@ -413,37 +572,54 @@ export default function TagManagement() {
                   />
                 </div>
 
-                {/* Category */}
-                <div className="relative">
+                {/* Type (only for new tags or if admin wants to change) */}
+                {!editingTag && (
+                  <div className="relative">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      标签类型 <span className="text-red-500">*</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowTypeDropdown(!showTypeDropdown)}
+                      className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent flex items-center justify-between"
+                    >
+                      <span className={getCategoryColor(formData.type).split(' ')[1]}>{getCategoryLabel(formData.type)}</span>
+                      <ChevronDown className="w-4 h-4 text-gray-400" />
+                    </button>
+                    {showTypeDropdown && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg">
+                        {CATEGORIES.map((cat) => (
+                          <button
+                            key={cat.value}
+                            type="button"
+                            onClick={() => {
+                              setFormData({ ...formData, type: cat.value });
+                              setShowTypeDropdown(false);
+                            }}
+                            className="w-full px-4 py-2 text-left hover:bg-gray-50 first:rounded-t-lg last:rounded-b-lg"
+                          >
+                            <div className={`font-medium ${cat.color.split(' ')[1]}`}>{cat.label}</div>
+                            <div className="text-xs text-gray-500">{cat.description}</div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Icon */}
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    分类 <span className="text-red-500">*</span>
+                    图标 <span className="text-gray-400">(可选)</span>
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent flex items-center justify-between"
-                  >
-                    <span>{getCategoryLabel(formData.category)}</span>
-                    <ChevronDown className="w-4 h-4 text-gray-400" />
-                  </button>
-                  {showCategoryDropdown && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg">
-                      {CATEGORIES.map((cat) => (
-                        <button
-                          key={cat.value}
-                          type="button"
-                          onClick={() => {
-                            setFormData({ ...formData, category: cat.value });
-                            setShowCategoryDropdown(false);
-                          }}
-                          className="w-full px-4 py-2 text-left hover:bg-gray-50 first:rounded-t-lg last:rounded-b-lg"
-                        >
-                          <div className="font-medium">{cat.label}</div>
-                          <div className="text-xs text-gray-500">{cat.description}</div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  <input
+                    type="text"
+                    value={formData.icon}
+                    onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+                    placeholder="输入 emoji 或图标名称，如 ✝️"
+                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">建议使用 emoji 表情符号</p>
                 </div>
 
                 {/* Sort Order */}
@@ -457,7 +633,7 @@ export default function TagManagement() {
                     onChange={(e) => setFormData({ ...formData, sort_order: parseInt(e.target.value) || 0 })}
                     className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
                   />
-                  <p className="text-xs text-gray-500 mt-1">数值越大排序越靠前</p>
+                  <p className="text-xs text-gray-500 mt-1">数值越小排序越靠前</p>
                 </div>
 
                 {/* Active */}
@@ -470,7 +646,7 @@ export default function TagManagement() {
                     className="w-4 h-4 rounded border-gray-300 text-[#E11D48] focus:ring-[#E11D48]"
                   />
                   <label htmlFor="is_active" className="text-sm text-gray-700">
-                    启用此标签
+                    启用此标签 <span className="text-gray-500">(禁用后用户端不显示)</span>
                   </label>
                 </div>
               </div>
@@ -489,7 +665,7 @@ export default function TagManagement() {
                   onClick={handleSave}
                   className="flex-1 py-2.5 bg-[#E11D48] text-white rounded-lg hover:bg-[#C41E3A] transition-colors"
                 >
-                  {editingTag ? '保存' : '添加'}
+                  {editingTag ? '保存修改' : '添加'}
                 </button>
               </div>
             </div>
