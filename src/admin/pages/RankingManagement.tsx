@@ -61,7 +61,7 @@ interface ProfileRanking {
   heat_count: number;
   followers_count: number;
   following_count: number;
-  vip_status: string | null;
+  is_vip: boolean;
   created_at: string;
   updated_at: string;
   rank: number;
@@ -172,7 +172,7 @@ export default function RankingManagement() {
   const loadProfileRankings = useCallback(async () => {
     setLoading(true);
     try {
-      let selectFields = 'id,username,nickname,avatar_url,faith_tag,level,experience,hot_points,heat_count,followers_count,following_count,vip_status,created_at,updated_at';
+      let selectFields = 'id,username,nickname,avatar_url,faith_tag,level,experience,hot_points,heat_count,followers_count,following_count,is_vip,created_at,updated_at';
       
       let url = `${supabaseUrl}/rest/v1/profiles?select=${selectFields}&order=experience.desc`;
 
@@ -219,9 +219,9 @@ export default function RankingManagement() {
 
       // 过滤VIP状态
       if (vipFilter === 'vip') {
-        data = data.filter((p: any) => p.vip_status === 'active' || p.vip_status === 'vip');
+        data = data.filter((p: any) => p.is_vip === true);
       } else if (vipFilter === 'normal') {
-        data = data.filter((p: any) => !p.vip_status || p.vip_status === 'none');
+        data = data.filter((p: any) => p.is_vip !== true);
       }
 
       // 过滤搜索关键词
@@ -370,7 +370,7 @@ export default function RankingManagement() {
     } else {
       csvContent = '排名,用户名,昵称,信仰标签,等级,经验值,热点数,加热数,粉丝数,关注数,VIP状态,注册时间\n';
       dataToExport.forEach((profile: any) => {
-        csvContent += `${profile.rank},"${profile.username}","${profile.nickname || ''}","${profile.faith_tag || ''}",${profile.level},${profile.experience},${profile.hot_points},${profile.heat_count},${profile.followers_count},${profile.following_count},"${profile.vip_status || 'none'}","${profile.created_at}"\n`;
+        csvContent += `${profile.rank},"${profile.username}","${profile.nickname || ''}","${profile.faith_tag || ''}",${profile.level},${profile.experience},${profile.hot_points},${profile.heat_count},${profile.followers_count},${profile.following_count},"${profile.is_vip || 'none'}","${profile.created_at}"\n`;
       });
     }
 
@@ -658,7 +658,7 @@ export default function RankingManagement() {
                             )}
                           </td>
                           <td className="px-4 py-3 text-center">
-                            {profile.vip_status === 'active' || profile.vip_status === 'vip' ? (
+                            {profile.is_vip === true ? (
                               <span className="inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-yellow-400 to-amber-500 text-white rounded-full text-xs font-medium">
                                 <Star className="w-3 h-3" /> VIP
                               </span>
