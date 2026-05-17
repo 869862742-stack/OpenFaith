@@ -298,11 +298,6 @@ function VIP() {
         <div className="text-center mb-6">
           <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-white/20 flex items-center justify-center relative">
             <Crown className="w-10 h-10 text-white" />
-            {isVip && (
-              <div className="absolute -top-1 -right-1 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
-                <Star className="w-4 h-4 text-yellow-900" fill="currentColor" />
-              </div>
-            )}
           </div>
           <h1 className="text-2xl font-bold text-white mb-2">
             {isVip ? (isZh ? 'VIP 会员' : 'VIP Member') : (isZh ? '解锁专属权益' : 'Unlock Exclusive Benefits')}
@@ -324,7 +319,7 @@ function VIP() {
         {isVip && (
           <div className="rounded-2xl p-4 mb-6 bg-white/10 backdrop-blur-sm">
             <div className="flex items-center gap-2 mb-3">
-              <Trophy className="w-5 h-5 text-yellow-300" />
+              <Crown className="w-5 h-5 text-yellow-300" />
               <span className="text-white font-medium">{isZh ? '我的 VIP 特权' : 'My VIP Privileges'}</span>
             </div>
             <div className="flex items-center gap-6">
