@@ -1402,22 +1402,27 @@ function SilentRoom() {
         </button>
       </div>
 
-      {/* 在线用户头像行 - 渐入渐出从左往右循环 */}
+      {/* 在线用户头像 - 从右往左漂浮，渐入渐出，每人只显示一个 */}
       {participants.length > 0 && (
-        <div className="absolute z-20 overflow-hidden" style={{ bottom: '260px', left: 0, right: 0, maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)' }}>
-          <div className="flex animate-marquee-horizontal">
-            {[...participants, ...participants, ...participants].map((p, i) => (
-              <div key={i} className="flex flex-col items-center mx-2 shrink-0">
-                <div className="w-8 h-8 rounded-full overflow-hidden border-2" style={{ borderColor: '#E11D48' }}>
-                  <img 
-                    src={p.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.user_id}`} 
-                    className="w-full h-full object-cover"
-                    onError={(e) => { e.currentTarget.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.user_id}`; }}
-                  />
-                </div>
+        <div className="absolute z-20 overflow-hidden" style={{ bottom: '260px', left: 0, right: 0, height: '48px' }}>
+          {participants.map((p, i) => (
+            <div
+              key={p.id}
+              className="absolute"
+              style={{
+                animation: `float-avatar-${i % 3} ${12 + i * 3}s linear infinite`,
+                animationDelay: `${i * 4}s`,
+              }}
+            >
+              <div className="w-8 h-8 rounded-full overflow-hidden border-2" style={{ borderColor: '#E11D48' }}>
+                <img 
+                  src={p.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.user_id}`} 
+                  className="w-full h-full object-cover"
+                  onError={(e) => { e.currentTarget.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.user_id}`; }}
+                />
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -1790,6 +1795,25 @@ function SilentRoom() {
         }
         .animate-marquee-horizontal {
           animation: marquee-horizontal 20s linear infinite;
+        }
+        /* 头像从右往左漂浮，渐入渐出 */
+        @keyframes float-avatar-0 {
+          0% { left: 100%; opacity: 0; }
+          5% { opacity: 1; }
+          90% { opacity: 1; }
+          100% { left: -40px; opacity: 0; }
+        }
+        @keyframes float-avatar-1 {
+          0% { left: 100%; opacity: 0; top: 4px; }
+          5% { opacity: 1; }
+          90% { opacity: 1; }
+          100% { left: -40px; opacity: 0; top: 0px; }
+        }
+        @keyframes float-avatar-2 {
+          0% { left: 100%; opacity: 0; top: -2px; }
+          5% { opacity: 1; }
+          90% { opacity: 1; }
+          100% { left: -40px; opacity: 0; top: 4px; }
         }
       `}</style>
 
