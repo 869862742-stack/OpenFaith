@@ -72,12 +72,13 @@ function PostCard({ post, isVip = false, onClick }: PostCardProps) {
       }`}
       onClick={handleClick}
     >
-      {/* 图片区域 */}
-      <div className="relative aspect-[3/4] overflow-hidden">
+      {/* 图片区域 - 不叠加内容，保持原色 */}
+      <div className="relative overflow-hidden">
         <img
           src={coverError ? DEFAULT_COVER : (post.coverImage || DEFAULT_COVER)}
           alt={post.title}
-          className="w-full h-full object-cover"
+          className="w-full object-cover"
+          style={{ maxHeight: '200px' }}
           onError={handleCoverError}
         />
         
@@ -104,15 +105,15 @@ function PostCard({ post, isVip = false, onClick }: PostCardProps) {
         )}
       </div>
 
-      {/* 卡片内容 */}
+      {/* 卡片内容 - 图片下方 */}
       <div className="p-3">
-        <h3 className="text-sm font-medium text-[#1E293B] line-clamp-2 mb-1">
+        <h3 className="text-sm font-medium text-[#1E293B] line-clamp-1 mb-1">
           {post.title}
         </h3>
 
-        {/* 内容摘要 */}
+        {/* 内容摘要 - 固定一行 */}
         {post.content && (
-          <p className="text-xs text-gray-500 line-clamp-2 mb-2">
+          <p className="text-xs text-gray-500 line-clamp-1 mb-2">
             {post.content}
           </p>
         )}
