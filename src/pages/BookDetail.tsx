@@ -680,19 +680,22 @@ const BookDetail: React.FC = () => {
     // 在章节切换时禁用过渡动画，避免看到内容"滑动"过程
     setIsChapterTransitioning(true);
     chapterTransitionRef.current = true; // 标记章节切换中
-    // 使用 setTimeout 确保内容已渲染完成后再滚动
-    // requestAnimationFrame 可能在新章节内容渲染完成前执行
-    const timer = setTimeout(() => {
-      if (contentRef.current) {
-        contentRef.current.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-      }
-      // 切换完成后恢复过渡动画
-      setIsChapterTransitioning(false);
-      chapterTransitionRef.current = false; // 解除章节切换锁定
-    }, 100); // 增加延迟时间确保内容完全渲染
+    // 双重rAF + setTimeout确保内容完全渲染后再滚动
+    const rafId = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (contentRef.current) {
+          contentRef.current.scrollTop = 0;
+        }
+        setTimeout(() => {
+          if (contentRef.current) contentRef.current.scrollTop = 0;
+          setIsChapterTransitioning(false);
+          chapterTransitionRef.current = false;
+        }, 100);
+      });
+    });
     return () => {
-      clearTimeout(timer);
-      chapterTransitionRef.current = false; // cleanup 时也解除锁定
+      cancelAnimationFrame(rafId);
+      chapterTransitionRef.current = false;
     };
   }, [currentChapterIndex]);
 
@@ -785,14 +788,20 @@ const BookDetail: React.FC = () => {
       setIsChapterTransitioning(true);
       chapterTransitionRef.current = true;
       setCurrentChapterIndex(currentChapterIndex - 1);
-      // 强制滚动到顶部
-      setTimeout(() => {
-        if (contentRef.current) {
-          contentRef.current.scrollTop = 0;
-        }
-        setIsChapterTransitioning(false);
-        chapterTransitionRef.current = false;
-      }, 150);
+      // 双重requestAnimationFrame确保DOM更新后再滚动
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (contentRef.current) {
+            contentRef.current.scrollTop = 0;
+          }
+          // 额外保险：延迟再滚一次
+          setTimeout(() => {
+            if (contentRef.current) contentRef.current.scrollTop = 0;
+            setIsChapterTransitioning(false);
+            chapterTransitionRef.current = false;
+          }, 50);
+        });
+      });
     }
   };
 
@@ -801,14 +810,20 @@ const BookDetail: React.FC = () => {
       setIsChapterTransitioning(true);
       chapterTransitionRef.current = true;
       setCurrentChapterIndex(currentChapterIndex + 1);
-      // 强制滚动到顶部
-      setTimeout(() => {
-        if (contentRef.current) {
-          contentRef.current.scrollTop = 0;
-        }
-        setIsChapterTransitioning(false);
-        chapterTransitionRef.current = false;
-      }, 150);
+      // 双重requestAnimationFrame确保DOM更新后再滚动
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (contentRef.current) {
+            contentRef.current.scrollTop = 0;
+          }
+          // 额外保险：延迟再滚一次
+          setTimeout(() => {
+            if (contentRef.current) contentRef.current.scrollTop = 0;
+            setIsChapterTransitioning(false);
+            chapterTransitionRef.current = false;
+          }, 50);
+        });
+      });
     }
   };
 
