@@ -533,6 +533,31 @@ export default function BookManagement() {
   const [showPublishedList, setShowPublishedList] = useState(false);
   const [selectedPublishedBooks, setSelectedPublishedBooks] = useState<Set<string>>(new Set());
   
+  // 章节展开状态
+  const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set());
+  
+  // 切换章节展开/收起
+  const toggleChapterExpand = (chapterId: string) => {
+    setExpandedChapters(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(chapterId)) {
+        newSet.delete(chapterId);
+      } else {
+        newSet.add(chapterId);
+      }
+      return newSet;
+    });
+  };
+  
+  // 全部展开/收起章节
+  const toggleAllChapters = (expand: boolean) => {
+    if (expand) {
+      setExpandedChapters(new Set(selectedBookChapters.map(c => c.id)));
+    } else {
+      setExpandedChapters(new Set());
+    }
+  };
+  
   // 已发布的书籍
   const publishedBooks = books.filter(b => b.status === 'published');
   
@@ -1494,28 +1519,48 @@ export default function BookManagement() {
             </div>
             
             <div style={{ flex: 1, overflow: 'auto', padding: 20, background: '#fff' }}>
-              <div style={{ fontWeight: 500, marginBottom: 12, color: '#6b7280' }}>章节列表 ({selectedBookChapters.length})</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <div style={{ fontWeight: 500, color: '#6b7280' }}>章节列表 ({selectedBookChapters.length})</div>
+                {selectedBookChapters.length > 0 && (
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={() => toggleAllChapters(true)} style={{ padding: '4px 10px', fontSize: 12, border: '1px solid #d1d5db', borderRadius: 4, cursor: 'pointer', background: '#fff', color: '#374151' }}>全部展开</button>
+                    <button onClick={() => toggleAllChapters(false)} style={{ padding: '4px 10px', fontSize: 12, border: '1px solid #d1d5db', borderRadius: 4, cursor: 'pointer', background: '#fff', color: '#374151' }}>全部收起</button>
+                  </div>
+                )}
+              </div>
               {selectedBookChapters.length === 0 ? (
                 <div style={{ textAlign: 'center', color: '#9ca3af', padding: 40 }}>暂无章节</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {selectedBookChapters.map((chapter, idx) => (
-                    <div key={chapter.id} style={{ padding: 16, border: '1px solid #e5e7eb', borderRadius: 8, background: '#fff' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ padding: '2px 8px', background: 'rgba(196, 30, 58, 0.1)', color: '#C41E3A', borderRadius: 4, fontSize: 12 }}>第{chapter.number}章</span>
-                          <span style={{ fontWeight: 500, color: '#1f2937' }}>{chapter.title}</span>
+                  {selectedBookChapters.map((chapter, idx) => {
+                    const isExpanded = expandedChapters.has(chapter.id);
+                    const hasContent = chapter.content && chapter.content.length > 0;
+                    const displayContent = hasContent 
+                      ? (isExpanded ? chapter.content : (chapter.content.length > 200 ? chapter.content.substring(0, 200) + '...' : chapter.content))
+                      : '（暂无正文内容）';
+                    return (
+                      <div key={chapter.id} style={{ padding: 16, border: '1px solid #e5e7eb', borderRadius: 8, background: '#fff' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ padding: '2px 8px', background: 'rgba(196, 30, 58, 0.1)', color: '#C41E3A', borderRadius: 4, fontSize: 12 }}>第{chapter.number}章</span>
+                            <span style={{ fontWeight: 500, color: '#1f2937' }}>{chapter.title}</span>
+                          </div>
+                          <div style={{ display: 'flex', gap: 4 }}>
+                            <button onClick={() => handleSortChapter(chapter.id, 'up')} disabled={idx === 0} title="上移" style={{ padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: 4, cursor: idx === 0 ? 'not-allowed' : 'pointer', opacity: idx === 0 ? 0.3 : 1, background: '#fff' }}>上</button>
+                            <button onClick={() => handleSortChapter(chapter.id, 'down')} disabled={idx === selectedBookChapters.length - 1} title="下移" style={{ padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: 4, cursor: idx === selectedBookChapters.length - 1 ? 'not-allowed' : 'pointer', opacity: idx === selectedBookChapters.length - 1 ? 0.3 : 1, background: '#fff' }}>下</button>
+                            {hasContent && (chapter.content.length > 200 || !isExpanded) && (
+                              <button onClick={() => toggleChapterExpand(chapter.id)} style={{ padding: '4px 8px', border: '1px solid #3b82f6', color: '#3b82f6', borderRadius: 4, cursor: 'pointer', background: 'transparent' }}>
+                                {isExpanded ? '收起' : '展开'}
+                              </button>
+                            )}
+                            <button onClick={() => { setEditingChapter(chapter); setShowChapterModal(true); }} style={{ padding: '4px 8px', border: '1px solid #C41E3A', color: '#C41E3A', borderRadius: 4, cursor: 'pointer', background: 'transparent' }}>编辑</button>
+                            <button onClick={() => handleDeleteChapter(chapter.id)} style={{ padding: '4px 8px', border: '1px solid #dc2626', color: '#dc2626', borderRadius: 4, cursor: 'pointer', background: 'transparent' }}>删除</button>
+                          </div>
                         </div>
-                        <div style={{ display: 'flex', gap: 4 }}>
-                          <button onClick={() => handleSortChapter(chapter.id, 'up')} disabled={idx === 0} title="上移" style={{ padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: 4, cursor: idx === 0 ? 'not-allowed' : 'pointer', opacity: idx === 0 ? 0.3 : 1, background: '#fff' }}>上</button>
-                          <button onClick={() => handleSortChapter(chapter.id, 'down')} disabled={idx === selectedBookChapters.length - 1} title="下移" style={{ padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: 4, cursor: idx === selectedBookChapters.length - 1 ? 'not-allowed' : 'pointer', opacity: idx === selectedBookChapters.length - 1 ? 0.3 : 1, background: '#fff' }}>下</button>
-                          <button onClick={() => { setEditingChapter(chapter); setShowChapterModal(true); }} style={{ padding: '4px 8px', border: '1px solid #C41E3A', color: '#C41E3A', borderRadius: 4, cursor: 'pointer', background: 'transparent' }}>编辑</button>
-                          <button onClick={() => handleDeleteChapter(chapter.id)} style={{ padding: '4px 8px', border: '1px solid #dc2626', color: '#dc2626', borderRadius: 4, cursor: 'pointer', background: 'transparent' }}>删除</button>
-                        </div>
+                        <div style={{ fontSize: 13, color: hasContent ? '#6b7280' : '#9ca3af', marginTop: 8, lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{displayContent}</div>
                       </div>
-                      <p style={{ fontSize: 13, color: '#6b7280', marginTop: 8, lineHeight: 1.6 }}>{chapter.content?.substring(0, 200)}...</p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
