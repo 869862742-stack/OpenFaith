@@ -970,12 +970,28 @@ export default function BookManagement() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [booksRes, chaptersRes, groupsRes] = await Promise.all([
+      // 分页获取所有章节（Supabase单次最多1000条，圣经有1189章）
+      const fetchAllChapters = async () => {
+        const all: any[] = [];
+        let offset = 0;
+        const pageSize = 1000;
+        while (true) {
+          const res = await fetch(`${API_BASE}/chapters?select=*&order=volume.asc,number.asc&limit=${pageSize}&offset=${offset}`, { headers: authHeaders });
+          const batch = await res.json();
+          if (!Array.isArray(batch) || batch.length === 0) break;
+          all.push(...batch);
+          if (batch.length < pageSize) break;
+          offset += pageSize;
+        }
+        return all;
+      };
+      
+      const [booksRes, groupsRes] = await Promise.all([
         fetch(`${API_BASE}/books?select=*&order=sort_order.asc,created_at.asc`, { headers: authHeaders }),
-        fetch(`${API_BASE}/chapters?select=*&order=volume.asc,number.asc&limit=5000`, { headers: authHeaders }),
         fetch(`${API_BASE}/book_groups?select=*`, { headers: authHeaders }),
       ]);
-      const [booksData, chaptersData, groupsData] = await Promise.all([booksRes.json(), chaptersRes.json(), groupsRes.json()]);
+      const chaptersData = await fetchAllChapters();
+      const [booksData, groupsData] = await Promise.all([booksRes.json(), groupsRes.json()]);
       // 确保返回的是数组，防止 map 报错
       setBooks(Array.isArray(booksData) ? booksData : []);
       setChapters(Array.isArray(chaptersData) ? chaptersData : []);
