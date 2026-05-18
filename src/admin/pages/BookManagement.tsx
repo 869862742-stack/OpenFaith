@@ -972,7 +972,7 @@ export default function BookManagement() {
     try {
       const [booksRes, chaptersRes, groupsRes] = await Promise.all([
         fetch(`${API_BASE}/books?select=*&order=sort_order.asc,created_at.asc`, { headers: authHeaders }),
-        fetch(`${API_BASE}/chapters?select=*&order=number.asc`, { headers: authHeaders }),
+        fetch(`${API_BASE}/chapters?select=*&order=volume.asc,number.asc&limit=5000`, { headers: authHeaders }),
         fetch(`${API_BASE}/book_groups?select=*`, { headers: authHeaders }),
       ]);
       const [booksData, chaptersData, groupsData] = await Promise.all([booksRes.json(), chaptersRes.json(), groupsRes.json()]);
@@ -1035,7 +1035,12 @@ export default function BookManagement() {
   });
 
   const selectedBook = books.find(b => b.id === selectedBookId);
-  const selectedBookChapters = chapters.filter(c => c.book_id === selectedBookId).sort((a, b) => a.number - b.number);
+  const selectedBookChapters = chapters.filter(c => c.book_id === selectedBookId).sort((a, b) => {
+      const volA = a.volume || 0;
+      const volB = b.volume || 0;
+      if (volA !== volB) return Number(volA) - Number(volB);
+      return a.number - b.number;
+    });
   const selectedGroup = groups.find(g => g.id === selectedGroupId);
 
   // 获取群组中包含的所有书籍ID（包括嵌套子群组的书籍）
@@ -1859,8 +1864,13 @@ export default function BookManagement() {
                       <div key={chapter.id} style={{ padding: 16, border: '1px solid #e5e7eb', borderRadius: 8, background: '#fff' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ padding: '2px 8px', background: 'rgba(196, 30, 58, 0.1)', color: '#C41E3A', borderRadius: 4, fontSize: 12 }}>第{chapter.number}章</span>
-                            <span style={{ fontWeight: 500, color: '#1f2937' }}>{chapter.title}</span>
+                            {chapter.title && /第\d+章/.test(chapter.title) 
+                              ? <span style={{ fontWeight: 500, color: '#1f2937' }}>{chapter.title}</span>
+                              : <>
+                                  <span style={{ padding: '2px 8px', background: 'rgba(196, 30, 58, 0.1)', color: '#C41E3A', borderRadius: 4, fontSize: 12 }}>第{chapter.number}章</span>
+                                  <span style={{ fontWeight: 500, color: '#1f2937' }}>{chapter.title}</span>
+                                </>
+                            }
                           </div>
                           <div style={{ display: 'flex', gap: 4 }}>
                             <button onClick={() => handleSortChapter(chapter.id, 'up')} disabled={idx === 0} title="上移" style={{ padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: 4, cursor: idx === 0 ? 'not-allowed' : 'pointer', opacity: idx === 0 ? 0.3 : 1, background: '#fff' }}>上</button>
