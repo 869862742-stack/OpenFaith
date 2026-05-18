@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "webpack serve",
     "dev:admin": "webpack serve --env target=admin",
-    "build": "rm -rf .webpack-cache && webpack --mode production",
+    "build": "rm -rf .webpack-cache 2>/dev/null; webpack --mode production",
     "build:admin": "webpack --mode production --env target=admin",
     "typecheck": "tsc --noEmit",
     "preview": "pnpm exec webpack serve --port 5000 --host 0.0.0.0",
