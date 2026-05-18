@@ -599,6 +599,7 @@ function Learn() {
                 bookId: bookId,
                 text: note.content,
                 chapter: note.chapterIndex,
+                chapterId: note.chapterId,
                 createdAt: note.createdAt
               });
             });
@@ -1108,7 +1109,7 @@ function Learn() {
                   myInsights.map((insight, idx) => (
                     <div
                       key={idx}
-                      onClick={() => navigate(`/book/${insight.bookId}?insight=${insight.id}`)}
+                      onClick={() => navigate(`/book/${insight.bookId}?chapterId=${insight.chapterId}&highlight=${encodeURIComponent(insight.text)}`)}
                       className="p-4 rounded-xl border theme-transition cursor-pointer hover:opacity-80 relative"
                       style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)' }}
                     >

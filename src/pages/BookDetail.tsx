@@ -337,7 +337,39 @@ const BookDetail: React.FC = () => {
     
     const params = new URLSearchParams(window.location.search);
     const chapterId = params.get('chapterId');
+    const chapterIndexParam = params.get('chapterIndex');
     const highlight = params.get('highlight');
+    
+    // 支持 chapterIndex 参数（从感悟页面跳转）
+    if (!chapterId && chapterIndexParam) {
+      const idx = parseInt(chapterIndexParam, 10);
+      if (!isNaN(idx) && idx >= 0 && idx < chapters.length) {
+        setCurrentChapterIndex(idx);
+        setUrlParamsProcessed(true);
+        
+        if (highlight) {
+          const decodedHighlight = decodeURIComponent(highlight);
+          setHighlightChapterId(chapters[idx].id);
+          setHighlightText(decodedHighlight);
+          
+          setTimeout(() => {
+            const highlightEl = document.querySelector('[data-highlight="true"]');
+            if (highlightEl) {
+              highlightEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }, 500);
+          
+          if (highlightTimeoutRef.current) {
+            clearTimeout(highlightTimeoutRef.current);
+          }
+          highlightTimeoutRef.current = setTimeout(() => {
+            setHighlightChapterId(null);
+            setHighlightText('');
+          }, 3000);
+        }
+        return;
+      }
+    }
     
     if (chapterId) {
       const chapterIndex = chapters.findIndex(ch => ch.id === chapterId);
