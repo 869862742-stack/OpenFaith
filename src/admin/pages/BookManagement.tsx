@@ -41,217 +41,449 @@ function SmartImportModalInline(props: {
   // 生成唯一ID
   const genId = () => crypto.randomUUID();
   
-  // 解析数据
+  // ==================== 智能解析器 ====================
+  
+  // 智能字段识别：自动识别书名、章节、内容字段
+  function smartIdentifyFields(obj: any): { titleKey: string | null; chapterKey: string | null; contentKey: string[] } {
+    const titleCandidates = ['title', 'name', 'book', 'bookName', 'book_title', 'heading', 'header', 'label'];
+    const chapterCandidates = ['chapter', 'chapters', 'section', 'sections', 'entry', 'entries', 'verses', 'content', 'items', 'data'];
+    
+    let titleKey: string | null = null;
+    let chapterKey: string | null = null;
+    const contentKey: string[] = [];
+    
+    // 识别标题字段
+    for (const key of titleCandidates) {
+      if (obj.hasOwnProperty(key) && typeof obj[key] === 'string') {
+        titleKey = key;
+        break;
+      }
+    }
+    
+    // 识别章节/内容字段
+    for (const key of chapterCandidates) {
+      if (obj.hasOwnProperty(key)) {
+        if (Array.isArray(obj[key])) {
+          chapterKey = key;
+        } else if (typeof obj[key] === 'string' || typeof obj[key] === 'object') {
+          contentKey.push(key);
+        }
+      }
+    }
+    
+    return { titleKey, chapterKey, contentKey };
+  }
+  
+  // 智能提取章节内容
+  function smartExtractContent(ch: any): { title: string; content: string; number: number } {
+    // 1. 先尝试 verses 格式（圣经格式）
+    if (Array.isArray(ch.verses)) {
+      const textContent = ch.verses
+        .map((v: any) => {
+          if (typeof v === 'string') return v;
+          if (v.text) return (v.verse ? `${v.verse} ${v.text}` : v.text);
+          return String(v);
+        })
+        .join('\n');
+      return {
+        title: ch.title || ch.name || (ch.chapter ? `第${ch.chapter}章` : '章节'),
+        content: textContent,
+        number: ch.number || ch.chapter || 1
+      };
+    }
+    
+    // 2. 尝试 content/text 字段
+    if (ch.content || ch.text) {
+      return {
+        title: ch.title || ch.name || ch.chapter || '章节',
+        content: String(ch.content || ch.text),
+        number: ch.number || ch.chapter || 1
+      };
+    }
+    
+    // 3. 尝试 entries 格式 {key: content}
+    if (!Array.isArray(ch) && typeof ch === 'object') {
+      const keys = Object.keys(ch).filter(k => !['title', 'name', 'chapter', 'number'].includes(k));
+      if (keys.length > 0 && typeof ch[keys[0]] === 'string') {
+        const combined = keys.map(k => {
+          const val = ch[k];
+          if (typeof val === 'string') return val;
+          if (Array.isArray(val)) return val.join('\n');
+          return String(val);
+        }).join('\n');
+        return {
+          title: ch.title || ch.name || ch.chapter || keys[0],
+          content: combined,
+          number: ch.number || 1
+        };
+      }
+    }
+    
+    // 4. 如果章节本身是字符串
+    if (typeof ch === 'string') {
+      return { title: '章节', content: ch, number: 1 };
+    }
+    
+    // 5. 递归处理嵌套对象
+    const { contentKey } = smartIdentifyFields(ch);
+    for (const key of contentKey) {
+      const val = ch[key];
+      if (typeof val === 'string') {
+        return {
+          title: ch.title || ch.name || ch.chapter || key,
+          content: val,
+          number: ch.number || ch.chapter || 1
+        };
+      }
+      if (Array.isArray(val)) {
+        // 递归处理数组
+        const processed = val.map((item: any, idx: number) => smartExtractContent(item));
+        if (processed.length > 0 && processed[0].content) {
+          return {
+            title: ch.title || ch.name || ch.chapter || '章节',
+            content: processed.map(p => p.content).join('\n'),
+            number: ch.number || 1
+          };
+        }
+      }
+    }
+    
+    return { title: '章节', content: '', number: ch.number || 1 };
+  }
+  
+  // 智能处理一本书
+  function smartParseBook(item: any, index: number): any {
+    const { titleKey, chapterKey } = smartIdentifyFields(item);
+    const title = titleKey ? String(item[titleKey]) : (`书籍${index + 1}`);
+    
+    // 处理章节数组
+    if (chapterKey && Array.isArray(item[chapterKey])) {
+      const chapters = item[chapterKey]
+        .map((ch: any, ci: number) => {
+          const extracted = smartExtractContent(ch);
+          return {
+            title: extracted.title || `第${ci + 1}章`,
+            content: extracted.content,
+            number: extracted.number || (ci + 1)
+          };
+        })
+        .filter((ch: any) => ch.content && ch.content.length > 0);
+      
+      return {
+        title,
+        religion: item.religion || item.faith || '',
+        category: item.category || item.type || '经典',
+        description: item.description || item.summary || item.intro || '',
+        chapters
+      };
+    }
+    
+    // 处理纯文本数组（如 ["章节1内容", "章节2内容"]）
+    if (Array.isArray(item)) {
+      const chapters = item
+        .map((str: any, ci: number) => {
+          if (typeof str === 'string') {
+            return { title: `第${ci + 1}章`, content: str, number: ci + 1 };
+          }
+          if (typeof str === 'object') {
+            const extracted = smartExtractContent(str);
+            return {
+              title: extracted.title || `第${ci + 1}章`,
+              content: extracted.content,
+              number: extracted.number || (ci + 1)
+            };
+          }
+          return null;
+        })
+        .filter((ch: any) => ch && ch.content);
+      
+      return { title, religion: '', category: '经典', description: '', chapters };
+    }
+    
+    // 处理 entries 格式
+    const otherKeys = Object.keys(item).filter(k => 
+      !['title', 'name', 'book', 'religion', 'category', 'description', 'chapters', 'sections', 'content'].includes(k)
+    );
+    
+    if (otherKeys.length > 0) {
+      const chapters: any[] = [];
+      for (const key of otherKeys) {
+        const val = item[key];
+        if (typeof val === 'string' && val.trim()) {
+          chapters.push({ title: key, content: val.trim(), number: chapters.length + 1 });
+        } else if (Array.isArray(val)) {
+          const combined = val.map(v => typeof v === 'string' ? v : JSON.stringify(v)).join('\n');
+          if (combined.trim()) {
+            chapters.push({ title: key, content: combined.trim(), number: chapters.length + 1 });
+          }
+        } else if (typeof val === 'object' && val !== null) {
+          const extracted = smartExtractContent(val);
+          if (extracted.content) {
+            chapters.push({ 
+              title: key, 
+              content: extracted.content, 
+              number: chapters.length + 1 
+            });
+          }
+        }
+      }
+      
+      if (chapters.length > 0) {
+        return {
+          title,
+          religion: item.religion || '',
+          category: item.category || '经典',
+          description: item.description || '',
+          chapters
+        };
+      }
+    }
+    
+    // 单本书，整体内容作为一章
+    const wholeContent = Object.values(item)
+      .filter(v => typeof v === 'string' && v.trim())
+      .join('\n');
+    
+    if (wholeContent) {
+      return {
+        title,
+        religion: item.religion || '',
+        category: item.category || '经典',
+        description: item.description || '',
+        chapters: [{ title, content: wholeContent, number: 1 }]
+      };
+    }
+    
+    return { title, religion: '', category: '经典', description: '', chapters: [] };
+  }
+  
+  // 检测文本章节标记
+  function detectChapterMarker(line: string): { isChapter: boolean; marker: string; chapterNum: number } {
+    const markers = [
+      // 中文章节
+      { pattern: /^第\s*([一二三四五六七八九十百千万零两\d]+)\s*[章节篇卷集部]\s*[:：\s]*(.*)$/, type: 'cn' },
+      { pattern: /^第\s*([一二三四五六七八九十百千万零两\d]+)\s*[章节篇卷集部]$/, type: 'cn' },
+      // 英文章节
+      { pattern: /^(Chapter|Section|Part)\s+(\d+)\s*[:\s]*(.*)$/i, type: 'en' },
+      { pattern: /^(Chapter|Section|Part)\s+(\d+)$/i, type: 'en' },
+      // 数字编号
+      { pattern: /^(\d+)\s*[\.、:：]\s*(.*)$/, type: 'num' },
+      { pattern: /^\[(\d+)\]\s*(.*)$/, type: 'bracket' },
+      // 日期格式（荒漠甘泉等灵修材料）
+      { pattern: /^(\d{1,2})[月\-/](\d{1,2})[日\s:：]*(.*)$/, type: 'date' },
+      // 自定义分隔
+      { pattern: /^[-=*_]{3,}$/, type: 'divider' },
+    ];
+    
+    for (const m of markers) {
+      const match = line.trim().match(m.pattern);
+      if (match) {
+        if (m.type === 'divider') {
+          return { isChapter: true, marker: '---', chapterNum: -1 };
+        }
+        let chapterNum = 1;
+        if (m.type === 'cn') {
+          const cnNum = match[1];
+          const cnMap: Record<string, number> = {
+            '一': 1, '二': 2, '三': 3, '四': 4, '五': 5,
+            '六': 6, '七': 7, '八': 8, '九': 9, '十': 10,
+            '零': 0, '两': 2, '百': 100, '千': 1000, '万': 10000
+          };
+          // 简化处理
+          if (/^\d+$/.test(cnNum)) {
+            chapterNum = parseInt(cnNum);
+          } else {
+            chapterNum = cnMap[cnNum] || parseInt(cnNum) || 1;
+          }
+        } else if (m.type === 'en' || m.type === 'num' || m.type === 'bracket') {
+          chapterNum = parseInt(match[2] || match[1]);
+        } else if (m.type === 'date') {
+          chapterNum = parseInt(match[1]) * 100 + parseInt(match[2]);
+        }
+        return { isChapter: true, marker: match[0], chapterNum };
+      }
+    }
+    
+    return { isChapter: false, marker: '', chapterNum: 0 };
+  }
+  
+  // 智能文本解析
+  function smartParseText(text: string): any[] {
+    const lines = text.split('\n').filter(l => l.trim() || l === '');
+    const books: any[] = [];
+    let currentBook: any = null;
+    let currentChapter: any = null;
+    
+    for (const line of lines) {
+      const trimmed = line.trim();
+      const { isChapter, marker, chapterNum } = detectChapterMarker(line);
+      
+      if (isChapter) {
+        // 保存上一章
+        if (currentChapter && currentChapter.content.trim()) {
+          currentChapter.content = currentChapter.content.trim();
+          currentBook.chapters.push(currentChapter);
+        }
+        
+        // 检测是否是新书开始（通过分隔符或连续的高编号章节）
+        if (marker === '---' || (currentBook && currentBook.chapters.length === 0 && chapterNum === 1 && currentChapter === null)) {
+          if (currentBook && currentBook.chapters.length > 0) {
+            books.push(currentBook);
+          }
+          currentBook = {
+            title: trimmed || '书籍',
+            chapters: [],
+            religion: '',
+            category: '经典',
+            description: ''
+          };
+          currentChapter = null;
+        } else if (!currentBook) {
+          currentBook = {
+            title: trimmed || '书籍',
+            chapters: [],
+            religion: '',
+            category: '经典',
+            description: ''
+          };
+          currentChapter = null;
+        } else {
+          // 新章节
+          currentChapter = {
+            title: trimmed || `第${chapterNum}章`,
+            content: '',
+            number: currentBook.chapters.length + 1
+          };
+        }
+      } else if (trimmed) {
+        // 内容行
+        if (!currentBook) {
+          currentBook = {
+            title: trimmed.substring(0, 50) || '书籍',
+            chapters: [],
+            religion: '',
+            category: '经典',
+            description: ''
+          };
+          currentChapter = {
+            title: '第一章',
+            content: trimmed + '\n',
+            number: 1
+          };
+        } else if (!currentChapter) {
+          // 书名后的第一段内容
+          currentChapter = {
+            title: currentBook.title,
+            content: trimmed + '\n',
+            number: 1
+          };
+        } else {
+          currentChapter.content += trimmed + '\n';
+        }
+      }
+    }
+    
+    // 保存最后章节
+    if (currentChapter && currentChapter.content.trim()) {
+      currentChapter.content = currentChapter.content.trim();
+      if (currentBook) {
+        currentBook.chapters.push(currentChapter);
+      }
+    }
+    
+    if (currentBook) {
+      books.push(currentBook);
+    }
+    
+    // 如果没有检测到章节，按固定字数自动分章
+    if (books.length === 0) {
+      const CHUNK_SIZE = 3000; // 每章3000字
+      const chunks: string[] = [];
+      let currentChunk = '';
+      
+      for (const line of lines) {
+        if (currentChunk.length + line.length > CHUNK_SIZE && currentChunk.length > 0) {
+          chunks.push(currentChunk.trim());
+          currentChunk = line;
+        } else {
+          currentChunk += '\n' + line;
+        }
+      }
+      if (currentChunk.trim()) {
+        chunks.push(currentChunk.trim());
+      }
+      
+      if (chunks.length > 0) {
+        books.push({
+          title: '书籍',
+          chapters: chunks.map((c, i) => ({
+            title: `第${i + 1}章`,
+            content: c,
+            number: i + 1
+          })),
+          religion: '',
+          category: '经典',
+          description: ''
+        });
+      }
+    }
+    
+    return books;
+  }
+  
+  // 解析数据 - 智能入口
   function parseContent(text: string): any[] {
     const trimmed = text.trim();
     if (!trimmed) return [];
     
-    // 1. JSON 格式
+    // 1. 先尝试 JSON 解析
     if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
       try {
         const data = JSON.parse(trimmed);
         
-        // 处理数组
+        // 处理数组格式 [{...}, {...}]
         if (Array.isArray(data)) {
-          return data.map((item: any, i: number) => {
-            const title = item.title || item.name || item.book || ('书籍' + (i + 1));
-            const chapters = (item.chapters || item.sections || []).map((ch: any, ci: number) => ({
-              title: ch.title || ch.name || ('第' + (ci + 1) + '章'),
-              content: String(ch.content || ch.text || ''),
-              number: ci + 1
-            }));
-            return { title, religion: item.religion || '', category: item.category || '经典', description: item.description || '', chapters };
-          });
+          return data.map((item, i) => smartParseBook(item, i)).filter((b: any) => b.chapters && b.chapters.length > 0);
         }
         
-        // 处理 {books: [...]} 格式
-        if (data.books && Array.isArray(data.books)) {
-          return parseContent(JSON.stringify(data.books));
-        }
-        
-        // 处理单个对象
-        if (data.title || data.name) {
-          return [{
-            title: data.title || data.name,
-            religion: data.religion || '',
-            category: data.category || '经典',
-            description: data.description || '',
-            chapters: (data.chapters || data.sections || []).map((ch: any, ci: number) => ({
-              title: ch.title || ch.name || ('第' + (ci + 1) + '章'),
-              content: String(ch.content || ch.text || ''),
-              number: ci + 1
-            }))
-          }];
-        }
-      } catch (e) {
-        // JSON 解析失败
-      }
-    }
-    
-    const lines = trimmed.split('\n');
-    
-    // 2. Markdown 格式 - 检测 # 标题
-    if (trimmed.indexOf('# ') >= 0) {
-      const books: any[] = [];
-      const parts = trimmed.split(/(?=^# )/m);
-      
-      for (const part of parts) {
-        const partLines = part.trim().split('\n');
-        if (partLines.length > 0 && partLines[0].startsWith('# ')) {
-          const title = partLines[0].substring(2).trim();
-          const content = partLines.slice(1).join('\n').trim();
-          if (title) {
-            books.push({
-              title,
-              religion: '',
-              category: '经典',
-              description: '',
-              chapters: content ? [{ title, content, number: 1 }] : []
-            });
-          }
-        }
-      }
-      
-      if (books.length > 0) return books;
-    }
-    
-    // 3. TXT 格式 - "第X章" 作为同一本书的多个章节
-    // 检测是否有章节标记
-    const hasChapterMarkers = /第[一二三四五六七八九十百千万\d零两]+[章节]/.test(trimmed);
-    
-    if (hasChapterMarkers) {
-      const chapters: any[] = [];
-      let currentChapter = { title: '', content: [] as string[] };
-      
-      for (const line of lines) {
-        const t = line.trim();
-        
-        // 检测章节标题行
-        const isChapterStart = /^第[一二三四五六七八九十百千万\d零两]+[章节][：:\s]*/.test(t) ||
-                               /^第[一二三四五六七八九十百千万\d零两]+[章节]$/.test(t) ||
-                               /^Chapter\s+\d+/i.test(t) ||
-                               /^[一二三四五六七八九十百千万\d零两]+[章节][：:\s]*/.test(t);
-        
-        if (isChapterStart) {
-          // 保存上一章
-          if (currentChapter.title && currentChapter.content.length > 0) {
-            chapters.push({
-              title: currentChapter.title,
-              content: currentChapter.content.join('\n').trim(),
-              number: chapters.length + 1
-            });
-          }
-          // 开始新章节
-          currentChapter = { title: t, content: [] };
-        } else if (currentChapter.title) {
-          // 章节内容
-          if (t) {
-            currentChapter.content.push(t);
-          }
-        } else if (!currentChapter.title && t) {
-          // 在第一章开始之前的内容，可能是书名
-          currentChapter.title = t.substring(0, 50) || '第一章';
-          currentChapter.content = [];
-        }
-      }
-      
-      // 保存最后一章
-      if (currentChapter.title && currentChapter.content.length > 0) {
-        chapters.push({
-          title: currentChapter.title,
-          content: currentChapter.content.join('\n').trim(),
-          number: chapters.length + 1
-        });
-      }
-      
-      // 如果没有找到章节，但有书名
-      if (chapters.length === 0) {
-        const firstLine = lines.find(l => l.trim()) || '';
-        chapters.push({
-          title: firstLine.substring(0, 50) || '未命名',
-          content: trimmed,
-          number: 1
-        });
-      }
-      
-      // 合并为一本书
-      const bookTitle = chapters[0]?.title || '书籍';
-      return [{
-        title: bookTitle,
-        religion: '',
-        category: '经典',
-        description: '',
-        chapters: chapters
-      }];
-    }
-    
-    // 4. CSV 格式
-    if (trimmed.indexOf(',') >= 0) {
-      const firstLine = lines[0] || '';
-      if (firstLine.split(',').length >= 2) {
-        const books: any[] = [];
-        
-        for (const line of lines) {
-          const cols = line.split(',');
-          if (cols.length >= 2) {
-            const title = cols[0].trim();
-            const content = cols.slice(1).join(',').trim();
-            if (title) {
-              books.push({
-                title,
-                religion: '',
-                category: '经典',
-                description: '',
-                chapters: content ? [{ title, content, number: books.length + 1 }] : []
-              });
+        // 处理 {metadata, books} 或 {info, data} 格式
+        if (typeof data === 'object' && data !== null) {
+          const dataKeys = Object.keys(data);
+          
+          // 查找书籍数组
+          const bookKeys = ['books', 'data', 'items', 'records', 'list', 'contents', 'chapters'];
+          for (const key of bookKeys) {
+            if (data[key] && Array.isArray(data[key])) {
+              return data[key].map((item: any, i: number) => smartParseBook(item, i)).filter((b: any) => b.chapters && b.chapters.length > 0);
             }
           }
-        }
-        
-        if (books.length > 0) return books;
-      }
-    }
-    
-    // 5. HTML 格式
-    if (trimmed.indexOf('<h') >= 0) {
-      const matches = trimmed.match(/<h[1-6][^>]*>([^<]+)<\/h[1-6]>/gi) || [];
-      if (matches.length > 0) {
-        const chapters: any[] = [];
-        
-        for (const match of matches) {
-          const title = match.replace(/<[^>]+>/g, '').trim();
-          if (title) {
-            chapters.push({
-              title,
-              content: title,
-              number: chapters.length + 1
-            });
+          
+          // 查找 metadata 后面的数组
+          const metaKeys = ['metadata', 'info', 'header', 'config'];
+          for (const metaKey of metaKeys) {
+            if (data[metaKey] && typeof data[metaKey] === 'object') {
+              const remaining = { ...data };
+              delete remaining[metaKey];
+              const otherKeys = Object.keys(remaining).filter(k => Array.isArray(remaining[k]));
+              if (otherKeys.length > 0) {
+                return remaining[otherKeys[0]].map((item: any, i: number) => smartParseBook(item, i)).filter((b: any) => b.chapters && b.chapters.length > 0);
+              }
+            }
+          }
+          
+          // 单本书
+          const parsed = smartParseBook(data, 0);
+          if (parsed.chapters && parsed.chapters.length > 0) {
+            return [parsed];
           }
         }
-        
-        if (chapters.length > 0) {
-          return [{
-            title: chapters[0].title,
-            religion: '',
-            category: '经典',
-            description: '',
-            chapters: chapters
-          }];
-        }
+      } catch (e) {
+        // JSON 解析失败，尝试文本解析
       }
     }
     
-    // 6. 纯文本 - 整篇作为一本书
-    const firstLine = trimmed.split('\n')[0] || '';
-    const title = firstLine.substring(0, 50) || '未命名';
-    
-    return [{
-      title,
-      religion: '',
-      category: '经典',
-      description: '',
-      chapters: [{ title, content: trimmed, number: 1 }]
-    }];
+    // 2. 文本解析
+    return smartParseText(trimmed);
   }
   
   // 处理下一步
