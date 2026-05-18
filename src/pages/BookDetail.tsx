@@ -123,6 +123,7 @@ const BookDetail: React.FC = () => {
   const loadedRef = useRef(false);
   const highlightTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+  const chapterTransitionRef = useRef(false); // 用于防止章节切换过程中重复触发翻页
   
   const [book, setBook] = useState<Book | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
@@ -160,6 +161,7 @@ const BookDetail: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [pageContent, setPageContent] = useState<string[]>([]);
+  const [isChapterTransitioning, setIsChapterTransitioning] = useState(false); // 章节切换中，用于禁用过渡动画
   const swipeContainerRef = useRef<HTMLDivElement>(null);
 
   // 设置更新函数（带持久化）
@@ -232,9 +234,37 @@ const BookDetail: React.FC = () => {
     root.style.setProperty('--bg-secondary', config.bgSecondary);
   };
 
-  // 初始化阅读主题
+  // 初始化阅读主题（保存原始样式以便退出时恢复）
   useEffect(() => {
+    // 保存原始的 CSS 变量值
+    const originalBgColor = document.documentElement.style.getPropertyValue('--bg-color') || getComputedStyle(document.documentElement).getPropertyValue('--bg-color');
+    const originalTextColor = document.documentElement.style.getPropertyValue('--text-color') || getComputedStyle(document.documentElement).getPropertyValue('--text-color');
+    const originalCardBg = document.documentElement.style.getPropertyValue('--card-bg') || getComputedStyle(document.documentElement).getPropertyValue('--card-bg');
+    const originalBorderColor = document.documentElement.style.getPropertyValue('--border-color') || getComputedStyle(document.documentElement).getPropertyValue('--border-color');
+    const originalIconColor = document.documentElement.style.getPropertyValue('--icon-color') || getComputedStyle(document.documentElement).getPropertyValue('--icon-color');
+    const originalTextSecondary = document.documentElement.style.getPropertyValue('--text-secondary') || getComputedStyle(document.documentElement).getPropertyValue('--text-secondary');
+    const originalBgSecondary = document.documentElement.style.getPropertyValue('--bg-secondary') || getComputedStyle(document.documentElement).getPropertyValue('--bg-secondary');
+    const originalDataTheme = document.documentElement.getAttribute('data-theme');
+    
+    // 应用阅读主题
     applyReaderTheme(readerTheme);
+    
+    // 组件卸载时恢复原始样式
+    return () => {
+      const root = document.documentElement;
+      if (originalBgColor) root.style.setProperty('--bg-color', originalBgColor);
+      if (originalTextColor) root.style.setProperty('--text-color', originalTextColor);
+      if (originalCardBg) root.style.setProperty('--card-bg', originalCardBg);
+      if (originalBorderColor) root.style.setProperty('--border-color', originalBorderColor);
+      if (originalIconColor) root.style.setProperty('--icon-color', originalIconColor);
+      if (originalTextSecondary) root.style.setProperty('--text-secondary', originalTextSecondary);
+      if (originalBgSecondary) root.style.setProperty('--bg-secondary', originalBgSecondary);
+      if (originalDataTheme) {
+        root.setAttribute('data-theme', originalDataTheme);
+      } else {
+        root.removeAttribute('data-theme');
+      }
+    };
   }, []);
 
   // 亮屏模式控制
@@ -613,10 +643,23 @@ const BookDetail: React.FC = () => {
     // 重置分页状态
     setCurrentPage(0);
     setHasReachedBottom(false);
-    // 延迟滚动确保内容已渲染
-    requestAnimationFrame(() => {
-      contentRef.current?.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-    });
+    // 在章节切换时禁用过渡动画，避免看到内容"滑动"过程
+    setIsChapterTransitioning(true);
+    chapterTransitionRef.current = true; // 标记章节切换中
+    // 使用 setTimeout 确保内容已渲染完成后再滚动
+    // requestAnimationFrame 可能在新章节内容渲染完成前执行
+    const timer = setTimeout(() => {
+      if (contentRef.current) {
+        contentRef.current.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      }
+      // 切换完成后恢复过渡动画
+      setIsChapterTransitioning(false);
+      chapterTransitionRef.current = false; // 解除章节切换锁定
+    }, 100); // 增加延迟时间确保内容完全渲染
+    return () => {
+      clearTimeout(timer);
+      chapterTransitionRef.current = false; // cleanup 时也解除锁定
+    };
   }, [currentChapterIndex]);
 
   // 计算swipe模式下的分页内容
@@ -851,6 +894,10 @@ const BookDetail: React.FC = () => {
     
     // 只有水平滑动幅度大于垂直滑动时才处理（防止误触）
     if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+      // 如果正在章节切换中，忽略此次滑动
+      if (chapterTransitionRef.current) {
+        return;
+      }
       if (diffX < 0) {
         // 向左滑 = 翻到下一页（内容向右移动）
         if (currentPage < totalPages - 1) {
@@ -1366,8 +1413,11 @@ const BookDetail: React.FC = () => {
           {/* 分页内容容器 */}
           <div 
             ref={swipeContainerRef}
-            className="h-full transition-transform duration-300 ease-out"
-            style={{ transform: `translateY(-${currentPage * 100}%)` }}
+            className="h-full"
+            style={{ 
+              transform: `translateY(-${currentPage * 100}%)`,
+              transition: isChapterTransitioning ? 'none' : 'transform 300ms ease-out'
+            }}
           >
             {/* 单页内容 */}
             <div className="h-full overflow-hidden">
