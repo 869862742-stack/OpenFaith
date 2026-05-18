@@ -458,30 +458,62 @@ function SmartImportModalInline(props: {
               delete remaining[metaKey];
               const otherKeys = Object.keys(remaining).filter(k => Array.isArray(remaining[k]));
               if (otherKeys.length > 0) {
-                // 获取书名（优先使用 metadata 中的 name/title）
+                // 获取书名（优先使用 metadata 中的 name/title，其次从 description 推断）
                 const meta = data[metaKey];
-                const bookTitle = meta.name || meta.title || meta.bookName || '合集';
+                let bookTitle = meta.name || meta.title || meta.bookName || '';
+                if (!bookTitle && meta.description) {
+                  // 从 description 中提取书名，如 "中文和合本圣经 - 1919年出版" → "中文和合本圣经"
+                  const descMatch = meta.description.match(/^([^-–—]+)/);
+                  if (descMatch) bookTitle = descMatch[1].trim();
+                }
+                if (!bookTitle && meta.abbreviation) {
+                  bookTitle = meta.abbreviation;
+                }
+                if (!bookTitle) bookTitle = '合集';
                 const religion = meta.religion || meta.faith || '';
                 const category = meta.category || meta.type || '经典';
                 const description = meta.description || meta.summary || meta.intro || '';
                 
                 // 收集所有卷的章节
                 const allChapters: any[] = [];
+                let volumeOrder = 1;
                 for (const key of otherKeys) {
                   const items = remaining[key];
                   if (Array.isArray(items)) {
                     items.forEach((item: any, idx: number) => {
                       // 检测卷名：可能是 item.name, item.volume, key 本身
                       const volumeName = item.name || item.volume || key;
-                      const extracted = smartExtractContent(item);
-                      if (extracted.content) {
-                        allChapters.push({
-                          title: extracted.title || `第${idx + 1}章`,
-                          content: extracted.content,
-                          number: extracted.number || (idx + 1),
-                          volume: volumeName
+                      
+                      // 检查 item 是否有 chapters 数组（多卷书格式，如圣经）
+                      if (Array.isArray(item.chapters)) {
+                        // 每个子章节都是一个独立章节
+                        item.chapters.forEach((subCh: any, subIdx: number) => {
+                          const extracted = smartExtractContent(subCh);
+                          // 标题格式：卷名 + 章节号，如 "创世记 第1章"
+                          const chapterTitle = extracted.title || `第${subIdx + 1}章`;
+                          const fullTitle = chapterTitle.includes(volumeName) ? chapterTitle : `${volumeName} ${chapterTitle}`;
+                          allChapters.push({
+                            title: fullTitle,
+                            content: extracted.content,
+                            number: extracted.number || (subIdx + 1),
+                            volume: volumeName,
+                            volumeOrder: volumeOrder
+                          });
                         });
+                      } else {
+                        // 单个章节
+                        const extracted = smartExtractContent(item);
+                        if (extracted.content) {
+                          allChapters.push({
+                            title: extracted.title || `第${idx + 1}章`,
+                            content: extracted.content,
+                            number: extracted.number || (idx + 1),
+                            volume: volumeName,
+                            volumeOrder: volumeOrder
+                          });
+                        }
                       }
+                      volumeOrder++;
                     });
                   }
                 }
@@ -580,8 +612,22 @@ function SmartImportModalInline(props: {
           
           // 导入章节
           if (book.chapters && Array.isArray(book.chapters)) {
-            for (const ch of book.chapters) {
+            // 按 volumeOrder 排序确保正确顺序
+            const sortedChapters = [...book.chapters].sort((a: any, b: any) => {
+              const voA = a.volumeOrder || 0;
+              const voB = b.volumeOrder || 0;
+              if (voA !== voB) return voA - voB;
+              return (a.number || 0) - (b.number || 0);
+            });
+            
+            let globalNumber = 1;
+            for (const ch of sortedChapters) {
               if (!ch.title && !ch.content) continue;
+              
+              // 构造标题：如果有 volumeOrder，标题格式为 "卷名 第X章"
+              let chapterTitle = ch.title || '章节';
+              // volume 存数字序号（排序用），volumeOrder 有值时用 volumeOrder
+              const volumeValue = ch.volumeOrder || ch.volume || null;
               
               await fetch(`${API_BASE}/chapters`, {
                 method: 'POST',
@@ -589,10 +635,10 @@ function SmartImportModalInline(props: {
                 body: JSON.stringify({
                   id: genId(),
                   book_id: bookId,
-                  number: ch.number || 1,
-                  title: ch.title || '章节',
+                  number: globalNumber++,
+                  title: chapterTitle,
                   content: ch.content || '',
-                  volume: ch.volume || null, // 支持 volume 字段
+                  volume: volumeValue,
                   status: 'published'
                 })
               });
