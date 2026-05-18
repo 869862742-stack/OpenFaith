@@ -441,24 +441,16 @@ function SmartImportModalInline(props: {
       try {
         const data = JSON.parse(trimmed);
         
-        // 处理数组格式 [{...}, {...}]
+        // 处理数组格式 [{...}, {...}] - 多本独立书
         if (Array.isArray(data)) {
           return data.map((item, i) => smartParseBook(item, i)).filter((b: any) => b.chapters && b.chapters.length > 0);
         }
         
-        // 处理 {metadata, books} 或 {info, data} 格式
+        // 处理 {metadata, books} 或 {info, data} 格式 - 多卷书自动合成
         if (typeof data === 'object' && data !== null) {
           const dataKeys = Object.keys(data);
           
-          // 查找书籍数组
-          const bookKeys = ['books', 'data', 'items', 'records', 'list', 'contents', 'chapters'];
-          for (const key of bookKeys) {
-            if (data[key] && Array.isArray(data[key])) {
-              return data[key].map((item: any, i: number) => smartParseBook(item, i)).filter((b: any) => b.chapters && b.chapters.length > 0);
-            }
-          }
-          
-          // 查找 metadata 后面的数组
+          // 检查是否是 metadata + books 格式（多卷书）
           const metaKeys = ['metadata', 'info', 'header', 'config'];
           for (const metaKey of metaKeys) {
             if (data[metaKey] && typeof data[metaKey] === 'object') {
@@ -466,8 +458,54 @@ function SmartImportModalInline(props: {
               delete remaining[metaKey];
               const otherKeys = Object.keys(remaining).filter(k => Array.isArray(remaining[k]));
               if (otherKeys.length > 0) {
-                return remaining[otherKeys[0]].map((item: any, i: number) => smartParseBook(item, i)).filter((b: any) => b.chapters && b.chapters.length > 0);
+                // 获取书名（优先使用 metadata 中的 name/title）
+                const meta = data[metaKey];
+                const bookTitle = meta.name || meta.title || meta.bookName || '合集';
+                const religion = meta.religion || meta.faith || '';
+                const category = meta.category || meta.type || '经典';
+                const description = meta.description || meta.summary || meta.intro || '';
+                
+                // 收集所有卷的章节
+                const allChapters: any[] = [];
+                for (const key of otherKeys) {
+                  const items = remaining[key];
+                  if (Array.isArray(items)) {
+                    items.forEach((item: any, idx: number) => {
+                      // 检测卷名：可能是 item.name, item.volume, key 本身
+                      const volumeName = item.name || item.volume || key;
+                      const extracted = smartExtractContent(item);
+                      if (extracted.content) {
+                        allChapters.push({
+                          title: extracted.title || `第${idx + 1}章`,
+                          content: extracted.content,
+                          number: extracted.number || (idx + 1),
+                          volume: volumeName
+                        });
+                      }
+                    });
+                  }
+                }
+                
+                if (allChapters.length > 0) {
+                  // 返回多卷合一的一本书
+                  return [{
+                    isMultiVolume: true,
+                    title: bookTitle,
+                    religion: religion,
+                    category: category,
+                    description: description,
+                    chapters: allChapters
+                  }];
+                }
               }
+            }
+          }
+          
+          // 查找书籍数组 - 多本独立书
+          const bookKeys = ['books', 'data', 'items', 'records', 'list', 'contents', 'chapters'];
+          for (const key of bookKeys) {
+            if (data[key] && Array.isArray(data[key])) {
+              return data[key].map((item: any, i: number) => smartParseBook(item, i)).filter((b: any) => b.chapters && b.chapters.length > 0);
             }
           }
           
@@ -554,6 +592,7 @@ function SmartImportModalInline(props: {
                   number: ch.number || 1,
                   title: ch.title || '章节',
                   content: ch.content || '',
+                  volume: ch.volume || null, // 支持 volume 字段
                   status: 'published'
                 })
               });
