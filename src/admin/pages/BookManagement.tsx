@@ -629,7 +629,7 @@ export default function BookManagement() {
     setLoading(true);
     try {
       const [booksRes, chaptersRes, groupsRes] = await Promise.all([
-        fetch(`${API_BASE}/books?select=*&order=created_at.desc`, { headers: authHeaders }),
+        fetch(`${API_BASE}/books?select=*&order=sort_order.asc,created_at.asc`, { headers: authHeaders }),
         fetch(`${API_BASE}/chapters?select=*&order=number.asc`, { headers: authHeaders }),
         fetch(`${API_BASE}/book_groups?select=*`, { headers: authHeaders }),
       ]);

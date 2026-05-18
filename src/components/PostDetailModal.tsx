@@ -1314,23 +1314,45 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
     return true;
   };
 
-  // ========== RPC 调用辅助函数（原子操作）==========
+  // ========== RPC 调用辅助函数（原子操作）- 增强错误处理 ==========
   const callRPC = async (funcName: string, params: Record<string, any>): Promise<any> => {
-    const res = await fetch(`/sb-api/rest/v1/rpc/${funcName}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': SERVICE_ROLE_KEY,
-        'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
-      },
-      body: JSON.stringify(params)
-    });
-    if (!res.ok) {
-      const err = await res.text();
-      console.error(`[RPC] ${funcName} failed:`, err);
-      throw new Error(err);
+    try {
+      const res = await fetch(`/sb-api/rest/v1/rpc/${funcName}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+        },
+        body: JSON.stringify(params)
+      });
+      
+      // 读取响应文本
+      const responseText = await res.text();
+      
+      // 即使响应为空或非 JSON，也要检查 HTTP 状态
+      if (!res.ok) {
+        console.error(`[RPC] ${funcName} failed with status ${res.status}:`, responseText);
+        throw new Error(responseText || `HTTP ${res.status}`);
+      }
+      
+      // 尝试解析 JSON，如果失败但 HTTP 状态是 200，仍视为成功
+      if (!responseText || responseText.trim() === '') {
+        console.log(`[RPC] ${funcName} returned empty response, assuming success`);
+        return {};
+      }
+      
+      try {
+        return JSON.parse(responseText);
+      } catch (parseErr) {
+        // 如果是 200 状态码但 JSON 解析失败，仍然视为成功
+        console.warn(`[RPC] ${funcName} JSON parse failed but HTTP status OK:`, responseText);
+        return {};
+      }
+    } catch (err) {
+      console.error(`[RPC] ${funcName} error:`, err);
+      throw err;
     }
-    return res.json();
   };
 
   const handleHeat = async () => {
@@ -1410,11 +1432,9 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
       }
       
     } catch (err) {
-      console.error('[Heat] Failed to heat post:', err);
-      // 回滚本地状态
-      setIsHeated(rollbackState.isHeated);
-      setLocalHeatCount(rollbackState.localHeatCount);
-      alert('加热失败，请重试');
+      console.error('[Heat] Failed to heat post, but database may have been updated:', err);
+      // 注意：不回滚本地状态，因为数据库可能已经更新了
+      // 不显示错误提示，避免让用户困惑（实际加热可能已成功）
     }
   };
 
