@@ -1,0 +1,318 @@
+<html><body><pre id="login">
+import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuthStore } from '../stores/auth';
+
+// 默认邮箱域名后缀
+const EMAIL_DOMAIN = 'openfaith.app';
+
+function Login() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const authStore = useAuthStore();
+  const [loginType, setLoginType] = useState<'email' | 'account'>('email');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [resetToken, setResetToken] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [forgotStep, setForgotStep] = useState(1);
+  const [isSendingCode, setIsSendingCode] = useState(false);
+
+  // 将输入转换为邮箱格式
+  const normalizeEmail = (input: string): string => {
+    const trimmed = input.trim();
+    // 如果已经是邮箱格式，直接返回
+    if (trimmed.includes('@')) {
+      return trimmed;
+    }
+    // 否则拼接域名后缀
+    return `${trimmed}@${EMAIL_DOMAIN}`;
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      alert('请填写账号/邮箱和密码');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // 账号登录模式：将输入转为邮箱格式
+      const loginEmail = loginType === 'account' ? normalizeEmail(email) : email;
+      const result = await authStore.login(loginEmail, password);
+      setIsLoading(false);
+
+      if (result.success) {
+        console.log('[Login] 登录成功，跳转首页');
+        // 登录成功后直接跳转到首页
+        window.location.hash = '#/';
+      } else {
+        alert('登录失败：' + result.error);
+      }
+    } catch (err) {
+      setIsLoading(false);
+      alert('登录异常：' + (err as Error).message);
+    }
+  };
+
+  const handleSendResetLink = async () => {
+    if (!forgotEmail) {
+      alert('请输入邮箱');
+      return;
+    }
+    
+    setIsSendingCode(true);
+    try {
+      const response = await fetch('/sb-api/auth/v1/forgot_password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail })
+      });
+      const data = await response.json();
+      
+      setIsSendingCode(false);
+      
+      if (response.ok) {
+        // 演示模式：直接显示重置token
+        if (data.demo_token) {
+          alert(`重置链接已生成（演示模式）\n\n邮箱: ${forgotEmail}\n重置令牌: ${data.demo_token}\n\n请复制上面的令牌，在下方输入完成密码重置。`);
+        } else {
+          alert(data.message || '重置链接已发送到邮箱');
+        }
+        setForgotStep(2);
+      } else {
+        alert('发送失败：' + (data.msg || data.message || '未知错误'));
+      }
+    } catch (err) {
+      setIsSendingCode(false);
+      alert('发送失败：' + (err as Error).message);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetToken || !newPassword) {
+      alert('请填写重置令牌和新密码');
+      return;
+    }
+    
+    if (newPassword.length < 6) {
+      alert('新密码至少需要6位');
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      const response = await fetch('/sb-api/auth/v1/reset_password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email: forgotEmail, 
+          password: newPassword,
+          token: resetToken 
+        })
+      });
+      
+      setIsLoading(false);
+      
+      if (response.ok) {
+        alert('密码重置成功！请使用新密码登录');
+        setShowForgotModal(false);
+        setForgotStep(1);
+        setForgotEmail('');
+        setResetToken('');
+        setNewPassword('');
+      } else {
+        const data = await response.json();
+        alert('重置失败：' + (data.msg || data.message || '未知错误'));
+      }
+    } catch (err) {
+      setIsLoading(false);
+      alert('重置失败：' + (err as Error).message);
+    }
+  };
+
+  const handleClearUsers = async () => {
+    if (!confirm('确定要清除所有用户数据吗？这将删除所有注册账号。')) {
+      return;
+    }
+    
+    try {
+      const response = await fetch('/sb-api/auth/v1/admin/clear_users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (response.ok) {
+        alert('所有用户数据已清除！现在可以重新注册。');
+        setShowForgotModal(false);
+      } else {
+        alert('清除失败');
+      }
+    } catch (err) {
+      alert('清除失败：' + (err as Error).message);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#E11D48] flex items-center justify-center px-6">
+      <div className="w-full max-w-sm bg-white rounded-2xl p-8">
+        <h1 className="text-2xl font-bold text-[#E11D48] text-center mb-8">登录</h1>
+        
+        {/* 登录方式切换 */}
+        <div className="flex mb-6 bg-gray-100 rounded-xl p-1">
+          <button
+            type="button"
+            onClick={() => { setLoginType('email'); setEmail(''); }}
+            className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${
+              loginType === 'email' 
+                ? 'bg-white text-[#E11D48] shadow-sm' 
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            邮箱登录
+          </button>
+          <button
+            type="button"
+            onClick={() => { setLoginType('account'); setEmail(''); }}
+            className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${
+              loginType === 'account' 
+                ? 'bg-white text-[#E11D48] shadow-sm' 
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            账号登录
+          </button>
+        </div>
+        
+        <form onSubmit={handleLogin} className="space-y-5">
+          <div>
+            <label className="block text-sm text-[#1E293B] mb-2">
+              {loginType === 'email' ? '邮箱' : '账号'}
+            </label>
+            <input
+              type={loginType === 'email' ? 'email' : 'text'}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder={loginType === 'email' ? '请输入邮箱...' : '请输入账号...'}
+              className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#E11D48] focus:outline-none"
+            />
+            {loginType === 'account' && (
+              <p className="text-xs text-gray-400 mt-1">
+                自动转换为 {EMAIL_DOMAIN} 邮箱
+              </p>
+            )}
+          </div>
+          
+          <div>
+            <label className="block text-sm text-[#1E293B] mb-2">密码</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="请输入密码..."
+              className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#E11D48] focus:outline-none"
+            />
+          </div>
+          
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full h-12 bg-[#E11D48] text-white rounded-xl font-medium hover:bg-[#C41D3D] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? '登录中...' : '登录'}
+          </button>
+        </form>
+        
+        <div className="mt-6 text-center">
+          <button onClick={() => setShowForgotModal(true)} className="text-sm text-[#1E293B] hover:text-[#E11D48]">忘记密码？</button>
+        </div>
+        
+        <div className="mt-6 pt-6 border-t border-gray-100 text-center">
+          <p className="text-sm text-[#94A3B8] mb-3">还没有账号？</p>
+          <button onClick={() => navigate('/register')} className="text-sm text-[#E11D48] font-medium hover:underline">立即注册</button>
+        </div>
+      </div>
+
+      {showForgotModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => setShowForgotModal(false)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <h2 className="text-xl font-bold text-[#1E293B] mb-6 text-center">
+              {forgotStep === 1 ? '找回密码' : '重置密码'}
+            </h2>
+            
+            <button
+              onClick={handleClearUsers}
+              className="w-full mb-4 py-2 text-xs text-gray-400 hover:text-red-500 border border-gray-200 rounded-lg"
+            >
+              清除所有用户数据（测试用）
+            </button>
+            
+            {forgotStep === 1 ? (
+              <div className="space-y-4">
+                <input
+                  type="email"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  placeholder="请输入注册邮箱"
+                  className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#E11D48] focus:outline-none"
+                />
+                <button
+                  onClick={handleSendResetLink}
+                  disabled={isSendingCode}
+                  className="w-full h-12 bg-[#E11D48] text-white rounded-xl font-medium hover:bg-[#C41D3D] transition-colors disabled:opacity-50"
+                >
+                  {isSendingCode ? '发送中...' : '发送重置链接'}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <input
+                  type="text"
+                  value={resetToken}
+                  onChange={(e) => setResetToken(e.target.value)}
+                  placeholder="请输入重置令牌"
+                  className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#E11D48] focus:outline-none"
+                />
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="请输入新密码（至少6位）"
+                  className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#E11D48] focus:outline-none"
+                />
+                <button
+                  onClick={handleResetPassword}
+                  disabled={isLoading}
+                  className="w-full h-12 bg-[#E11D48] text-white rounded-xl font-medium hover:bg-[#C41D3D] transition-colors disabled:opacity-50"
+                >
+                  {isLoading ? '重置中...' : '确认重置'}
+                </button>
+              </div>
+            )}
+            
+            <button
+              onClick={() => {
+                setShowForgotModal(false);
+                setForgotStep(1);
+                setForgotEmail('');
+                setResetToken('');
+                setNewPassword('');
+              }}
+              className="w-full mt-4 py-2 text-sm text-gray-400 hover:text-gray-600"
+            >
+              取消
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default Login;
+</pre></body></html>

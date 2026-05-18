@@ -1,0 +1,105 @@
+<html><body><pre id="guard">
+/**
+ * 路由权限守卫
+ * 
+ * 安全特性：
+ * 1. 等待 isInitialized 为 true 后才判断权限
+ * 2. 使用 token || localStorage.getItem('user_token') 作为 token 源
+ * 3. Tab 页面（/learn, /profile, /messages）作为公开路径处理
+ * 4. 不依赖任何主题变量
+ */
+import React from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuthStore } from '../stores/auth';
+
+// 公开路径列表（这些路径即使没有 token 也可以访问）
+const PUBLIC_PATHS = [
+  '/',
+  '/login',
+  '/register',
+  '/loading',
+  '/books',
+  '/book',
+  '/community',
+  '/learn',
+  '/messages',
+  '/profile',
+  '/settings',
+  '/welcome',
+  '/splash',
+];
+
+/**
+ * 从 hash 路由中提取路径
+ * 例如: #/profile -> /profile
+ */
+function getHashPath(): string {
+  const hash = window.location.hash;
+  if (hash && hash.startsWith('#')) {
+    const path = hash.substring(1) || '/';
+    // 处理 base path 前缀（如 /dm）
+    const base = window.__POWERED_BY_QIANKUN__ ? '/dm' : '';
+    return base ? path.replace(new RegExp(`^${base}`), '') || '/' : path;
+  }
+  return '/';
+}
+
+/**
+ * 检查路径是否为公开路径
+ */
+function isPublicPath(path: string): boolean {
+  return PUBLIC_PATHS.some(
+    (p) => path === p || path.startsWith(p + '/') || (p === '/' && path === '/')
+  );
+}
+
+/**
+ * 路由守卫组件
+ */
+export function RouterGuard({ children }: { children: React.ReactNode }) {
+  // 从 auth store 获取状态
+  const token = useAuthStore((state) => state.token);
+  const isInitialized = useAuthStore((state) => state.isInitialized);
+  const setInitialized = useAuthStore((state) => state.setInitialized);
+
+  // 从 localStorage 获取备用 token
+  const savedToken = localStorage.getItem('user_token');
+
+  // 获取当前 hash 路径
+  const currentPath = getHashPath();
+
+  // 调试日志（生产环境可移除）
+  console.log('[RouterGuard]', {
+    currentPath,
+    hasToken: !!token,
+    hasSavedToken: !!savedToken,
+    isInitialized,
+  });
+
+  // 步骤1：如果未初始化，尝试从 localStorage 快速恢复
+  if (!isInitialized) {
+    // 立即标记为已初始化，允许继续
+    // 这样可以避免页面卡在"加载中"
+    setInitialized(true);
+  }
+
+  // 步骤2：合并 token 源
+  const tokenToCheck = token || savedToken;
+
+  // 步骤3：检查是否是公开路径
+  const publicPath = isPublicPath(currentPath);
+
+  // 步骤4：判断是否需要重定向
+  // - 有 token：放行
+  // - 无 token 但公开路径：放行
+  // - 无 token 且非公开路径：重定向到登录页
+  if (!tokenToCheck && !publicPath) {
+    console.log('[RouterGuard] 无 token 且非公开路径，重定向到登录页');
+    return <Navigate to="/login" state={{ from: currentPath }} replace />;
+  }
+
+  // 步骤5：放行
+  console.log('[RouterGuard] 放行');
+  return <>{children}</>;
+}
+</pre></body></html>

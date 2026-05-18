@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* 基础字体大小设置 */
+html {
+  font-size: 14px;
+}
+
+html[data-font-size="small"] {
+  font-size: 12px;
+}
+
+html[data-font-size="standard"] {
+  font-size: 14px;
+}
+
+html[data-font-size="large"] {
+  font-size: 16px;
+}
+
+/* 白天模式（默认） */
+:root,
+[data-theme="light"] {
+  --bg-color: #FFFFFF;
+  --text-color: #1E293B;
+  --text-secondary: #64748B;
+  --card-bg: #FFFFFF;
+  --border-color: #E2E8F0;
+  --icon-color: #94A3B8;
+  --primary-color: #E11D48;
+  --secondary-color: #FB7185;
+  --bg-secondary: #F8FAFC;
+}
+
+/* 夜间模式 */
+[data-theme="dark"] {
+  --bg-color: #121212;
+  --text-color: #E2E8F0;
+  --text-secondary: #9CA3AF;
+  --card-bg: #1E1E1E;
+  --border-color: #2D2D2D;
+  --icon-color: #6B7280;
+  --primary-color: #F43F5E;
+  --secondary-color: #FDA4AF;
+  --bg-secondary: #1A1A1A;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* 主题色变量 - 通过JS动态修改 */
+:root {
+  --theme-primary: #E11D48;
+}
+
+/* 使用主题色的元素 */
+.theme-primary {
+  color: var(--theme-primary);
+}
+
+.theme-primary-bg {
+  background-color: var(--theme-primary);
+}
+
+.theme-primary-border {
+  border-color: var(--theme-primary);
+}
+
+.theme-primary-ring {
+  --tw-ring-color: var(--theme-primary);
+}
+
+/* 过渡动画 */
+.theme-transition {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  height: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #1e293b;
+  border-radius: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Splash 入场动画 */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

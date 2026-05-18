@@ -1,0 +1,20 @@
+// 前台应用 - 真实 Supabase 客户端
+// 使用官方 @supabase/supabase-js 连接真实后端
+
+import { createClient } from '@supabase/supabase-js';
+import { Database } from './types';
+
+// 从环境变量读取 Supabase 配置
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '';
+
+// 创建真实 Supabase 客户端
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+  },
+});
+
+// 导出类型
+export type { Database };

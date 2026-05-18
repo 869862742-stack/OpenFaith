@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenFaith 管理后台</title>
+  <style>
+    :root {
+      --primary-color: #C41E3A;
+      --primary-light: rgba(196, 30, 58, 0.1);
+      --error-color: #dc2626;
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8f9fa;
+      --text-primary: #1f2937;
+      --text-secondary: #6b7280;
+      --border-color: #e5e7eb;
+    }
+    [data-theme="dark"] {
+      --primary-color: #ef4444;
+      --primary-light: rgba(239, 68, 68, 0.15);
+      --error-color: #f87171;
+      --bg-primary: #1f2937;
+      --bg-secondary: #111827;
+      --text-primary: #f9fafb;
+      --text-secondary: #9ca3af;
+      --border-color: #374151;
+    }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .login-container {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      width: 400px;
+      max-width: 90%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .logo {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .logo-icon {
+      width: 60px;
+      height: 60px;
+      margin: 0 auto 15px;
+      background: linear-gradient(135deg, #C41E3A 0%, #8B0000 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .logo-icon svg {
+      width: 36px;
+      height: 36px;
+      fill: white;
+    }
+    .logo h1 {
+      font-size: 24px;
+      color: #1a1a2e;
+      margin-bottom: 5px;
+    }
+    .logo p {
+      font-size: 14px;
+      color: #666;
+    }
+    .error-message {
+      background: #fee;
+      border: 1px solid #fcc;
+      color: #c00;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      display: none;
+    }
+    .error-message.show {
+      display: block;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: #333;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+    .form-group input:focus {
+      outline: none;
+      border-color: #C41E3A;
+    }
+    .login-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #C41E3A 0%, #8B0000 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .login-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(196, 30, 58, 0.3);
+    }
+    .login-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .loading {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 2px solid white;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .hint {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 12px;
+      color: #999;
+      line-height: 1.8;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.18L19.18 7 12 10.82 4.82 7 12 4.18zM4 8.82l7 3.5v7.86l-7-3.5V8.82zm9 11.36v-7.86l7-3.5v7.86l-7 3.5z"/></svg>
+      </div>
+      <h1>OpenFaith</h1>
+      <p>管理后台登录</p>
+    </div>
+
+    <div id="errorMessage" class="error-message"></div>
+
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="username">用户名 / 邮箱</label>
+        <input type="text" id="username" placeholder="请输入用户名或邮箱" required autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label for="password">密码</label>
+        <input type="password" id="password" placeholder="请输入密码" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="login-btn" id="loginBtn">
+        <span id="btnText">登录</span>
+      </button>
+    </form>
+
+    <div class="hint">
+      超级管理员账号<br>
+      <strong>邮箱:</strong> 869862742@qq.com<br>
+      <strong>密码:</strong> 123456
+    </div>
+  </div>
+
+  <script>
+    // 初始化管理员数据
+    (function initAdmin() {
+      const profiles = JSON.parse(localStorage.getItem('openfaith_profiles') || '[]');
+      const hasAdmin = profiles.some(p => p.role === 'super_admin');
+      
+      if (!hasAdmin) {
+        profiles.push({
+          id: 'admin_' + Date.now().toString(36),
+          username: 'admin',
+          email: '869862742@qq.com',
+          nickname: '超级管理员',
+          role: 'super_admin',
+          created_at: new Date().toISOString(),
+        });
+        localStorage.setItem('openfaith_profiles', JSON.stringify(profiles));
+      }
+    })();
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const loginBtn = document.getElementById('loginBtn');
+      const btnText = document.getElementById('btnText');
+      const errorMessage = document.getElementById('errorMessage');
+
+      // 显示加载状态
+      loginBtn.disabled = true;
+      btnText.innerHTML = '<span class="loading"></span>登录中...';
+      errorMessage.classList.remove('show');
+
+      try {
+        // 延迟模拟网络请求
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // 获取管理员列表
+        const profiles = JSON.parse(localStorage.getItem('openfaith_profiles') || '[]');
+        const admins = profiles.filter(p => p.role === 'super_admin' || p.role === 'admin');
+        
+        // 查找匹配的管理员
+        const admin = admins.find(a => 
+          (a.email?.toLowerCase() === username.toLowerCase()) || 
+          (a.username?.toLowerCase() === username.toLowerCase())
+        );
+        
+        if (!admin) {
+          throw new Error('管理员不存在');
+        }
+        
+        // 简单密码验证
+        if (password.length < 6) {
+          throw new Error('密码错误');
+        }
+        
+        // 生成 token
+        const token = btoa(JSON.stringify({
+          sub: admin.id,
+          admin_id: admin.role === 'super_admin' ? `super-${admin.id}` : admin.id,
+          email: admin.email,
+          username: admin.username,
+          roles: [admin.role],
+          exp: Date.now() + 7 * 24 * 60 * 60 * 1000,
+        }));
+        
+        // 保存登录状态
+        localStorage.setItem('openfaith_admin_token', token);
+        localStorage.setItem('openfaith_admin_user', JSON.stringify(admin));
+
+        // 跳转到仪表盘
+        window.location.href = 'admin-dashboard.html';
+      } catch (error) {
+        errorMessage.textContent = error.message || '登录失败，请重试';
+        errorMessage.classList.add('show');
+        loginBtn.disabled = false;
+        btnText.textContent = '登录';
+      }
+    });
+
+    // 检查是否已登录
+    const existingToken = localStorage.getItem('openfaith_admin_token');
+    if (existingToken) {
+      try {
+        const tokenData = JSON.parse(atob(existingToken));
+        if (tokenData.admin_id?.startsWith('super-') || tokenData.exp > Date.now()) {
+          window.location.href = 'admin-dashboard.html';
+        }
+      } catch (e) {
+        localStorage.removeItem('openfaith_admin_token');
+      }
+    }
+  </script>
+</body>
+</html>
