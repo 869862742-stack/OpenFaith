@@ -129,6 +129,7 @@ const BookDetail: React.FC = () => {
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
   const [showChapterList, setShowChapterList] = useState(false);
+  const [showVolumeSelector, setShowVolumeSelector] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [loading, setLoading] = useState(true);
   
@@ -661,6 +662,16 @@ const BookDetail: React.FC = () => {
     };
   }, [id, book, currentChapterIndex, chapters]);
 
+  // 选择卷后自动跳到该卷第一章
+  useEffect(() => {
+    if (selectedVolume) {
+      const firstIdx = chapters.findIndex(ch => ch.volume === selectedVolume);
+      if (firstIdx >= 0) {
+        setCurrentChapterIndex(firstIdx);
+      }
+    }
+  }, [selectedVolume, chapters]);
+
   // 章节切换时自动滚动到顶部
   useEffect(() => {
     // 重置分页状态
@@ -771,13 +782,33 @@ const BookDetail: React.FC = () => {
 
   const goToPrevChapter = () => {
     if (currentChapterIndex > 0) {
+      setIsChapterTransitioning(true);
+      chapterTransitionRef.current = true;
       setCurrentChapterIndex(currentChapterIndex - 1);
+      // 强制滚动到顶部
+      setTimeout(() => {
+        if (contentRef.current) {
+          contentRef.current.scrollTop = 0;
+        }
+        setIsChapterTransitioning(false);
+        chapterTransitionRef.current = false;
+      }, 150);
     }
   };
 
   const goToNextChapter = () => {
     if (currentChapterIndex < chapters.length - 1) {
+      setIsChapterTransitioning(true);
+      chapterTransitionRef.current = true;
       setCurrentChapterIndex(currentChapterIndex + 1);
+      // 强制滚动到顶部
+      setTimeout(() => {
+        if (contentRef.current) {
+          contentRef.current.scrollTop = 0;
+        }
+        setIsChapterTransitioning(false);
+        chapterTransitionRef.current = false;
+      }, 150);
     }
   };
 
@@ -1525,25 +1556,6 @@ const BookDetail: React.FC = () => {
             </div>
           ) : (
             <div className="max-w-2xl mx-auto px-6 py-8">
-              {/* 卷选择器 */}
-              {volumes.length > 1 && (
-                <div className="mb-4 flex gap-2 flex-wrap">
-                  {volumes.map(vol => (
-                    <button
-                      key={vol}
-                      onClick={() => setSelectedVolume(vol === selectedVolume ? null : vol)}
-                      className="px-3 py-1 rounded-full text-sm"
-                      style={{
-                        backgroundColor: selectedVolume === vol ? primaryColor : 'var(--bg-secondary)',
-                        color: selectedVolume === vol ? '#fff' : 'var(--text-color)'
-                      }}
-                    >
-                      {volumeNames[vol] || vol}
-                    </button>
-                  ))}
-                </div>
-              )}
-              
               {/* 章节标题 */}
               {currentChapter && (
                 <div className="mb-6">
@@ -1551,8 +1563,8 @@ const BookDetail: React.FC = () => {
                     {currentChapter.title || `第 ${currentChapter.number} 章`}
                   </h2>
                   {currentChapter.volume && volumes.length > 1 && (
-                    <p className="text-sm mt-1" style={{ color: primaryColor }}>
-                      {volumeNames[currentChapter.volume] || currentChapter.volume}
+                    <p className="text-sm mt-1 cursor-pointer" style={{ color: primaryColor }} onClick={() => setShowVolumeSelector(true)}>
+                      {volumeNames[currentChapter.volume] || currentChapter.volume} ▼
                     </p>
                   )}
                 </div>
@@ -1689,6 +1701,39 @@ const BookDetail: React.FC = () => {
             </button>
           </div>
         </footer>
+      )}
+
+      {/* 全屏卷选择器 */}
+      {showVolumeSelector && (
+        <div className="fixed inset-0 z-30" onClick={() => setShowVolumeSelector(false)}>
+          <div className="absolute inset-0 bg-black/30" />
+          <div className="absolute bottom-0 left-0 right-0 max-h-[70vh] rounded-t-2xl overflow-auto" style={{ backgroundColor: 'var(--card-bg)' }} onClick={e => e.stopPropagation()}>
+            <div className="px-4 py-3 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-color)' }}>
+              <h3 className="font-medium" style={{ color: 'var(--text-color)' }}>选择书卷</h3>
+              <button onClick={() => setShowVolumeSelector(false)}>
+                <X className="w-5 h-5" style={{ color: 'var(--icon-color)' }} />
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-2 p-4">
+              {volumes.map(vol => (
+                <button
+                  key={vol}
+                  onClick={() => {
+                    setSelectedVolume(vol);
+                    setShowVolumeSelector(false);
+                  }}
+                  className="px-3 py-3 rounded-lg text-sm"
+                  style={{
+                    backgroundColor: currentChapter?.volume === vol ? primaryColor : 'var(--bg-secondary)',
+                    color: currentChapter?.volume === vol ? '#fff' : 'var(--text-color)'
+                  }}
+                >
+                  {volumeNames[vol] || vol}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* 章节列表侧边栏 */}
