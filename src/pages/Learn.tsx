@@ -546,10 +546,20 @@ function Learn() {
           
           // 直接从 chapters 表获取章节数据并统计每本书的章节数
           try {
-            const chaptersData = await apiRequest('chapters?select=book_id');
-            if (chaptersData && Array.isArray(chaptersData)) {
+            // 分页获取所有章节（Supabase默认只返回1000条，圣经有1189章）
+            const allChapters: any[] = [];
+            let offset = 0;
+            const pageSize = 1000;
+            while (true) {
+              const batch = await apiRequest(`chapters?select=book_id&limit=${pageSize}&offset=${offset}`);
+              if (!batch || !Array.isArray(batch) || batch.length === 0) break;
+              allChapters.push(...batch);
+              if (batch.length < pageSize) break;
+              offset += pageSize;
+            }
+            if (allChapters.length > 0) {
               const countsMap: Record<string, number> = {};
-              for (const chapter of chaptersData) {
+              for (const chapter of allChapters) {
                 const bookId = chapter.book_id;
                 countsMap[bookId] = (countsMap[bookId] || 0) + 1;
               }

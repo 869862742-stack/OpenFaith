@@ -138,6 +138,7 @@ const BookDetail: React.FC = () => {
   const [myBookshelf, setMyBookshelf] = useState<string[]>([]);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [volumes, setVolumes] = useState<string[]>([]);
+  const [volumeNames, setVolumeNames] = useState<Record<string, string>>({}); // volume编号→卷名映射
   const [selectedVolume, setSelectedVolume] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -502,9 +503,22 @@ const BookDetail: React.FC = () => {
           booksInGroup = cachedGroup.books;
           chaptersInGroup = cachedGroup.chapters;
         } else {
-          // 并行获取所有书籍和章节
+          // 并行获取所有书籍和章节（分页获取，支持超过1000章的书籍）
           const bookPromises = allBookIds.map(bookId => apiRequest(`books?id=eq.${bookId}`));
-          const chapterPromises = allBookIds.map(bookId => apiRequest(`chapters?book_id=eq.${bookId}&order=number.asc`));
+          const fetchAllChapters = async (bookId: string) => {
+            const all: any[] = [];
+            let offset = 0;
+            const pageSize = 1000;
+            while (true) {
+              const batch = await apiRequest(`chapters?book_id=eq.${bookId}&order=volume.asc,number.asc&limit=${pageSize}&offset=${offset}`);
+              if (!batch || !Array.isArray(batch) || batch.length === 0) break;
+              all.push(...batch);
+              if (batch.length < pageSize) break;
+              offset += pageSize;
+            }
+            return all;
+          };
+          const chapterPromises = allBookIds.map(bookId => fetchAllChapters(bookId));
           
           const [bookResults, chapterResults] = await Promise.all([
             Promise.all(bookPromises),
@@ -545,13 +559,22 @@ const BookDetail: React.FC = () => {
         const currentBookChapters = chaptersInGroup.filter(ch => ch.book_id === id);
         setChapters(currentBookChapters);
         
-        // 提取卷信息
+        // 提取卷信息（volume编号→卷名映射，从title中提取卷名如"创世记 第1章"→"创世记"）
         const volumeSet = new Set<string>();
+        const nameMap: Record<string, string> = {};
         currentBookChapters.forEach((ch: Chapter) => {
-          if (ch.volume) volumeSet.add(ch.volume);
+          if (ch.volume) {
+            volumeSet.add(ch.volume);
+            if (!nameMap[ch.volume] && ch.title) {
+              // 从title提取卷名，格式如 "创世记 第1章"
+              const match = ch.title.match(/^(.+?)\s*第/);
+              nameMap[ch.volume] = match ? match[1] : ch.volume;
+            }
+          }
         });
-        const volList = Array.from(volumeSet);
+        const volList = Array.from(volumeSet).sort((a, b) => Number(a) - Number(b));
         setVolumes(volList);
+        setVolumeNames(nameMap);
         if (volList.length > 0) setSelectedVolume(volList[0]);
         
         // 恢复阅读进度
@@ -712,8 +735,17 @@ const BookDetail: React.FC = () => {
     setIsDownloading(true);
     try {
       for (const b of groupBooks) {
-        const chaptersData = await apiRequest(`chapters?book_id=eq.${b.id}&order=number.asc`);
-        saveDownloadedBook(b.id, b, chaptersData || []);
+        const all: any[] = [];
+        let offset = 0;
+        const pageSize = 1000;
+        while (true) {
+          const batch = await apiRequest(`chapters?book_id=eq.${b.id}&order=volume.asc,number.asc&limit=${pageSize}&offset=${offset}`);
+          if (!batch || !Array.isArray(batch) || batch.length === 0) break;
+          all.push(...batch);
+          if (batch.length < pageSize) break;
+          offset += pageSize;
+        }
+        saveDownloadedBook(b.id, b, all || []);
       }
       setIsDownloaded(true);
       alert('下载成功！可以离线阅读了');
@@ -1506,7 +1538,7 @@ const BookDetail: React.FC = () => {
                         color: selectedVolume === vol ? '#fff' : 'var(--text-color)'
                       }}
                     >
-                      {vol}
+                      {volumeNames[vol] || vol}
                     </button>
                   ))}
                 </div>
@@ -1520,7 +1552,7 @@ const BookDetail: React.FC = () => {
                   </h2>
                   {currentChapter.volume && volumes.length > 1 && (
                     <p className="text-sm mt-1" style={{ color: primaryColor }}>
-                      {currentChapter.volume}
+                      {volumeNames[currentChapter.volume] || currentChapter.volume}
                     </p>
                   )}
                 </div>
@@ -1734,7 +1766,7 @@ const BookDetail: React.FC = () => {
                         color: selectedVolume === vol ? '#fff' : 'var(--text-color)'
                       }}
                     >
-                      {vol}
+                      {volumeNames[vol] || vol}
                     </button>
                   ))}
                 </div>
@@ -1772,7 +1804,7 @@ const BookDetail: React.FC = () => {
                     </div>
                     {chapter.volume && volumes.length > 1 && (
                       <div className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                        {chapter.volume}
+                        {volumeNames[chapter.volume] || chapter.volume}
                       </div>
                     )}
                   </button>
