@@ -710,10 +710,13 @@ export default function Gongjing() {
   return (
     <div 
       className="min-h-screen pb-8"
-      style={nightModeStyle}
+      style={{
+        background: 'radial-gradient(ellipse at center, #1a1a2e 0%, #0a0a15 100%)',
+        ...nightModeStyle
+      }}
     >
-      {/* 星空背景（静默同行和世界呼吸时刻） */}
-      {activeTab !== 'echo' && (
+      {/* 星空背景 */}
+      {(
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
           {[...Array(30)].map((_, i) => (
             <div
