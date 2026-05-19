@@ -133,7 +133,6 @@ const BookDetail: React.FC = () => {
     
     const tryScroll = () => {
       if (!targetText) return true;
-      console.log('[DBG] scrollToText retry:', retries, 'target:', targetText.substring(0,30), 'window.scrollY:', window.scrollY);
       
       // 方法1：查找data-highlight属性
       const highlightEl = document.querySelector('[data-highlight="true"]');
@@ -142,7 +141,6 @@ const BookDetail: React.FC = () => {
         const windowHeight = window.innerHeight;
         // 计算让元素在窗口垂直居中
         const scrollTarget = elementRect.top + window.scrollY - (windowHeight / 2) + (elementRect.height / 2);
-        console.log('[DBG] 方法1命中! elementRect.top:', elementRect.top, 'scrollTarget:', scrollTarget);
         window.scrollTo({ top: Math.max(0, scrollTarget), behavior: 'smooth' });
         return true;
       }
@@ -155,7 +153,6 @@ const BookDetail: React.FC = () => {
           const windowHeight = window.innerHeight;
           // 计算让元素在窗口垂直居中
           const scrollTarget = elementRect.top + window.scrollY - (windowHeight / 2) + (elementRect.height / 2);
-          console.log('[DBG] 方法2命中! scrollTarget:', scrollTarget, 'text:', p.textContent.substring(0,40));
           window.scrollTo({ top: Math.max(0, scrollTarget), behavior: 'smooth' });
           p.style.backgroundColor = `${primaryColor}20`;
           p.style.transition = 'background-color 0.3s';
@@ -170,7 +167,6 @@ const BookDetail: React.FC = () => {
     const attemptScroll = () => {
       retries++;
       if (!tryScroll() && retries < maxRetries) {
-        console.log('[DBG] scrollToText will retry, retries:', retries);
         setTimeout(attemptScroll, interval);
       }
     };
@@ -787,7 +783,6 @@ const BookDetail: React.FC = () => {
 
   // 章节切换时自动滚动到顶部（如果有高亮跳转则跳过，让scrollToText控制）
   useEffect(() => {
-    console.log('[DBG] 章节切换effect, idx:', currentChapterIndex, 'hlText:', highlightText?.substring(0,20), 'hlChId:', highlightChapterId);
     setCurrentPage(0);
     setHasReachedBottom(false);
     
@@ -805,16 +800,13 @@ const BookDetail: React.FC = () => {
     const scrollToTopAfterRender = () => {
       // 1. 滚动main容器（如果它是滚动容器）
       if (contentRef.current) {
-        console.log('[DBG] scrollTop=0, container before:', contentRef.current.scrollTop, 'window.scrollY:', window.scrollY);
         contentRef.current.scrollTop = 0;
         contentRef.current.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
-        console.log('[DBG] scrollTop=0, container after:', contentRef.current.scrollTop);
       }
       // 2. 同时滚动window（实际滚动发生在window上）
       window.scrollTo({ top: 0, behavior: 'instant' });
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
-      console.log('[DBG] scrollTop=0, window after:', window.scrollY);
     };
     
     // 立即尝试
@@ -925,24 +917,20 @@ const BookDetail: React.FC = () => {
   };
 
   const goToPrevChapter = () => {
-    console.log('[DBG] goToPrevChapter: currentChapterIndex=', currentChapterIndex, 'chapters.length=', chapters.length);
     if (currentChapterIndex > 0) {
       // 清除高亮状态
       setHighlightChapterId(null);
       setHighlightText('');
       setCurrentChapterIndex(currentChapterIndex - 1);
-      console.log('[DBG] goToPrevChapter: setCurrentChapterIndex to', currentChapterIndex - 1);
     }
   };
 
   const goToNextChapter = () => {
-    console.log('[DBG] goToNextChapter: currentChapterIndex=', currentChapterIndex, 'chapters.length=', chapters.length);
     if (currentChapterIndex < chapters.length - 1) {
       // 清除高亮状态（上一页/下一页不需要高亮）
       setHighlightChapterId(null);
       setHighlightText('');
       setCurrentChapterIndex(currentChapterIndex + 1);
-      console.log('[DBG] goToNextChapter: setCurrentChapterIndex to', currentChapterIndex + 1);
     }
   };
 
@@ -1612,7 +1600,8 @@ const BookDetail: React.FC = () => {
 
       {/* 主内容区 */}
       {pageMode === 'swipe' ? (
-        /* swipe模式：分页显示 */
+        /* swipe模式：水平翻页显示 */
+        
         <main 
           ref={contentRef}
           className="flex-1 relative overflow-hidden"
@@ -1620,27 +1609,33 @@ const BookDetail: React.FC = () => {
           onTouchEnd={handleTouchEnd}
           onContextMenu={handleContextMenu}
         >
-          {/* 分页内容容器 */}
+          {/* 横向分页内容容器 */}
           <div 
             ref={swipeContainerRef}
-            className="h-full"
             style={{ 
-              transform: `translateY(-${currentPage * 100}%)`,
-              transition: isChapterTransitioning ? 'none' : 'transform 300ms ease-out'
+              display: 'flex',
+              width: `${totalPages * 100}%`,
+              transform: `translateX(-${currentPage * (100 / totalPages)}%)`,
+              transition: isChapterTransitioning ? 'none' : 'transform 300ms ease-out',
+              height: '100%'
             }}
           >
-            {/* 单页内容 */}
-            <div className="h-full overflow-hidden">
+            {pageContent.map((page, pageIdx) => (
+            <div key={pageIdx} className="h-full overflow-auto" style={{ width: `${100 / totalPages}%`, flexShrink: 0 }}>
               <div className="max-w-2xl mx-auto px-6 py-8">
-                {currentChapter && (
+                {currentChapter && pageIdx === 0 && (
                   <div className="mb-6">
                     <h2 className="text-xl font-bold" style={{ color: 'var(--text-color)' }}>
                       {currentChapter.title || `第 ${currentChapter.number} 章`}
                     </h2>
+                    {currentChapter.volume && volumes.length > 1 && (
+                      <p className="text-sm mt-1 cursor-pointer" style={{ color: primaryColor }} onClick={() => setShowVolumeSelector(true)}>
+                        {volumeNames[currentChapter.volume] || currentChapter.volume} ▼
+                      </p>
+                    )}
                   </div>
                 )}
                 
-                {/* 分页内容 */}
                 <div
                   className="whitespace-pre-wrap"
                   style={{
@@ -1652,8 +1647,8 @@ const BookDetail: React.FC = () => {
                     WebkitUserSelect: 'text'
                   }}
                 >
-                  {pageContent[currentPage] ? (
-                    pageContent[currentPage].split('\n').map((para, idx) => (
+                  {page ? (
+                    page.split('\n').map((para, idx) => (
                       para.trim() && (
                         <p key={idx} className="mb-4" style={{ textIndent: '2em' }}>
                           {highlightInsightText(para, currentChapterIndex)}
@@ -1666,6 +1661,7 @@ const BookDetail: React.FC = () => {
                 </div>
               </div>
             </div>
+            ))}
           </div>
           
           {/* 页码指示器 */}
@@ -1682,8 +1678,6 @@ const BookDetail: React.FC = () => {
         <main 
           ref={contentRef} 
           className="flex-1 overflow-auto"
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
           onContextMenu={handleContextMenu}
           onScroll={(e) => {
             const el = e.target as HTMLDivElement;
