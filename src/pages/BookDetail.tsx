@@ -133,6 +133,7 @@ const BookDetail: React.FC = () => {
     
     const tryScroll = () => {
       if (!targetText || !contentRef.current) return true;
+      console.log('[DBG] scrollToText retry:', retries, 'target:', targetText.substring(0,30));
       
       // 方法1：查找data-highlight属性
       const highlightEl = document.querySelector('[data-highlight="true"]');
@@ -153,8 +154,8 @@ const BookDetail: React.FC = () => {
           const containerRect = container.getBoundingClientRect();
           const elementRect = p.getBoundingClientRect();
           const scrollTarget = container.scrollTop + elementRect.top - containerRect.top - (containerRect.height / 2) + (elementRect.height / 2);
+          console.log('[DBG] 方法2命中! scrollTarget:', scrollTarget, 'text:', p.textContent.substring(0,40));
           container.scrollTo({ top: Math.max(0, scrollTarget), behavior: 'smooth' });
-          // 同时给这个段落加一个临时高亮
           p.style.backgroundColor = `${primaryColor}20`;
           p.style.transition = 'background-color 0.3s';
           setTimeout(() => { p.style.backgroundColor = ''; }, 5000);
@@ -784,11 +785,10 @@ const BookDetail: React.FC = () => {
 
   // 章节切换时自动滚动到顶部（如果有高亮跳转则跳过，让scrollToText控制）
   useEffect(() => {
-    // 重置分页状态
+    console.log('[DBG] 章节切换effect, idx:', currentChapterIndex, 'hlText:', highlightText?.substring(0,20), 'hlChId:', highlightChapterId);
     setCurrentPage(0);
     setHasReachedBottom(false);
     
-    // 如果有高亮跳转需求，不设scrollTop=0（让scrollToText控制位置）
     if (highlightText && highlightChapterId) {
       setIsChapterTransitioning(false);
       chapterTransitionRef.current = false;
@@ -802,8 +802,10 @@ const BookDetail: React.FC = () => {
     // 多重保障确保内容渲染完后再scrollTop=0
     const scrollToTopAfterRender = () => {
       if (contentRef.current) {
+        console.log('[DBG] scrollTop=0, before:', contentRef.current.scrollTop);
         contentRef.current.scrollTop = 0;
         contentRef.current.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+        console.log('[DBG] scrollTop=0, after:', contentRef.current.scrollTop);
       }
     };
     
