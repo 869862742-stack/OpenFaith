@@ -127,35 +127,36 @@ const BookDetail: React.FC = () => {
   const chapterTransitionRef = useRef(false); // 用于防止章节切换过程中重复触发翻页
 
   // 滚动到高亮位置（带重试）
-  // 查找包含指定文字的段落并居中滚动（不依赖data-highlight属性，更可靠）
+  // 查找包含指定文字的段落并居中滚动（使用window滚动，因为实际滚动发生在window上）
   const scrollToText = (targetText: string, maxRetries: number = 20, interval: number = 200) => {
     let retries = 0;
     
     const tryScroll = () => {
-      if (!targetText || !contentRef.current) return true;
-      console.log('[DBG] scrollToText retry:', retries, 'target:', targetText.substring(0,30));
+      if (!targetText) return true;
+      console.log('[DBG] scrollToText retry:', retries, 'target:', targetText.substring(0,30), 'window.scrollY:', window.scrollY);
       
       // 方法1：查找data-highlight属性
       const highlightEl = document.querySelector('[data-highlight="true"]');
       if (highlightEl) {
-        const container = contentRef.current;
-        const containerRect = container.getBoundingClientRect();
         const elementRect = highlightEl.getBoundingClientRect();
-        const scrollTarget = container.scrollTop + elementRect.top - containerRect.top - (containerRect.height / 2) + (elementRect.height / 2);
-        container.scrollTo({ top: Math.max(0, scrollTarget), behavior: 'smooth' });
+        const windowHeight = window.innerHeight;
+        // 计算让元素在窗口垂直居中
+        const scrollTarget = elementRect.top + window.scrollY - (windowHeight / 2) + (elementRect.height / 2);
+        console.log('[DBG] 方法1命中! elementRect.top:', elementRect.top, 'scrollTarget:', scrollTarget);
+        window.scrollTo({ top: Math.max(0, scrollTarget), behavior: 'smooth' });
         return true;
       }
       
       // 方法2：遍历所有段落，查找包含目标文字的元素
-      const container = contentRef.current;
-      const paragraphs = container.querySelectorAll('p');
+      const paragraphs = document.querySelectorAll('p');
       for (const p of paragraphs) {
         if (p.textContent && p.textContent.includes(targetText)) {
-          const containerRect = container.getBoundingClientRect();
           const elementRect = p.getBoundingClientRect();
-          const scrollTarget = container.scrollTop + elementRect.top - containerRect.top - (containerRect.height / 2) + (elementRect.height / 2);
+          const windowHeight = window.innerHeight;
+          // 计算让元素在窗口垂直居中
+          const scrollTarget = elementRect.top + window.scrollY - (windowHeight / 2) + (elementRect.height / 2);
           console.log('[DBG] 方法2命中! scrollTarget:', scrollTarget, 'text:', p.textContent.substring(0,40));
-          container.scrollTo({ top: Math.max(0, scrollTarget), behavior: 'smooth' });
+          window.scrollTo({ top: Math.max(0, scrollTarget), behavior: 'smooth' });
           p.style.backgroundColor = `${primaryColor}20`;
           p.style.transition = 'background-color 0.3s';
           setTimeout(() => { p.style.backgroundColor = ''; }, 5000);
@@ -169,6 +170,7 @@ const BookDetail: React.FC = () => {
     const attemptScroll = () => {
       retries++;
       if (!tryScroll() && retries < maxRetries) {
+        console.log('[DBG] scrollToText will retry, retries:', retries);
         setTimeout(attemptScroll, interval);
       }
     };
@@ -801,12 +803,18 @@ const BookDetail: React.FC = () => {
     
     // 多重保障确保内容渲染完后再scrollTop=0
     const scrollToTopAfterRender = () => {
+      // 1. 滚动main容器（如果它是滚动容器）
       if (contentRef.current) {
-        console.log('[DBG] scrollTop=0, before:', contentRef.current.scrollTop);
+        console.log('[DBG] scrollTop=0, container before:', contentRef.current.scrollTop, 'window.scrollY:', window.scrollY);
         contentRef.current.scrollTop = 0;
         contentRef.current.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
-        console.log('[DBG] scrollTop=0, after:', contentRef.current.scrollTop);
+        console.log('[DBG] scrollTop=0, container after:', contentRef.current.scrollTop);
       }
+      // 2. 同时滚动window（实际滚动发生在window上）
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      console.log('[DBG] scrollTop=0, window after:', window.scrollY);
     };
     
     // 立即尝试
@@ -917,20 +925,24 @@ const BookDetail: React.FC = () => {
   };
 
   const goToPrevChapter = () => {
+    console.log('[DBG] goToPrevChapter: currentChapterIndex=', currentChapterIndex, 'chapters.length=', chapters.length);
     if (currentChapterIndex > 0) {
       // 清除高亮状态
       setHighlightChapterId(null);
       setHighlightText('');
       setCurrentChapterIndex(currentChapterIndex - 1);
+      console.log('[DBG] goToPrevChapter: setCurrentChapterIndex to', currentChapterIndex - 1);
     }
   };
 
   const goToNextChapter = () => {
+    console.log('[DBG] goToNextChapter: currentChapterIndex=', currentChapterIndex, 'chapters.length=', chapters.length);
     if (currentChapterIndex < chapters.length - 1) {
       // 清除高亮状态（上一页/下一页不需要高亮）
       setHighlightChapterId(null);
       setHighlightText('');
       setCurrentChapterIndex(currentChapterIndex + 1);
+      console.log('[DBG] goToNextChapter: setCurrentChapterIndex to', currentChapterIndex + 1);
     }
   };
 
