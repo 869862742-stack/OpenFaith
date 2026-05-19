@@ -150,13 +150,14 @@ function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-[#3B82F6] flex flex-col items-center justify-center px-6">
+    <div className="min-h-screen bg-[#2563EB] flex flex-col items-center justify-center px-6">
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-white mb-2">OpenFaith</h1>
       </div>
 
-      <div className="w-full max-w-sm bg-white rounded-2xl p-6">
-        <h2 className="text-xl font-semibold text-[#3B82F6] text-center mb-6">注册</h2>
+      <div className="w-full max-w-sm rounded-2xl p-6"
+      style={{ backgroundColor: "rgba(26, 26, 46, 0.8)", border: "1px solid rgba(255,255,255,0.1)" }}>
+        <h2 className="text-xl font-semibold text-[#2563EB] text-center mb-6">注册</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -166,7 +167,7 @@ function Register() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="请输入邮箱..."
-              className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#3B82F6] focus:outline-none"
+              className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#2563EB] focus:outline-none"
             />
           </div>
 
@@ -177,7 +178,7 @@ function Register() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="请输入密码（至少6位）..."
-              className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#3B82F6] focus:outline-none"
+              className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#2563EB] focus:outline-none"
             />
           </div>
 
@@ -188,19 +189,20 @@ function Register() {
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
               placeholder="请输入昵称..."
-              className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#3B82F6] focus:outline-none"
+              className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#2563EB] focus:outline-none"
             />
           </div>
 
           <div>
             <label className="block text-sm text-[#1E293B] mb-1">
-              身份标签 <span className="text-[#3B82F6]">*</span>
+              身份标签 <span className="text-[#2563EB]">*</span>
             </label>
             <div className="relative">
               <button
                 type="button"
                 onClick={() => setShowTagDropdown(!showTagDropdown)}
-                className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#3B82F6] focus:outline-none flex items-center justify-between bg-white"
+                className="w-full h-11 px-4 rounded-xl text-sm focus:border-[#2563EB] focus:outline-none flex items-center justify-between"
+                                    style={{ backgroundColor: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.2)", color: "var(--text-color)" }}
               >
                 <span className={faithTag ? 'text-[#1E293B]' : 'text-gray-400'}>
                   {faithTag || '请选择身份标签...'}
@@ -209,7 +211,8 @@ function Register() {
               </button>
               
               {showTagDropdown && (
-                <div className="absolute top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-lg z-50">
+                <div className="absolute top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-xl shadow-lg z-50"
+                                  style={{ backgroundColor: "rgba(26, 26, 46, 0.95)", border: "1px solid rgba(255,255,255,0.1)" }}>
                   {faithTags.map((tag) => (
                     <button
                       key={tag}
@@ -228,7 +231,7 @@ function Register() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full h-11 bg-[#3B82F6] text-white font-medium rounded-xl mt-2 hover:bg-[#c41a3f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full h-11 bg-[#2563EB] text-white font-medium rounded-xl mt-2 hover:bg-[#c41a3f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? '注册中...' : '注册'}
           </button>
@@ -236,7 +239,7 @@ function Register() {
 
         <div className="mt-6 text-center">
           <p className="text-sm text-[#64748B] mb-2">已有账号？</p>
-          <Link to="/login" className="inline-block px-6 py-2 text-sm text-[#3B82F6] border border-[#3B82F6] rounded-full hover:bg-[#3B82F6] hover:text-white transition-colors">
+          <Link to="/login" className="inline-block px-6 py-2 text-sm text-[#2563EB] border border-[#2563EB] rounded-full hover:bg-[#2563EB] hover:text-white transition-colors">
             立即登录
           </Link>
         </div>

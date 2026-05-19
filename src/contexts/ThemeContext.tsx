@@ -15,7 +15,7 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 const THEME_COLORS: { [key: string]: string } = {
-  default: '#3B82F6',
+  default: '#2563EB',
   forest: '#22C55E',
   lavender: '#8B5CF6',
   rose: '#EC4899',
@@ -30,6 +30,8 @@ const THEME_COLORS: { [key: string]: string } = {
 };
 
 const STORAGE_KEY = 'openfaith-display-settings';
+const THEME_VERSION_KEY = 'openfaith-theme-version';
+const CURRENT_THEME_VERSION = 2; // v2: 星空深色默认
 
 interface StoredSettings {
   themeMode: 'light' | 'dark';
@@ -67,9 +69,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           .maybeSingle();
         
         if (data) {
-          const mode = data.theme_mode || 'dark';
+          // 新版本强制使用星空深色主题
+          const storedVersion = localStorage.getItem(THEME_VERSION_KEY);
+          const mode = storedVersion !== String(CURRENT_THEME_VERSION) ? 'dark' : (data.theme_mode || 'dark');
           const color = data.theme_color || 'default';
           const size = data.font_size || 'standard';
+          
+          // 标记当前主题版本
+          localStorage.setItem(THEME_VERSION_KEY, String(CURRENT_THEME_VERSION));
           
           setThemeModeState(mode);
           setThemeColorState(color);
@@ -81,6 +88,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           // 保存到 localStorage
           const settings: StoredSettings = { themeMode: mode, themeColor: color, fontSize: size };
           localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+          
+          // 如果是新版本强制切换，同步到数据库
+          if (storedVersion !== String(CURRENT_THEME_VERSION)) {
+            supabase
+              .from('profiles')
+              .update({ theme_mode: 'dark' })
+              .eq('id', session.user.id)
+              .then(() => console.log('[Theme] Updated theme_mode to dark for new version'));
+          }
           
           setIsInitialized(true);
           return;

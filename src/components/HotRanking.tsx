@@ -223,7 +223,7 @@ function HotRanking({ onPostClick }: HotRankingProps) {
               >
                 <span
                   className="w-5 h-5 flex items-center justify-center rounded text-xs font-bold text-white"
-                  style={{ backgroundColor: index === 0 ? 'white' : index === 1 ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.6)', color: primaryColor }}
+                  style={{ backgroundColor: index === 0 ? 'rgba(255,255,255,0.9)' : index === 1 ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.5)', color: primaryColor }}
                 >
                   {index + 1}
                 </span>
@@ -278,7 +278,7 @@ function HotRanking({ onPostClick }: HotRankingProps) {
             <div className="p-4 pb-24 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 120px)' }}>
               {loading ? (
                 <div className="text-center py-12">
-                  <div className="w-6 h-6 border-2 border-[#3B82F6] border-t-transparent rounded-full animate-spin mx-auto" />
+                  <div className="w-6 h-6 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin mx-auto" />
                 </div>
               ) : hotPosts.length === 0 ? (
                 <div className="text-center py-12">

@@ -100,13 +100,13 @@ function PublishVideo() {
         <h1 className="text-lg font-bold text-[#1E293B]">发布视频笔记</h1>
         <div className="flex items-center gap-2">
           <button onClick={handleSaveDraft} className="text-sm text-[#64748B]">存草稿</button>
-          <button onClick={handlePublish} className="px-4 py-1.5 bg-[#3B82F6] text-white text-sm rounded-full">发布</button>
+          <button onClick={handlePublish} className="px-4 py-1.5 bg-[#2563EB] text-white text-sm rounded-full">发布</button>
         </div>
       </header>
 
       <div className="p-4 space-y-4">
         <div>
-          <p className="text-sm text-[#64748B] mb-2">视频 <span className="text-[#3B82F6]">*</span></p>
+          <p className="text-sm text-[#64748B] mb-2">视频 <span className="text-[#2563EB]">*</span></p>
           {video ? (
             <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black">
               <video src={video} className="w-full h-full" controls />
@@ -167,13 +167,13 @@ function PublishVideo() {
         </div>
 
         <div>
-          <p className="text-sm text-[#64748B] mb-2">标题 <span className="text-[#3B82F6]">*</span></p>
+          <p className="text-sm text-[#64748B] mb-2">标题 <span className="text-[#2563EB]">*</span></p>
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="填写视频标题..."
-            className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#3B82F6] focus:outline-none"
+            className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#2563EB] focus:outline-none"
           />
         </div>
 
@@ -184,7 +184,7 @@ function PublishVideo() {
             onChange={(e) => setDescription(e.target.value)}
             placeholder="介绍一下你的视频..."
             rows={4}
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:border-[#3B82F6] focus:outline-none resize-none"
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:border-[#2563EB] focus:outline-none resize-none"
           />
         </div>
 
@@ -195,16 +195,16 @@ function PublishVideo() {
             className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm text-[#64748B] flex items-center justify-between"
           >
             <span>{selectedTags.length > 0 ? `已选 ${selectedTags.length} 个标签` : '选择标签'}</span>
-            <span className="text-[#3B82F6]">+</span>
+            <span className="text-[#2563EB]">+</span>
           </button>
           {selectedTags.length > 0 && (
             <div className="flex gap-2 mt-2 flex-wrap">
               {selectedTags.map(tag => (
-                <span key={tag} className="relative px-3 py-1 bg-[#3B82F6]/10 text-[#3B82F6] text-xs rounded-full flex items-center gap-1">
+                <span key={tag} className="relative px-3 py-1 bg-[#2563EB]/10 text-[#2563EB] text-xs rounded-full flex items-center gap-1">
                   {tag}
                   <button 
                     onClick={() => removeTag(tag)}
-                    className="absolute -top-1 -right-1 w-4 h-4 bg-[#3B82F6] rounded-full flex items-center justify-center text-white text-[10px]"
+                    className="absolute -top-1 -right-1 w-4 h-4 bg-[#2563EB] rounded-full flex items-center justify-center text-white text-[10px]"
                   >
                     ×
                   </button>
@@ -239,11 +239,11 @@ function PublishVideo() {
                   value={customTag}
                   onChange={(e) => setCustomTag(e.target.value)}
                   placeholder="添加自定义标签"
-                  className="flex-1 h-10 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#3B82F6] focus:outline-none"
+                  className="flex-1 h-10 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#2563EB] focus:outline-none"
                 />
                 <button
                   onClick={addCustomTag}
-                  className="px-4 h-10 bg-[#3B82F6] text-white rounded-xl text-sm whitespace-nowrap"
+                  className="px-4 h-10 bg-[#2563EB] text-white rounded-xl text-sm whitespace-nowrap"
                 >
                   确定
                 </button>
@@ -259,7 +259,7 @@ function PublishVideo() {
                   className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50"
                 >
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                    selectedTags.includes(tag) ? 'border-[#3B82F6] bg-[#3B82F6]' : 'border-gray-300'
+                    selectedTags.includes(tag) ? 'border-[#2563EB] bg-[#2563EB]' : 'border-gray-300'
                   }`}>
                     {selectedTags.includes(tag) && <div className="w-2 h-2 rounded-full bg-white" />}
                   </div>
@@ -270,7 +270,7 @@ function PublishVideo() {
 
             <button
               onClick={() => setShowTagModal(false)}
-              className="w-full mt-4 py-3 bg-[#3B82F6] text-white rounded-xl font-medium"
+              className="w-full mt-4 py-3 bg-[#2563EB] text-white rounded-xl font-medium"
             >
               确定（已选 {selectedTags.length} 个）
             </button>

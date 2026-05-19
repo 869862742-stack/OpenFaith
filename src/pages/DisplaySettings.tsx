@@ -6,10 +6,10 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabase/client';
 import { useThemeContext } from '../contexts/ThemeContext';
 
-const PRIMARY_COLOR = '#3B82F6';
+const PRIMARY_COLOR = '#2563EB';
 
 const themes = [
-  { id: 'default', name: '星空蓝', color: '#3B82F6', nameKey: 'default' },
+  { id: 'default', name: '星空蓝', color: '#2563EB', nameKey: 'default' },
   { id: 'forest', name: '森林绿', color: '#22C55E', nameKey: 'forest' },
   { id: 'lavender', name: '薰衣草紫', color: '#8B5CF6', nameKey: 'lavender' },
   { id: 'rose', name: '玫瑰粉', color: '#EC4899', nameKey: 'rose' },

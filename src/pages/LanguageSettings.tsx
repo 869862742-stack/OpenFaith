@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { changeLanguage, getCurrentLanguage } from '../i18n';
 
-const PRIMARY_COLOR = '#3B82F6';
+const PRIMARY_COLOR = '#2563EB';
 
 const languages = [
   { id: 'zh-CN', name: '简体中文', nativeName: '简体中文', flag: '🇨🇳' },

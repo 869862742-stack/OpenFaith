@@ -433,7 +433,7 @@ function PublishNote() {
           onClick={handlePublish}
           disabled={isPublishing || !title.trim()}
           className="px-4 py-1.5 rounded-full text-sm font-medium disabled:opacity-50"
-          style={{ backgroundColor: '#3B82F6', color: 'white' }}
+          style={{ backgroundColor: '#2563EB', color: 'white' }}
         >
           {isPublishing ? '发布中...' : '发布'}
         </button>
@@ -510,7 +510,7 @@ function PublishNote() {
             <span
               key={tag}
               className="px-3 py-1 rounded-full text-sm"
-              style={{ backgroundColor: '#3B82F6', color: 'white' }}
+              style={{ backgroundColor: '#2563EB', color: 'white' }}
             >
               #{tag}
               <button
@@ -565,7 +565,7 @@ function PublishNote() {
               <button
                 onClick={addCustomTag}
                 className="px-4 py-2 rounded-lg font-medium"
-                style={{ backgroundColor: '#3B82F6', color: 'white' }}
+                style={{ backgroundColor: '#2563EB', color: 'white' }}
               >
                 添加
               </button>
@@ -581,7 +581,7 @@ function PublishNote() {
                     selectedTags.includes(tag) ? 'text-white' : ''
                   }`}
                   style={{
-                    backgroundColor: selectedTags.includes(tag) ? '#3B82F6' : 'var(--bg-secondary)',
+                    backgroundColor: selectedTags.includes(tag) ? '#2563EB' : 'var(--bg-secondary)',
                     color: selectedTags.includes(tag) ? 'white' : 'var(--text-secondary)',
                   }}
                 >
@@ -593,7 +593,7 @@ function PublishNote() {
             <button
               onClick={() => setShowTagModal(false)}
               className="w-full mt-4 py-3 rounded-xl font-medium"
-              style={{ backgroundColor: '#3B82F6', color: 'white' }}
+              style={{ backgroundColor: '#2563EB', color: 'white' }}
             >
               确定 ({selectedTags.length})
             </button>
@@ -615,8 +615,8 @@ function PublishNote() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* 图标 */}
-            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#3B82F6/10' }}>
-              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="#3B82F6" strokeWidth={2}>
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#2563EB/10' }}>
+              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="#2563EB" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             </div>
@@ -636,7 +636,7 @@ function PublishNote() {
                     setRequestSubmitted(false);
                   }}
                   className="w-full py-3 rounded-xl font-medium"
-                  style={{ backgroundColor: '#3B82F6', color: 'white' }}
+                  style={{ backgroundColor: '#2563EB', color: 'white' }}
                 >
                   我知道了
                 </button>
@@ -657,7 +657,7 @@ function PublishNote() {
                     setRequestReason('');
                   }}
                   className="w-full py-3 rounded-xl font-medium mb-3"
-                  style={{ backgroundColor: '#3B82F6', color: 'white' }}
+                  style={{ backgroundColor: '#2563EB', color: 'white' }}
                 >
                   申请再发一条
                 </button>
@@ -725,7 +725,7 @@ function PublishNote() {
                 onClick={submitNoteRequest}
                 disabled={isSubmittingRequest || !requestReason.trim()}
                 className="flex-1 py-3 rounded-xl font-medium disabled:opacity-50"
-                style={{ backgroundColor: '#3B82F6', color: 'white' }}
+                style={{ backgroundColor: '#2563EB', color: 'white' }}
               >
                 {isSubmittingRequest ? '提交中...' : '提交申请'}
               </button>

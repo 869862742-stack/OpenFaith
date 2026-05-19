@@ -42,7 +42,7 @@ class ErrorBoundary extends Component<Props, State> {
             </p>
             <button
               onClick={this.handleReset}
-              className="px-6 py-2 bg-[#3B82F6] text-white rounded-full text-sm font-medium hover:bg-[#be123c] transition-colors mr-2"
+              className="px-6 py-2 bg-[#2563EB] text-white rounded-full text-sm font-medium hover:bg-[#be123c] transition-colors mr-2"
             >
               重试
             </button>

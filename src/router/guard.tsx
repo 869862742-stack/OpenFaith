@@ -93,7 +93,7 @@ export function RouterGuard({ children }: { children: React.ReactNode }) {
   // 步骤1: 等待初始化
   if (!storeIsInitialized) {
     console.log('[RouterGuard] 等待初始化...');
-    return <div style={{ color: '#3B82F6' }}>加载中...</div>;
+    return <div style={{ color: '#2563EB' }}>加载中...</div>;
   }
 
   // 步骤2: 合并 token

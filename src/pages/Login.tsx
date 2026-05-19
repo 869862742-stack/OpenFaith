@@ -167,19 +167,22 @@ function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[#E11D48] flex items-center justify-center px-6">
-      <div className="w-full max-w-sm bg-white rounded-2xl p-8">
-        <h1 className="text-2xl font-bold text-[#E11D48] text-center mb-8">登录</h1>
+    <div className="min-h-screen flex items-center justify-center px-6"
+      style={{ background: "radial-gradient(ellipse at center, #1a1a2e 0%, #0a0a15 100%)" }}>
+      <div className="w-full max-w-sm rounded-2xl p-8"
+        style={{ backgroundColor: "rgba(26, 26, 46, 0.8)", border: "1px solid rgba(255,255,255,0.1)" }}>
+        <h1 className="text-2xl font-bold text-[#2563EB] text-center mb-8">登录</h1>
         
         {/* 登录方式切换 */}
-        <div className="flex mb-6 bg-gray-100 rounded-xl p-1">
+        <div className="flex mb-6 rounded-xl p-1"
+          style={{ backgroundColor: "rgba(255,255,255,0.1)" }}>
           <button
             type="button"
             onClick={() => { setLoginType('email'); setEmail(''); }}
             className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${
               loginType === 'email' 
-                ? 'bg-white text-[#E11D48] shadow-sm' 
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-[#2563EB] text-white shadow-sm' 
+                : 'text-white/40 hover:text-white/70'
             }`}
           >
             邮箱登录
@@ -189,8 +192,8 @@ function Login() {
             onClick={() => { setLoginType('account'); setEmail(''); }}
             className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${
               loginType === 'account' 
-                ? 'bg-white text-[#E11D48] shadow-sm' 
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-[#2563EB] text-white shadow-sm' 
+                : 'text-white/40 hover:text-white/70'
             }`}
           >
             账号登录
@@ -248,7 +251,8 @@ function Login() {
 
       {showForgotModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => setShowForgotModal(false)}>
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+          <div className="rounded-2xl p-6 w-full max-w-sm"
+          style={{ backgroundColor: "rgba(26, 26, 46, 0.9)", border: "1px solid rgba(255,255,255,0.1)" }} onClick={e => e.stopPropagation()}>
             <h2 className="text-xl font-bold text-[#1E293B] mb-6 text-center">
               {forgotStep === 1 ? '找回密码' : '重置密码'}
             </h2>
