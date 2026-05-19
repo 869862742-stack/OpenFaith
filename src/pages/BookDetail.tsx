@@ -125,7 +125,44 @@ const BookDetail: React.FC = () => {
   const highlightTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const chapterTransitionRef = useRef(false); // 用于防止章节切换过程中重复触发翻页
-  
+
+  // 滚动到高亮位置（带重试）
+  const scrollToHighlightWithRetry = (maxRetries: number = 15, interval: number = 200) => {
+    let retries = 0;
+    const tryScroll = () => {
+      const highlightEl = document.querySelector('[data-highlight="true"]');
+      if (highlightEl) {
+        // 手动计算滚动位置，让高亮元素在容器中垂直居中
+        // scrollIntoView在overflow:auto容器中不可靠，必须手动计算
+        if (contentRef.current) {
+          const container = contentRef.current;
+          const containerRect = container.getBoundingClientRect();
+          const elementRect = highlightEl.getBoundingClientRect();
+          // 计算让元素在容器垂直居中所需的滚动位置
+          const scrollTarget = container.scrollTop + elementRect.top - containerRect.top - (containerRect.height / 2) + (elementRect.height / 2);
+          container.scrollTo({ top: Math.max(0, scrollTarget), behavior: 'smooth' });
+        } else {
+          // fallback: 如果contentRef不存在，用window级别滚动
+          highlightEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        return true;
+      }
+      return false;
+    };
+    
+    const attemptScroll = () => {
+      retries++;
+      if (!tryScroll() && retries < maxRetries) {
+        setTimeout(attemptScroll, interval);
+      }
+    };
+    
+    // 立即尝试一次
+    if (!tryScroll()) {
+      attemptScroll();
+    }
+  };
+
   const [book, setBook] = useState<Book | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
