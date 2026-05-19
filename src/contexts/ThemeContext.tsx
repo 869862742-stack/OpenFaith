@@ -69,9 +69,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           .maybeSingle();
         
         if (data) {
-          // 新版本强制使用星空深色主题
-          const storedVersion = localStorage.getItem(THEME_VERSION_KEY);
-          const mode = storedVersion !== String(CURRENT_THEME_VERSION) ? 'dark' : (data.theme_mode || 'dark');
+          // v2版本：始终强制dark模式（星空深色主题为默认）
+          // 不管数据库存了什么，v2版本默认dark
+          const mode = 'dark';
           const color = data.theme_color || 'default';
           const size = data.font_size || 'standard';
           
@@ -89,13 +89,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           const settings: StoredSettings = { themeMode: mode, themeColor: color, fontSize: size };
           localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
           
-          // 如果是新版本强制切换，同步到数据库
-          if (storedVersion !== String(CURRENT_THEME_VERSION)) {
+          // 如果数据库存的不是dark，同步更新
+          if (data.theme_mode !== 'dark') {
             supabase
               .from('profiles')
               .update({ theme_mode: 'dark' })
               .eq('id', session.user.id)
-              .then(() => console.log('[Theme] Updated theme_mode to dark for new version'));
+              .then(() => console.log('[Theme] Updated theme_mode to dark in database'));
           }
           
           setIsInitialized(true);
@@ -111,35 +111,28 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // 初始化加载 - 默认dark模式，避免白色闪烁
   useEffect(() => {
     // 先强制应用dark模式（HTML已经设了data-theme="dark"）
-    const storedVersion = localStorage.getItem(THEME_VERSION_KEY);
-    const isNewVersion = storedVersion !== String(CURRENT_THEME_VERSION);
+    // v2版本：始终强制dark
     
-    // 如果是新版本，强制dark；否则读取localStorage
+    // v2版本：始终强制dark模式（星空深色主题为默认）
+    // 不再从localStorage读取themeMode，v2默认就是dark
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored && !isNewVersion) {
+    
+    if (stored) {
       try {
         const settings: StoredSettings = JSON.parse(stored);
-        const mode = settings.themeMode || 'dark';
-        const color = settings.themeColor || 'default';
-        const size = settings.fontSize || 'standard';
-        
-        setThemeModeState(mode);
-        setThemeColorState(color);
-        setFontSizeState(size);
-        
-        applyTheme(mode, color, size);
+        // v2只读取颜色和字号，不读themeMode
+        if (settings.themeColor) setThemeColorState(settings.themeColor);
+        if (settings.fontSize) setFontSizeState(settings.fontSize);
+        applyTheme('dark', settings.themeColor || 'default', settings.fontSize || 'standard');
       } catch {
-        console.error('Failed to parse theme settings');
-        // 解析失败时强制dark
         applyTheme('dark', 'default', 'standard');
       }
     } else {
-      // 新版本或无存储，强制dark
-      setThemeModeState('dark');
-      setThemeColorState('default');
       applyTheme('dark', 'default', 'standard');
-      localStorage.setItem(THEME_VERSION_KEY, String(CURRENT_THEME_VERSION));
     }
+    
+    setThemeModeState('dark');
+    localStorage.setItem(THEME_VERSION_KEY, String(CURRENT_THEME_VERSION));
     
     // 从数据库加载（会覆盖 localStorage）
     const timer = setTimeout(() => {
