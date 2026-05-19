@@ -603,9 +603,9 @@ function PrivateChat() {
         }
         // 获取每本书的章节
         const allChapters: ChapterItem[] = [];
-        for (const book of books.slice(0, 10)) {
+        for (const book of books.slice(0, 15)) {
           const chRes = await fetch(
-            `/sb-api/rest/v1/chapters?book_id=eq.${book.id}&select=id,chapter_title,book_id,content&order=chapter_title.asc&limit=20`,
+            `/sb-api/rest/v1/chapters?book_id=eq.${book.id}&select=id,title,number,book_id,content,volume&order=number.asc&limit=50`,
             { headers: { 'apikey': SERVICE_ROLE_KEY, 'Authorization': `Bearer ${SERVICE_ROLE_KEY}` } }
           );
           if (chRes.ok) {
@@ -614,7 +614,7 @@ function PrivateChat() {
               chs.forEach((ch: any) => {
                 allChapters.push({
                   id: ch.id,
-                  chapter_title: ch.chapter_title,
+                  chapter_title: ch.title || `第 ${ch.number} 章`,
                   book_title: book.title,
                   book_id: book.id,
                   content: ch.content || '',
@@ -640,7 +640,7 @@ function PrivateChat() {
     const bubbleData = JSON.stringify({
       text: textPreview,
       source: `${chapter.book_title} · ${chapter.chapter_title}`,
-      link: `/book/${chapter.book_id}/chapter/${chapter.id}`,
+      link: `/book/${chapter.book_id}?chapterId=${chapter.id}&highlight=${encodeURIComponent(textPreview.substring(0, 30))}`,
     });
     handleSendMessage(bubbleData, 'faith_bubble');
     setShowScripturePicker(false);

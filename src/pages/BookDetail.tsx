@@ -1,7 +1,7 @@
 // v3fix - 完整修复所有问题
 /* @sideEffects */
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Bookmark, Menu, X, Sun, Moon, Search, Type, BookOpen, Download, Check, Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useThemeContext } from '../contexts/ThemeContext';
@@ -110,6 +110,7 @@ const saveReaderSettings = (settings: ReaderSettings) => {
 
 const BookDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { primaryColor, isDark, toggleTheme } = useThemeContext();
@@ -331,6 +332,16 @@ const BookDetail: React.FC = () => {
     };
   }, []);
 
+  // 监听 URL search 参数变化，当参数变化时重置 urlParamsProcessed
+  useEffect(() => {
+    const chapterId = searchParams.get('chapterId');
+    const chapterIndex = searchParams.get('chapterIndex');
+    const highlight = searchParams.get('highlight');
+    if ((chapterId || chapterIndex || highlight) && urlParamsProcessed) {
+      setUrlParamsProcessed(false);
+    }
+  }, [searchParams, urlParamsProcessed]);
+
   // 处理 URL 参数中的高亮信息（在 chapters 加载完成后执行）
   useEffect(() => {
     if (chapters.length === 0 || urlParamsProcessed) return;
@@ -352,12 +363,12 @@ const BookDetail: React.FC = () => {
           setHighlightChapterId(chapters[idx].id);
           setHighlightText(decodedHighlight);
           
-          setTimeout(() => {
-            const highlightEl = document.querySelector('[data-highlight="true"]');
-            if (highlightEl) {
-              highlightEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-          }, 500);
+          // 轮询查找高亮元素并居中滚动
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              scrollToHighlightWithRetry(12, 200);
+            });
+          });
           
           if (highlightTimeoutRef.current) {
             clearTimeout(highlightTimeoutRef.current);
@@ -381,22 +392,21 @@ const BookDetail: React.FC = () => {
           setHighlightChapterId(chapterId);
           setHighlightText(decodedHighlight);
           
-          // 延迟滚动到高亮位置，等待内容渲染
-          setTimeout(() => {
-            const highlightEl = document.querySelector('[data-highlight="true"]');
-            if (highlightEl) {
-              highlightEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-          }, 200);
+          // 轮询查找高亮元素并居中滚动
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              scrollToHighlightWithRetry(12, 200);
+            });
+          });
           
-          // 2秒后清除高亮
+          // 5秒后清除高亮
           if (highlightTimeoutRef.current) {
             clearTimeout(highlightTimeoutRef.current);
           }
           highlightTimeoutRef.current = setTimeout(() => {
             setHighlightChapterId(null);
             setHighlightText('');
-          }, 2000);
+          }, 5000);
         }
       }
       
@@ -875,31 +885,28 @@ const BookDetail: React.FC = () => {
       // 同一本书，直接跳转章节
       const chapterIndex = chapters.findIndex(ch => ch.id === result.chapterId);
       if (chapterIndex >= 0) {
+        // 先设置高亮文本，再切换章节
+        setHighlightText(result.matchedText);
+        setHighlightChapterId(result.chapterId);
         setCurrentChapterIndex(chapterIndex);
         
-        // 设置高亮
-        setHighlightChapterId(result.chapterId);
-        setHighlightText(result.matchedText);
+        // 使用 requestAnimationFrame 确保章节内容渲染后再滚动
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            setTimeout(() => {
+              scrollToHighlightWithRetry(12, 200);
+            }, 100);
+          });
+        });
         
-        // 延迟滚动到高亮位置，等待内容渲染
-        setTimeout(() => {
-          const highlightEl = document.querySelector('[data-highlight="true"]');
-          if (highlightEl) {
-            highlightEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          } else {
-            // 如果没找到高亮元素，滚动到章节开头
-            contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-          }
-        }, 100);
-        
-        // 2秒后清除高亮
+        // 5秒后清除高亮
         if (highlightTimeoutRef.current) {
           clearTimeout(highlightTimeoutRef.current);
         }
         highlightTimeoutRef.current = setTimeout(() => {
           setHighlightChapterId(null);
           setHighlightText('');
-        }, 2000);
+        }, 5000);
       }
     } else {
       // 不同书籍，导航到该书籍，传递高亮文本
