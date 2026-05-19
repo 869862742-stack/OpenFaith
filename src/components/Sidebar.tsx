@@ -77,24 +77,30 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
   };
 
   const handleLogout = async () => {
+    if (!confirm('确定要退出登录吗？')) return;
+    
     try {
       await supabase.auth.signOut();
     } catch (e) {
       console.error('SignOut error:', e);
     }
-    // 清理 localStorage 中的认证信息
+    // 清理所有认证相关存储
     try {
       localStorage.removeItem('user_token');
       localStorage.removeItem('sb_auth');
       localStorage.removeItem('user_info');
       localStorage.removeItem('openfaith_admin_token');
       localStorage.removeItem('openfaith_admin_auth');
+      localStorage.removeItem('openfaith_splash_done');
+      localStorage.removeItem('openfaith_last_login');
+      localStorage.removeItem('of_access');
     } catch (e) {
       console.error('LocalStorage cleanup error:', e);
     }
     // 重置 auth store
     useAuthStore.getState().logout();
-    navigate('/login');
+    // 强制跳转到登录页
+    window.location.hash = '#/login';
     onClose();
   };
 

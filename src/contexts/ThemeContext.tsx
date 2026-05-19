@@ -108,10 +108,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setIsInitialized(true);
   }, [applyTheme]);
 
-  // 初始化加载 - 只在首次渲染时执行
+  // 初始化加载 - 默认dark模式，避免白色闪烁
   useEffect(() => {
+    // 先强制应用dark模式（HTML已经设了data-theme="dark"）
+    const storedVersion = localStorage.getItem(THEME_VERSION_KEY);
+    const isNewVersion = storedVersion !== String(CURRENT_THEME_VERSION);
+    
+    // 如果是新版本，强制dark；否则读取localStorage
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
+    if (stored && !isNewVersion) {
       try {
         const settings: StoredSettings = JSON.parse(stored);
         const mode = settings.themeMode || 'dark';
@@ -125,11 +130,18 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         applyTheme(mode, color, size);
       } catch {
         console.error('Failed to parse theme settings');
+        // 解析失败时强制dark
+        applyTheme('dark', 'default', 'standard');
       }
+    } else {
+      // 新版本或无存储，强制dark
+      setThemeModeState('dark');
+      setThemeColorState('default');
+      applyTheme('dark', 'default', 'standard');
+      localStorage.setItem(THEME_VERSION_KEY, String(CURRENT_THEME_VERSION));
     }
     
     // 从数据库加载（会覆盖 localStorage）
-    // 使用 setTimeout 避免阻塞初始渲染
     const timer = setTimeout(() => {
       loadThemeFromDatabase().finally(() => {
         setIsLoading(false);
