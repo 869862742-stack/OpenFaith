@@ -1135,12 +1135,28 @@ const BookDetail: React.FC = () => {
         const [insightText, ...restParts] = part.split('<<<ENDINSIGHT>>>');
         return (
           <React.Fragment key={`insight-${i}`}>
-            <span style={{ 
-              backgroundColor: `${primaryColor}30`,
-              textDecoration: `underline`,
-              textDecorationColor: primaryColor,
-              textUnderlineOffset: '3px'
-            }}>
+            <span 
+              style={{ 
+                backgroundColor: `${primaryColor}30`,
+                textDecoration: `underline`,
+                textDecorationColor: primaryColor,
+                textUnderlineOffset: '3px',
+                cursor: 'pointer'
+              }}
+              onClick={() => {
+                // 找到对应的感悟
+                const note = chapterNotes.find(n => n.content === insightText);
+                if (note) {
+                  // 滚动到感悟笔记
+                  const noteElement = document.getElementById(`note-${note.id}`);
+                  if (noteElement) {
+                    noteElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    noteElement.classList.add('highlight-note');
+                    setTimeout(() => noteElement.classList.remove('highlight-note'), 2000);
+                  }
+                }
+              }}
+            >
               {insightText}
             </span>
             {restParts.join('<<<ENDINSIGHT>>>')}
