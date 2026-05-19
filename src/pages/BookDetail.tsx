@@ -657,6 +657,19 @@ const BookDetail: React.FC = () => {
         const currentBookChapters = chaptersInGroup.filter(ch => ch.book_id === id);
         setChapters(currentBookChapters);
         
+        // 恢复上次的阅读位置
+        try {
+          const saved = localStorage.getItem(`reading_position_${id}`);
+          if (saved) {
+            const pos = JSON.parse(saved);
+            if (pos.chapterIndex >= 0 && pos.chapterIndex < currentBookChapters.length) {
+              setCurrentChapterIndex(pos.chapterIndex);
+            }
+          }
+        } catch (e) {
+          // ignore
+        }
+        
         // 提取卷信息（volume编号→卷名映射，从title中提取卷名如"创世记 第1章"→"创世记"）
         const volumeSet = new Set<string>();
         const nameMap: Record<string, string> = {};
@@ -769,29 +782,50 @@ const BookDetail: React.FC = () => {
     }
   }, [selectedVolume, chapters]);
 
-  // 章节切换时自动滚动到顶部
+  // 章节切换时自动滚动到顶部（如果有高亮跳转则跳过，让scrollToText控制）
   useEffect(() => {
     // 重置分页状态
     setCurrentPage(0);
     setHasReachedBottom(false);
+    
+    // 如果有高亮跳转需求，不设scrollTop=0（让scrollToText控制位置）
+    if (highlightText && highlightChapterId) {
+      setIsChapterTransitioning(false);
+      chapterTransitionRef.current = false;
+      return;
+    }
+    
     // 在章节切换时禁用过渡动画，避免看到内容"滑动"过程
     setIsChapterTransitioning(true);
-    chapterTransitionRef.current = true; // 标记章节切换中
-    // 双重rAF + setTimeout确保内容完全渲染后再滚动
-    const rafId = requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        if (contentRef.current) {
-          contentRef.current.scrollTop = 0;
-        }
+    chapterTransitionRef.current = true;
+    
+    // 多重保障确保内容渲染完后再scrollTop=0
+    const scrollToTopAfterRender = () => {
+      if (contentRef.current) {
+        contentRef.current.scrollTop = 0;
+        contentRef.current.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+      }
+    };
+    
+    // 立即尝试
+    scrollToTopAfterRender();
+    
+    // rAF后再试
+    const rafId1 = requestAnimationFrame(() => {
+      scrollToTopAfterRender();
+      const rafId2 = requestAnimationFrame(() => {
+        scrollToTopAfterRender();
+        // 最终保障：setTimeout后再试
         setTimeout(() => {
-          if (contentRef.current) contentRef.current.scrollTop = 0;
+          scrollToTopAfterRender();
           setIsChapterTransitioning(false);
           chapterTransitionRef.current = false;
-        }, 100);
+        }, 150);
       });
     });
+    
     return () => {
-      cancelAnimationFrame(rafId);
+      cancelAnimationFrame(rafId1);
       chapterTransitionRef.current = false;
     };
   }, [currentChapterIndex]);
@@ -882,48 +916,38 @@ const BookDetail: React.FC = () => {
 
   const goToPrevChapter = () => {
     if (currentChapterIndex > 0) {
-      setIsChapterTransitioning(true);
-      chapterTransitionRef.current = true;
+      // 清除高亮状态
+      setHighlightChapterId(null);
+      setHighlightText('');
       setCurrentChapterIndex(currentChapterIndex - 1);
-      // 双重requestAnimationFrame确保DOM更新后再滚动
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          if (contentRef.current) {
-            contentRef.current.scrollTop = 0;
-          }
-          // 额外保险：延迟再滚一次
-          setTimeout(() => {
-            if (contentRef.current) contentRef.current.scrollTop = 0;
-            setIsChapterTransitioning(false);
-            chapterTransitionRef.current = false;
-          }, 50);
-        });
-      });
     }
   };
 
   const goToNextChapter = () => {
     if (currentChapterIndex < chapters.length - 1) {
-      setIsChapterTransitioning(true);
-      chapterTransitionRef.current = true;
+      // 清除高亮状态（上一页/下一页不需要高亮）
+      setHighlightChapterId(null);
+      setHighlightText('');
       setCurrentChapterIndex(currentChapterIndex + 1);
-      // 双重requestAnimationFrame确保DOM更新后再滚动
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          if (contentRef.current) {
-            contentRef.current.scrollTop = 0;
-          }
-          // 额外保险：延迟再滚一次
-          setTimeout(() => {
-            if (contentRef.current) contentRef.current.scrollTop = 0;
-            setIsChapterTransitioning(false);
-            chapterTransitionRef.current = false;
-          }, 50);
-        });
-      });
     }
   };
 
+
+
+  // 保存阅读位置到localStorage
+  useEffect(() => {
+    if (id && chapters.length > 0 && currentChapterIndex >= 0) {
+      try {
+        localStorage.setItem(`reading_position_${id}`, JSON.stringify({
+          chapterIndex: currentChapterIndex,
+          chapterId: chapters[currentChapterIndex]?.id || '',
+          timestamp: Date.now()
+        }));
+      } catch (e) {
+        // ignore
+      }
+    }
+  }, [id, currentChapterIndex, chapters]);
   const goToChapter = (index: number) => {
     setCurrentChapterIndex(index);
     setShowChapterList(false);
