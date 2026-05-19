@@ -7,7 +7,7 @@ import { cachedFetch } from '../utils/apiCache';
 import RoomList from './RoomList';
 import CreateRoom from './CreateRoom';
 
-const PRIMARY_COLOR = '#E11D48';
+const PRIMARY_COLOR = '#2563EB';
 const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE';
 
 interface Announcement {
@@ -1007,7 +1007,7 @@ function Messages() {
     if (isLoading) {
       return (
         <div className="flex items-center justify-center py-12">
-          <div className="w-6 h-6 border-2 border-[#E11D48] border-t-transparent rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin" />
         </div>
       );
     }
@@ -1113,7 +1113,7 @@ function Messages() {
     if (isLoadingFavorites) {
       return (
         <div className="flex items-center justify-center py-12">
-          <div className="w-6 h-6 border-2 border-[#E11D48] border-t-transparent rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin" />
         </div>
       );
     }
@@ -1204,7 +1204,7 @@ function Messages() {
     if (isLoadingGroups) {
       return (
         <div className="flex items-center justify-center py-12">
-          <div className="w-6 h-6 border-2 border-[#E11D48] border-t-transparent rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin" />
         </div>
       );
     }

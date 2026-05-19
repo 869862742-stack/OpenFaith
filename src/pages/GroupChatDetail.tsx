@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Users, Settings, Share2, UserMinus, UserPlus, Shield, ChevronRight, X, MessageSquare, Bell, BellOff, Flame, Loader2 } from 'lucide-react';
 
-const PRIMARY_COLOR = '#E11D48';
+const PRIMARY_COLOR = '#2563EB';
 const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE';
 
 interface GroupChat {
@@ -212,7 +212,7 @@ function GroupChatDetail() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: bgColor }}>
-        <div className="w-8 h-8 border-3 border-[#E11D48] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-3 border-[#2563EB] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -402,7 +402,7 @@ function GroupChatDetail() {
                 {/* 群主 */}
                 <div className="flex items-center gap-3 p-2 rounded-lg" style={{ backgroundColor: `${PRIMARY_COLOR}08` }}>
                   <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                    <Shield className="w-5 h-5 text-[#E11D48]" />
+                    <Shield className="w-5 h-5 text-[#2563EB]" />
                   </div>
                   <div className="flex-1">
                     <p className="font-medium text-sm" style={{ color: textColor }}>{groupOwner?.username || '群主'}</p>
@@ -464,7 +464,7 @@ function GroupChatDetail() {
             <textarea
               value={announceText}
               onChange={e => setAnnounceText(e.target.value)}
-              className="w-full h-32 p-3 border border-gray-200 rounded-xl text-sm resize-none focus:outline-none focus:border-[#E11D48]"
+              className="w-full h-32 p-3 border border-gray-200 rounded-xl text-sm resize-none focus:outline-none focus:border-[#2563EB]"
               placeholder="输入公告内容..."
               autoFocus
             />

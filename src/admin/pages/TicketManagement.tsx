@@ -261,7 +261,7 @@ export default function TicketManagement() {
                 placeholder="搜索工单主题或内容..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-10 pl-10 pr-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+                className="w-full h-10 pl-10 pr-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
               />
             </div>
           </div>
@@ -273,7 +273,7 @@ export default function TicketManagement() {
                 setStatusFilter(e.target.value);
                 setPage(1);
               }}
-              className="h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+              className="h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
             >
               {statusOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -474,7 +474,7 @@ export default function TicketManagement() {
                   onChange={(e) => setReplyContent(e.target.value)}
                   placeholder="请输入回复内容..."
                   rows={4}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent resize-none"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent resize-none"
                 />
               </div>
 
@@ -483,7 +483,7 @@ export default function TicketManagement() {
                 <button
                   onClick={handleReply}
                   disabled={processing || !replyContent.trim()}
-                  className="flex-1 py-3 bg-[#E11D48] text-white rounded-lg hover:bg-[#C41E3A] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 py-3 bg-[#2563EB] text-white rounded-lg hover:bg-[#C41E3A] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   <Send className="w-5 h-5" />
                   发送回复

@@ -345,7 +345,7 @@ function AnnouncementManagement() {
             resetForm();
             setShowModal(true);
           }}
-          className="flex items-center gap-2 px-4 py-2 bg-[#E11D48] text-white rounded-lg hover:bg-[#C41E3A] transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-[#2563EB] text-white rounded-lg hover:bg-[#C41E3A] transition-colors"
         >
           <Plus className="w-4 h-4" />
           发布公告
@@ -369,7 +369,7 @@ function AnnouncementManagement() {
             placeholder="搜索公告标题或内容..."
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-            className="w-full h-10 pl-10 pr-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+            className="w-full h-10 pl-10 pr-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
           />
         </div>
       </div>
@@ -407,7 +407,7 @@ function AnnouncementManagement() {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       {announcement.is_pinned && (
-                        <Pin className="w-4 h-4 text-[#E11D48]" />
+                        <Pin className="w-4 h-4 text-[#2563EB]" />
                       )}
                       <span className="font-medium text-gray-900">{announcement.title}</span>
                     </div>
@@ -419,7 +419,7 @@ function AnnouncementManagement() {
                     {announcement.target_tags && announcement.target_tags.length > 0 ? (
                       <div className="flex flex-wrap gap-1">
                         {announcement.target_tags.slice(0, 2).map((tag: string) => (
-                          <span key={tag} className="px-1.5 py-0.5 bg-[#E11D48]/10 text-[#E11D48] rounded text-xs">
+                          <span key={tag} className="px-1.5 py-0.5 bg-[#2563EB]/10 text-[#2563EB] rounded text-xs">
                             {tag}
                           </span>
                         ))}
@@ -436,7 +436,7 @@ function AnnouncementManagement() {
                       onClick={() => toggleAnnouncementPin(announcement.id, announcement.is_pinned)}
                       className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors ${
                         announcement.is_pinned 
-                          ? 'bg-[#E11D48]/10 text-[#E11D48] hover:bg-[#E11D48]/20' 
+                          ? 'bg-[#2563EB]/10 text-[#2563EB] hover:bg-[#2563EB]/20' 
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
@@ -540,7 +540,7 @@ function AnnouncementManagement() {
                     type="text"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
                     placeholder="请输入公告标题"
                     required
                   />
@@ -553,7 +553,7 @@ function AnnouncementManagement() {
                     value={formData.content}
                     onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                     rows={6}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent resize-none"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent resize-none"
                     placeholder="请输入公告内容"
                     required
                   />
@@ -564,7 +564,7 @@ function AnnouncementManagement() {
                       type="checkbox"
                       checked={formData.is_pinned}
                       onChange={(e) => setFormData({ ...formData, is_pinned: e.target.checked })}
-                      className="w-4 h-4 rounded border-gray-300 text-[#E11D48] focus:ring-[#E11D48]"
+                      className="w-4 h-4 rounded border-gray-300 text-[#2563EB] focus:ring-[#2563EB]"
                     />
                     <span className="text-sm text-gray-700">置顶公告（显示在列表最前面）</span>
                   </label>
@@ -573,7 +573,7 @@ function AnnouncementManagement() {
                       type="checkbox"
                       checked={formData.is_active}
                       onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                      className="w-4 h-4 rounded border-gray-300 text-[#E11D48] focus:ring-[#E11D48]"
+                      className="w-4 h-4 rounded border-gray-300 text-[#2563EB] focus:ring-[#2563EB]"
                     />
                     <span className="text-sm text-gray-700">启用（前台用户可见）</span>
                   </label>
@@ -589,7 +589,7 @@ function AnnouncementManagement() {
                       onClick={() => setFormData({ ...formData, target_tags: [] })}
                       className={`px-2 py-1 rounded-full text-xs transition-colors ${
                         formData.target_tags.length === 0
-                          ? 'bg-[#E11D48] text-white'
+                          ? 'bg-[#2563EB] text-white'
                           : 'bg-white text-gray-600 hover:bg-gray-100'
                       }`}
                     >
@@ -607,7 +607,7 @@ function AnnouncementManagement() {
                         }}
                         className={`px-2 py-1 rounded-full text-xs transition-colors ${
                           formData.target_tags.includes(tag)
-                            ? 'bg-[#E11D48] text-white'
+                            ? 'bg-[#2563EB] text-white'
                             : 'bg-white text-gray-600 hover:bg-gray-100'
                         }`}
                       >
@@ -631,7 +631,7 @@ function AnnouncementManagement() {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-2 bg-[#E11D48] text-white rounded-lg hover:bg-[#C41E3A] transition-colors"
+                    className="flex-1 py-2 bg-[#2563EB] text-white rounded-lg hover:bg-[#C41E3A] transition-colors"
                   >
                     {editingAnnouncement ? '保存' : '发布'}
                   </button>

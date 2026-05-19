@@ -68,7 +68,7 @@ export function exportAsExcel(data: any[], filename: string): void {
       <style>
         table { border-collapse: collapse; width: 100%; }
         th, td { border: 1px solid #ddd; padding: 8px; }
-        th { background-color: #E11D48; color: white; }
+        th { background-color: #2563EB; color: white; }
         tr:nth-child(even) { background-color: #f9f9f9; }
       </style>
     </head>

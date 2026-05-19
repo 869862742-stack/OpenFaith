@@ -20,7 +20,7 @@ const themes = [
   { id: 'coral', name: '珊瑚粉', color: '#FB7185', nameKey: 'coral' },
   { id: 'indigo', name: '靛青蓝', color: '#6366F1', nameKey: 'indigo' },
   { id: 'amber', name: '琥珀金', color: '#F59E0B', nameKey: 'amber' },
-  { id: 'faith', name: '信仰红', color: '#E11D48', nameKey: 'faith' },
+  { id: 'faith', name: '信仰红', color: '#2563EB', nameKey: 'faith' },
 ];
 
 const fontSizes = [

@@ -3,7 +3,7 @@ import { Crown, Check, X, ArrowLeft, Eye, Pin, Sparkles, Users, Star, Edit3, Hea
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
-const PRIMARY_COLOR = '#E11D48';
+const PRIMARY_COLOR = '#2563EB';
 const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE';
 
 // 权益对比数据

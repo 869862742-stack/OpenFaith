@@ -1372,7 +1372,7 @@ function SilentRoom() {
           <button
             onClick={() => navigate('/')}
             className="px-6 py-2 rounded-full text-white"
-            style={{ backgroundColor: '#E11D48' }}
+            style={{ backgroundColor: '#2563EB' }}
           >
             返回首页
           </button>
@@ -1424,7 +1424,7 @@ function SilentRoom() {
                 animationDelay: `${i * 4}s`,
               }}
             >
-              <div className="w-8 h-8 rounded-full overflow-hidden border-2" style={{ borderColor: '#E11D48' }}>
+              <div className="w-8 h-8 rounded-full overflow-hidden border-2" style={{ borderColor: '#2563EB' }}>
                 <img 
                   src={p.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.user_id}`} 
                   className="w-full h-full object-cover"
@@ -1731,7 +1731,7 @@ function SilentRoom() {
           <button onClick={playPrevious} className="p-1.5 rounded-full hover:bg-white/10 transition-colors">
             <SkipBack className="w-4 h-4 text-white/70" />
           </button>
-          <button onClick={handlePlayPause} className="p-2 rounded-full" style={{ backgroundColor: '#E11D48' }}>
+          <button onClick={handlePlayPause} className="p-2 rounded-full" style={{ backgroundColor: '#2563EB' }}>
             {isPlaying ? <Pause className="w-4 h-4 text-white" /> : <Play className="w-4 h-4 text-white" />}
           </button>
           <button onClick={playNext} className="p-1.5 rounded-full hover:bg-white/10 transition-colors">
@@ -1854,7 +1854,7 @@ function SilentRoom() {
                     onClick={sendSentence}
                     disabled={!sentenceText.trim()}
                     className="h-11 px-5 rounded-full text-sm font-medium text-white disabled:opacity-50"
-                    style={{ backgroundColor: '#E11D48' }}
+                    style={{ backgroundColor: '#2563EB' }}
                   >
                     发送
                   </button>

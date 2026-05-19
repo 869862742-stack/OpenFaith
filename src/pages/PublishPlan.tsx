@@ -68,7 +68,7 @@ function PublishPlan() {
           <ArrowLeft className="w-5 h-5 text-[#1E293B]" />
         </button>
         <h1 className="text-lg font-bold text-[#1E293B]">发起计划</h1>
-        <button onClick={handlePublish} className="px-4 py-1.5 bg-[#E11D48] text-white text-sm rounded-full">发起</button>
+        <button onClick={handlePublish} className="px-4 py-1.5 bg-[#2563EB] text-white text-sm rounded-full">发起</button>
       </header>
 
       <div className="p-4 space-y-4">
@@ -79,7 +79,7 @@ function PublishPlan() {
             value={planName}
             onChange={(e) => setPlanName(e.target.value)}
             placeholder="例如：每日晨间冥想30分钟"
-            className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#E11D48] focus:outline-none"
+            className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#2563EB] focus:outline-none"
           />
         </div>
 
@@ -130,16 +130,16 @@ function PublishPlan() {
             className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm text-[#64748B] flex items-center justify-between"
           >
             <span>{selectedTags.length > 0 ? `已选 ${selectedTags.length} 个标签` : '选择标签'}</span>
-            <span className="text-[#E11D48]">+</span>
+            <span className="text-[#2563EB]">+</span>
           </button>
           {selectedTags.length > 0 && (
             <div className="flex gap-2 mt-2 flex-wrap">
               {selectedTags.map(tag => (
-                <span key={tag} className="relative px-3 py-1 bg-[#E11D48]/10 text-[#E11D48] text-xs rounded-full flex items-center gap-1">
+                <span key={tag} className="relative px-3 py-1 bg-[#2563EB]/10 text-[#2563EB] text-xs rounded-full flex items-center gap-1">
                   {tag}
                   <button 
                     onClick={() => removeTag(tag)}
-                    className="absolute -top-1 -right-1 w-4 h-4 bg-[#E11D48] rounded-full flex items-center justify-center text-white text-[10px]"
+                    className="absolute -top-1 -right-1 w-4 h-4 bg-[#2563EB] rounded-full flex items-center justify-center text-white text-[10px]"
                   >
                     ×
                   </button>
@@ -156,18 +156,18 @@ function PublishPlan() {
             onChange={(e) => setDescription(e.target.value)}
             placeholder="描述你的计划目标、内容安排..."
             rows={4}
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:border-[#E11D48] focus:outline-none resize-none"
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:border-[#2563EB] focus:outline-none resize-none"
           />
         </div>
 
         <div className="flex items-center justify-between p-4 rounded-xl border border-gray-200">
           <div className="flex items-center gap-2">
-            <CheckCircle className="w-5 h-5 text-[#E11D48]" />
+            <CheckCircle className="w-5 h-5 text-[#2563EB]" />
             <span className="text-sm text-[#1E293B]">开启打卡功能</span>
           </div>
           <button
             onClick={() => setEnableCheckIn(!enableCheckIn)}
-            className={`w-12 h-6 rounded-full transition-colors ${enableCheckIn ? 'bg-[#E11D48]' : 'bg-gray-300'}`}
+            className={`w-12 h-6 rounded-full transition-colors ${enableCheckIn ? 'bg-[#2563EB]' : 'bg-gray-300'}`}
           >
             <div className={`w-5 h-5 rounded-full bg-white transition-transform ${enableCheckIn ? 'translate-x-6' : 'translate-x-0.5'} mt-0.5`} />
           </button>
@@ -175,12 +175,12 @@ function PublishPlan() {
 
         <div className="flex items-center justify-between p-4 rounded-xl border border-gray-200">
           <div className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-[#E11D48]" />
+            <Users className="w-5 h-5 text-[#2563EB]" />
             <span className="text-sm text-[#1E293B]">允许他人参与</span>
           </div>
           <button
             onClick={() => setIsPublic(!isPublic)}
-            className={`w-12 h-6 rounded-full transition-colors ${isPublic ? 'bg-[#E11D48]' : 'bg-gray-300'}`}
+            className={`w-12 h-6 rounded-full transition-colors ${isPublic ? 'bg-[#2563EB]' : 'bg-gray-300'}`}
           >
             <div className={`w-5 h-5 rounded-full bg-white transition-transform ${isPublic ? 'translate-x-6' : 'translate-x-0.5'} mt-0.5`} />
           </button>
@@ -211,11 +211,11 @@ function PublishPlan() {
                   value={customTag}
                   onChange={(e) => setCustomTag(e.target.value)}
                   placeholder="添加自定义标签"
-                  className="flex-1 h-10 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#E11D48] focus:outline-none"
+                  className="flex-1 h-10 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#2563EB] focus:outline-none"
                 />
                 <button
                   onClick={addCustomTag}
-                  className="px-4 h-10 bg-[#E11D48] text-white rounded-xl text-sm whitespace-nowrap"
+                  className="px-4 h-10 bg-[#2563EB] text-white rounded-xl text-sm whitespace-nowrap"
                 >
                   确定
                 </button>
@@ -231,7 +231,7 @@ function PublishPlan() {
                   className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50"
                 >
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                    selectedTags.includes(tag) ? 'border-[#E11D48] bg-[#E11D48]' : 'border-gray-300'
+                    selectedTags.includes(tag) ? 'border-[#2563EB] bg-[#2563EB]' : 'border-gray-300'
                   }`}>
                     {selectedTags.includes(tag) && <div className="w-2 h-2 rounded-full bg-white" />}
                   </div>
@@ -242,7 +242,7 @@ function PublishPlan() {
 
             <button
               onClick={() => setShowTagModal(false)}
-              className="w-full mt-4 py-3 bg-[#E11D48] text-white rounded-xl font-medium"
+              className="w-full mt-4 py-3 bg-[#2563EB] text-white rounded-xl font-medium"
             >
               确定（已选 {selectedTags.length} 个）
             </button>

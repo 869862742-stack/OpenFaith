@@ -34,7 +34,7 @@ const covenantItems = [
 function Covenant() {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const primaryColor = '#E11D48';
+  const primaryColor = '#2563EB';
 
   return (
     <div className="min-h-screen bg-white">

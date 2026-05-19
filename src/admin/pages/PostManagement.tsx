@@ -95,8 +95,8 @@ function PostManagement() {
   const SortIcon = ({ column }: { column: 'created_at' | 'heat_count' | 'title' }) => {
     if (sortBy !== column) return <ArrowUpDown className="w-4 h-4 ml-1 inline text-gray-400" />;
     return sortOrder === 'asc' 
-      ? <ArrowUp className="w-4 h-4 ml-1 inline text-[#E11D48]" />
-      : <ArrowDown className="w-4 h-4 ml-1 inline text-[#E11D48]" />;
+      ? <ArrowUp className="w-4 h-4 ml-1 inline text-[#2563EB]" />
+      : <ArrowDown className="w-4 h-4 ml-1 inline text-[#2563EB]" />;
   };
 
   // 加热弹窗状态
@@ -309,13 +309,13 @@ function PostManagement() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input type="text" placeholder="搜索笔记标题..." value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-10 pl-10 pr-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48]" />
+                className="w-full h-10 pl-10 pr-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB]" />
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-gray-400" />
             <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-              className="h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48]">
+              className="h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB]">
               {statusOptions.map((opt) => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
             </select>
           </div>

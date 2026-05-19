@@ -132,3 +132,170 @@ body {
     transform: translateY(0);
   }
 }
+/* ============ 全局深色模式覆盖 ============ */
+/* 强制覆盖所有Tailwind白色/浅色类，让dark模式全局生效 */
+
+[data-theme="dark"] .bg-white {
+  background-color: rgba(26, 26, 46, 0.85) !important;
+}
+
+[data-theme="dark"] .bg-gray-50 {
+  background-color: rgba(18, 18, 42, 0.9) !important;
+}
+
+[data-theme="dark"] .bg-gray-100 {
+  background-color: rgba(26, 26, 46, 0.7) !important;
+}
+
+[data-theme="dark"] .bg-gray-200 {
+  background-color: rgba(30, 30, 50, 0.6) !important;
+}
+
+[data-theme="dark"] .bg-gray-300 {
+  background-color: rgba(40, 40, 60, 0.5) !important;
+}
+
+[data-theme="dark"] .border-gray-100 {
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+[data-theme="dark"] .border-gray-200 {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .border-gray-300 {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="dark"] .text-gray-500 {
+  color: rgba(156, 163, 175, 0.8) !important;
+}
+
+[data-theme="dark"] .text-gray-600 {
+  color: rgba(156, 163, 175, 0.9) !important;
+}
+
+[data-theme="dark"] .text-gray-700 {
+  color: rgba(209, 213, 219, 0.9) !important;
+}
+
+[data-theme="dark"] .text-gray-800 {
+  color: rgba(229, 231, 235, 0.95) !important;
+}
+
+[data-theme="dark"] .text-gray-900 {
+  color: rgba(243, 244, 246, 1) !important;
+}
+
+[data-theme="dark"] .text-black {
+  color: rgba(243, 244, 246, 1) !important;
+}
+
+[data-theme="dark"] .hover\:bg-gray-50:hover {
+  background-color: rgba(30, 30, 55, 0.8) !important;
+}
+
+[data-theme="dark"] .hover\:bg-gray-100:hover {
+  background-color: rgba(35, 35, 55, 0.7) !important;
+}
+
+[data-theme="dark"] .hover\:bg-gray-200:hover {
+  background-color: rgba(40, 40, 60, 0.6) !important;
+}
+
+[data-theme="dark"] .shadow-sm {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-theme="dark"] .shadow {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme="dark"] .shadow-md {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme="dark"] .shadow-lg {
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Input fields in dark mode */
+[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]),
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  color: var(--text-color) !important;
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: rgba(156, 163, 175, 0.6) !important;
+}
+
+/* Tables in dark mode */
+[data-theme="dark"] table {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] thead {
+  background-color: rgba(18, 18, 42, 0.9) !important;
+}
+
+[data-theme="dark"] th {
+  color: rgba(156, 163, 175, 0.9) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] td {
+  color: var(--text-color) !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+[data-theme="dark"] tbody tr:hover {
+  background-color: rgba(37, 99, 235, 0.08) !important;
+}
+
+/* Special: loading spinner */
+[data-theme="dark"] .animate-spin {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  border-top-color: #2563EB !important;
+}
+
+/* Fix specific pages that use inline white/gray colors */
+[data-theme="dark"] [style*="background-color: white"],
+[data-theme="dark"] [style*="background-color: #fff"],
+[data-theme="dark"] [style*="background-color: #FFF"],
+[data-theme="dark"] [style*="background-color: #ffffff"],
+[data-theme="dark"] [style*="background-color: #FFFFFF"] {
+  background-color: rgba(26, 26, 46, 0.85) !important;
+}
+
+[data-theme="dark"] [style*="background-color: #f8fafc"],
+[data-theme="dark"] [style*="background-color: #F8FAFC"] {
+  background-color: rgba(18, 18, 42, 0.9) !important;
+}
+
+[data-theme="dark"] [style*="background-color: #f1f5f9"],
+[data-theme="dark"] [style*="background-color: #F1F5F9"] {
+  background-color: rgba(20, 20, 44, 0.9) !important;
+}
+
+/* Scrollbar in dark mode */
+[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: rgba(10, 10, 21, 0.5) !important;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.3) !important;
+  border-radius: 4px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.5) !important;
+}
+
+/* Ring color */
+[data-theme="dark"] .ring-2 {
+  --tw-ring-color: rgba(37, 99, 235, 0.3) !important;
+}

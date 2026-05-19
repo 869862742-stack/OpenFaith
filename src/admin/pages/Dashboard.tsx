@@ -26,7 +26,7 @@ import {
 const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE';
 
 // 主题色
-const PRIMARY_COLOR = '#E11D48';
+const PRIMARY_COLOR = '#2563EB';
 const PRIMARY_LIGHT = '#FCE7F3';
 const PRIMARY_DARK = '#BE123C';
 
@@ -527,7 +527,7 @@ function Dashboard() {
         <div className="loading-spinner" style={{ 
           width: '40px', height: '40px', 
           border: '3px solid #f3f3f3', 
-          borderTop: '3px solid #E11D48',
+          borderTop: '3px solid #2563EB',
           borderRadius: '50%',
           animation: 'spin 1s linear infinite'
         }}></div>
@@ -536,7 +536,7 @@ function Dashboard() {
   }
 
   // 饼图颜色
-  const COLORS = ['#E11D48', '#BE123C', '#F43F5E', '#FB7185', '#FDA4AF', '#FFB3C1', '#FFD6E0', '#FFE4E8', '#FFF0F3', '#FFF5F7'];
+  const COLORS = ['#2563EB', '#BE123C', '#F43F5E', '#FB7185', '#FDA4AF', '#FFB3C1', '#FFD6E0', '#FFE4E8', '#FFF0F3', '#FFF5F7'];
 
   return (
     <div style={{ padding: '20px' }}>
@@ -591,7 +591,7 @@ function Dashboard() {
             onClick={handleRefresh}
             style={{
               padding: '8px 16px',
-              background: '#E11D48',
+              background: '#2563EB',
               color: 'white',
               border: 'none',
               borderRadius: '8px',
@@ -615,7 +615,7 @@ function Dashboard() {
         gap: '20px', 
         marginBottom: '20px',
         padding: '20px',
-        background: 'linear-gradient(135deg, #E11D48 0%, #BE123C 100%)',
+        background: 'linear-gradient(135deg, #2563EB 0%, #BE123C 100%)',
         borderRadius: '12px',
         color: 'white',
       }}>
@@ -665,25 +665,25 @@ function Dashboard() {
             title="新增笔记"
             value={stats.todayNotes}
             icon={<BookOpen size={24} />}
-            color="#E11D48"
+            color="#2563EB"
           />
           <StatCard
             title="新增评论"
             value={stats.todayComments}
             icon={<MessageCircle size={24} />}
-            color="#E11D48"
+            color="#2563EB"
           />
           <StatCard
             title="新增用户"
             value={stats.todayUsers}
             icon={<Users size={24} />}
-            color="#E11D48"
+            color="#2563EB"
           />
           <StatCard
             title="待处理举报"
             value={stats.pendingReports}
             icon={<Flag size={24} />}
-            color="#E11D48"
+            color="#2563EB"
           />
         </div>
       </div>
@@ -891,25 +891,25 @@ function Dashboard() {
           title="总笔记数"
           value={stats.totalPosts}
           icon={<FileText size={24} />}
-          color="#E11D48"
+          color="#2563EB"
         />
         <StatCard
           title="总注册用户"
           value={stats.totalUsers}
           icon={<Users size={24} />}
-          color="#E11D48"
+          color="#2563EB"
         />
         <StatCard
           title="待审核内容"
           value={stats.pendingPosts + stats.pendingComments}
           icon={<ShieldCheck size={24} />}
-          color="#E11D48"
+          color="#2563EB"
         />
         <StatCard
           title="今日新增笔记"
           value={stats.todayPosts}
           icon={<MessageSquare size={24} />}
-          color="#E11D48"
+          color="#2563EB"
         />
       </div>
 
@@ -952,7 +952,7 @@ function Dashboard() {
               <XAxis dataKey="date" />
               <YAxis />
               <Tooltip />
-              <Line type="monotone" dataKey="posts" stroke="#E11D48" strokeWidth={2} name="笔记" />
+              <Line type="monotone" dataKey="posts" stroke="#2563EB" strokeWidth={2} name="笔记" />
               <Line type="monotone" dataKey="users" stroke="#BE123C" strokeWidth={2} name="用户" />
             </LineChart>
           </ResponsiveContainer>
@@ -965,19 +965,19 @@ function Dashboard() {
           title="藏书管理"
           description="管理经典藏书和章节"
           href="#/admin/books"
-          color="#E11D48"
+          color="#2563EB"
         />
         <QuickAction
           title="信仰百科"
           description="管理宗教百科内容"
           href="#/admin/religions"
-          color="#E11D48"
+          color="#2563EB"
         />
         <QuickAction
           title="标签管理"
           description="管理笔记标签"
           href="#/admin/tags"
-          color="#E11D48"
+          color="#2563EB"
         />
       </div>
 
@@ -1149,7 +1149,7 @@ function StatCard({ title, value, change, positive, icon, color }: {
           <h2 style={{ margin: '10px 0', fontSize: '32px' }}>{value}</h2>
           {change && (
             <p style={{ 
-              color: positive ? '#BE123C' : '#E11D48', 
+              color: positive ? '#BE123C' : '#2563EB', 
               margin: 0, 
               fontSize: '14px',
               display: 'flex',

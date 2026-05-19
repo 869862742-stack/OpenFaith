@@ -5,7 +5,7 @@ import { useAuthStore } from '../stores/auth';
 import { supabase } from '../supabase/client';
 
 // 固定主题颜色（不依赖 useThemeContext）
-const THEME_COLOR = '#E11D48';
+const THEME_COLOR = '#2563EB';
 const BG_COLOR = '#f5f5f5';
 const TEXT_COLOR = '#666666';
 

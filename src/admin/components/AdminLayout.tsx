@@ -71,7 +71,7 @@ function AdminLayout({ children }: AdminLayoutProps) {
           {/* Logo */}
           <div className="h-16 flex items-center px-4 border-b border-gray-200">
             <Link to="/" className="flex items-center">
-              <div className="w-8 h-8 bg-[#E11D48] rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-[#2563EB] rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">OF</span>
               </div>
               {isSidebarOpen && (
@@ -93,7 +93,7 @@ function AdminLayout({ children }: AdminLayoutProps) {
                   to={item.path}
                   className={`flex items-center px-3 py-2.5 rounded-lg mb-1 transition-colors ${
                     isActive
-                      ? 'bg-[#E11D48] text-white'
+                      ? 'bg-[#2563EB] text-white'
                       : 'text-gray-600 hover:bg-gray-100'
                   }`}
                 >
@@ -161,7 +161,7 @@ function AdminLayout({ children }: AdminLayoutProps) {
             <div className="h-full flex flex-col">
               <div className="h-16 flex items-center justify-between px-4 border-b border-gray-200">
                 <div className="flex items-center">
-                  <div className="w-8 h-8 bg-[#E11D48] rounded-lg flex items-center justify-center">
+                  <div className="w-8 h-8 bg-[#2563EB] rounded-lg flex items-center justify-center">
                     <span className="text-white font-bold text-sm">OF</span>
                   </div>
                   <span className="ml-3 font-semibold text-gray-900">OpenFaith</span>
@@ -186,7 +186,7 @@ function AdminLayout({ children }: AdminLayoutProps) {
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={`flex items-center px-3 py-2.5 rounded-lg mb-1 transition-colors ${
                         isActive
-                          ? 'bg-[#E11D48] text-white'
+                          ? 'bg-[#2563EB] text-white'
                           : 'text-gray-600 hover:bg-gray-100'
                       }`}
                     >
@@ -219,7 +219,7 @@ function AdminLayout({ children }: AdminLayoutProps) {
         {/* Mobile Header */}
         <header className="lg:hidden h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sticky top-0 z-40">
           <Link to="/" className="flex items-center">
-            <div className="w-8 h-8 bg-[#E11D48] rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-[#2563EB] rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">OF</span>
             </div>
             <span className="ml-3 font-semibold text-gray-900">OpenFaith</span>
@@ -244,7 +244,7 @@ function AdminLayout({ children }: AdminLayoutProps) {
                 // 直接使用 window.location 跳转到根路径
                 window.location.href = window.location.origin + '/';
               }}
-              className="inline-flex items-center text-sm text-gray-600 hover:text-[#E11D48] transition-colors"
+              className="inline-flex items-center text-sm text-gray-600 hover:text-[#2563EB] transition-colors"
             >
               <ArrowLeft className="w-4 h-4 mr-1" />
               返回前台

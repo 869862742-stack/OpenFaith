@@ -157,8 +157,8 @@ function AccountSecurity() {
       <div className="p-4">
         <div className="bg-gradient-to-r from-[#FEF2F2] to-[#FFF1F2] rounded-2xl p-4 mb-6">
           <div className="flex items-center gap-2 mb-2">
-            <Shield className="w-5 h-5 text-[#E11D48]" />
-            <span className="text-sm font-bold text-[#E11D48]">安全保护已开启</span>
+            <Shield className="w-5 h-5 text-[#2563EB]" />
+            <span className="text-sm font-bold text-[#2563EB]">安全保护已开启</span>
           </div>
           <p className="text-xs text-[#64748B]">
             您的账号正在受到 OpenFaith 加密盾的实时保护。建议定期修改密码并保持手机/邮箱可用。
@@ -183,7 +183,7 @@ function AccountSecurity() {
 
           <button
             onClick={() => setShowDeleteModal(true)}
-            className="w-full flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors text-[#E11D48]"
+            className="w-full flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors text-[#2563EB]"
           >
             <Trash2 className="w-5 h-5" />
             <span className="flex-1 text-left text-sm font-medium">注销账号</span>
@@ -213,7 +213,7 @@ function AccountSecurity() {
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="请输入手机号"
                 maxLength={11}
-                className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#E11D48] focus:outline-none mb-3"
+                className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#2563EB] focus:outline-none mb-3"
               />
               <div className="flex gap-2 mb-4">
                 <input
@@ -222,7 +222,7 @@ function AccountSecurity() {
                   onChange={(e) => setVerifyCode(e.target.value)}
                   placeholder="请输入验证码"
                   maxLength={6}
-                  className="flex-1 h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#E11D48] focus:outline-none"
+                  className="flex-1 h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#2563EB] focus:outline-none"
                 />
                 <button
                   onClick={handleSendCode}
@@ -235,7 +235,7 @@ function AccountSecurity() {
               <button
                 onClick={handleBindPhone}
                 disabled={phone.length !== 11 || verifyCode.length !== 6}
-                className="w-full h-12 bg-[#E11D48] text-white rounded-xl font-medium disabled:opacity-50"
+                className="w-full h-12 bg-[#2563EB] text-white rounded-xl font-medium disabled:opacity-50"
               >
                 绑定
               </button>
@@ -263,7 +263,7 @@ function AccountSecurity() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="请输入新邮箱"
-                className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#E11D48] focus:outline-none mb-3"
+                className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#2563EB] focus:outline-none mb-3"
               />
               <div className="flex gap-2 mb-4">
                 <input
@@ -272,7 +272,7 @@ function AccountSecurity() {
                   onChange={(e) => setVerifyCode(e.target.value)}
                   placeholder="请输入验证码"
                   maxLength={6}
-                  className="flex-1 h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#E11D48] focus:outline-none"
+                  className="flex-1 h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#2563EB] focus:outline-none"
                 />
                 <button
                   onClick={handleSendCode}
@@ -285,7 +285,7 @@ function AccountSecurity() {
               <button
                 onClick={handleUpdateEmail}
                 disabled={!email.includes('@') || verifyCode.length !== 6}
-                className="w-full h-12 bg-[#E11D48] text-white rounded-xl font-medium disabled:opacity-50"
+                className="w-full h-12 bg-[#2563EB] text-white rounded-xl font-medium disabled:opacity-50"
               >
                 保存
               </button>
@@ -313,7 +313,7 @@ function AccountSecurity() {
                 <button
                   onClick={() => setVerifyMethod('email')}
                   className={`flex-1 h-10 rounded-xl text-sm font-medium ${
-                    verifyMethod === 'email' ? 'bg-[#E11D48] text-white' : 'bg-gray-100 text-[#64748B]'
+                    verifyMethod === 'email' ? 'bg-[#2563EB] text-white' : 'bg-gray-100 text-[#64748B]'
                   }`}
                 >
                   邮箱验证
@@ -321,7 +321,7 @@ function AccountSecurity() {
                 <button
                   onClick={() => setVerifyMethod('phone')}
                   className={`flex-1 h-10 rounded-xl text-sm font-medium ${
-                    verifyMethod === 'phone' ? 'bg-[#E11D48] text-white' : 'bg-gray-100 text-[#64748B]'
+                    verifyMethod === 'phone' ? 'bg-[#2563EB] text-white' : 'bg-gray-100 text-[#64748B]'
                   }`}
                 >
                   手机验证
@@ -335,7 +335,7 @@ function AccountSecurity() {
                   onChange={(e) => setVerifyCode(e.target.value)}
                   placeholder="请输入验证码"
                   maxLength={6}
-                  className="flex-1 h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#E11D48] focus:outline-none"
+                  className="flex-1 h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#2563EB] focus:outline-none"
                 />
                 <button
                   onClick={handleSendCode}
@@ -351,19 +351,19 @@ function AccountSecurity() {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="请输入新密码"
-                className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#E11D48] focus:outline-none mb-3"
+                className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#2563EB] focus:outline-none mb-3"
               />
               <input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="请确认新密码"
-                className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#E11D48] focus:outline-none mb-4"
+                className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#2563EB] focus:outline-none mb-4"
               />
               <button
                 onClick={handleChangePassword}
                 disabled={verifyCode.length !== 6 || newPassword.length < 6 || newPassword !== confirmPassword}
-                className="w-full h-12 bg-[#E11D48] text-white rounded-xl font-medium disabled:opacity-50"
+                className="w-full h-12 bg-[#2563EB] text-white rounded-xl font-medium disabled:opacity-50"
               >
                 确认修改
               </button>
@@ -381,14 +381,14 @@ function AccountSecurity() {
             onClick={(e) => e.stopPropagation()}
           >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-[#E11D48]">注销账号</h3>
+                <h3 className="text-lg font-bold text-[#2563EB]">注销账号</h3>
                 <button onClick={() => setShowDeleteModal(false)}>
                   <X className="w-5 h-5 text-[#64748B]" />
                 </button>
               </div>
               <div className="flex items-center gap-2 mb-3 bg-[#FEF2F2] p-3 rounded-xl">
-                <Clock className="w-5 h-5 text-[#E11D48]" />
-                <span className="text-sm text-[#E11D48] font-medium">7天冷静期</span>
+                <Clock className="w-5 h-5 text-[#2563EB]" />
+                <span className="text-sm text-[#2563EB] font-medium">7天冷静期</span>
               </div>
               <p className="text-sm text-[#64748B] mb-4">
                 注销账号后，您的所有数据将被永久删除。点击确认后，账号将进入7天冷静期，期间登录将自动取消注销。超过7天未登录，账号将被永久注销。
@@ -402,7 +402,7 @@ function AccountSecurity() {
                 </button>
                 <button
                   onClick={handleDeleteAccount}
-                  className="flex-1 h-12 bg-[#E11D48] text-white rounded-xl font-medium"
+                  className="flex-1 h-12 bg-[#2563EB] text-white rounded-xl font-medium"
                 >
                   确认注销
                 </button>
@@ -422,7 +422,7 @@ function AccountSecurity() {
           >
               <div className="flex items-center justify-center mb-4">
                 <div className="w-16 h-16 rounded-full bg-[#FEF2F2] flex items-center justify-center">
-                  <Clock className="w-8 h-8 text-[#E11D48]" />
+                  <Clock className="w-8 h-8 text-[#2563EB]" />
                 </div>
               </div>
               <h3 className="text-lg font-bold text-[#1E293B] text-center mb-2">注销申请已提交</h3>
@@ -432,12 +432,12 @@ function AccountSecurity() {
               <div className="bg-gray-50 rounded-xl p-3 mb-4">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-[#64748B]">剩余时间</span>
-                  <span className="text-[#E11D48] font-medium">{deleteCountdown} 天</span>
+                  <span className="text-[#2563EB] font-medium">{deleteCountdown} 天</span>
                 </div>
               </div>
               <button
                 onClick={confirmDeleteAccount}
-                className="w-full h-12 bg-[#E11D48] text-white rounded-xl font-medium"
+                className="w-full h-12 bg-[#2563EB] text-white rounded-xl font-medium"
               >
                 我知道了
               </button>

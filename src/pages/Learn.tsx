@@ -29,7 +29,7 @@ const apiRequest = async (endpoint: string) => {
   return Array.isArray(data) ? data : [];
 };
 
-const PRIMARY_COLOR = '#E11D48';
+const PRIMARY_COLOR = '#2563EB';
 
 interface Religion {
   id: string;

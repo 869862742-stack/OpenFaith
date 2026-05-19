@@ -61,7 +61,7 @@ function Login() {
   if (isChecking) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-5 h-5 border-2 border-[#E11D48] border-t-transparent rounded-full animate-spin" />
+        <div className="w-5 h-5 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -71,7 +71,7 @@ function Login() {
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-lg p-8">
           <div className="flex flex-col items-center mb-8">
-            <div className="w-16 h-16 bg-[#E11D48] rounded-2xl flex items-center justify-center mb-4">
+            <div className="w-16 h-16 bg-[#2563EB] rounded-2xl flex items-center justify-center mb-4">
               <Shield className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900">OpenFaith 管理后台</h1>
@@ -95,7 +95,7 @@ function Login() {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#E11D48] focus:border-transparent outline-none transition"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2563EB] focus:border-transparent outline-none transition"
                   placeholder="请输入用户名"
                   required
                   disabled={isLoading}
@@ -113,7 +113,7 @@ function Login() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#E11D48] focus:border-transparent outline-none transition"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2563EB] focus:border-transparent outline-none transition"
                   placeholder="请输入密码"
                   required
                   disabled={isLoading}
@@ -124,7 +124,7 @@ function Login() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-2.5 bg-[#E11D48] text-white rounded-lg font-medium hover:bg-[#C41E3A] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-2.5 bg-[#2563EB] text-white rounded-lg font-medium hover:bg-[#C41E3A] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isLoading ? (
                 <>

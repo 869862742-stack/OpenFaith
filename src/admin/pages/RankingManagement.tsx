@@ -464,7 +464,7 @@ export default function RankingManagement() {
       {/* 标题 */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <Trophy className="w-8 h-8 text-[#E11D48]" />
+          <Trophy className="w-8 h-8 text-[#2563EB]" />
           <h1 className="text-2xl font-bold text-gray-900">排行榜管理</h1>
         </div>
         <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -484,7 +484,7 @@ export default function RankingManagement() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all ${
                   activeTab === tab.id
-                    ? 'text-[#E11D48] border-b-2 border-[#E11D48] bg-pink-50'
+                    ? 'text-[#2563EB] border-b-2 border-[#2563EB] bg-pink-50'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
               >
@@ -504,8 +504,8 @@ export default function RankingManagement() {
                 onClick={() => setTimeRange(opt.value)}
                 className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
                   timeRange === opt.value
-                    ? 'bg-[#E11D48] text-white shadow-md'
-                    : 'bg-white text-gray-600 hover:bg-pink-50 hover:text-[#E11D48] border border-gray-200'
+                    ? 'bg-[#2563EB] text-white shadow-md'
+                    : 'bg-white text-gray-600 hover:bg-pink-50 hover:text-[#2563EB] border border-gray-200'
                 }`}
               >
                 {opt.label}
@@ -531,7 +531,7 @@ export default function RankingManagement() {
                   value={searchKeyword}
                   onChange={(e) => setSearchKeyword(e.target.value)}
                   placeholder="搜索用户名、昵称或标签..."
-                  className="w-full h-9 pl-10 pr-4 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+                  className="w-full h-9 pl-10 pr-4 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
                 />
               </div>
             </div>
@@ -544,7 +544,7 @@ export default function RankingManagement() {
                   <select
                     value={levelFilter === null ? '' : levelFilter}
                     onChange={(e) => setLevelFilter(e.target.value ? parseInt(e.target.value) : null)}
-                    className="h-9 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+                    className="h-9 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
                   >
                     <option value="">全部等级</option>
                     {Array.from({ length: 11 }, (_, i) => (
@@ -558,7 +558,7 @@ export default function RankingManagement() {
                   <select
                     value={vipFilter}
                     onChange={(e) => setVipFilter(e.target.value as 'all' | 'vip' | 'normal')}
-                    className="h-9 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+                    className="h-9 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
                   >
                     <option value="all">全部</option>
                     <option value="vip">VIP用户</option>
@@ -571,7 +571,7 @@ export default function RankingManagement() {
             {/* 导出按钮 */}
             <button
               onClick={() => setShowExportModal(true)}
-              className="flex items-center gap-2 h-9 px-4 bg-[#E11D48] text-white rounded-lg text-sm font-medium hover:bg-[#be1d40] transition-colors"
+              className="flex items-center gap-2 h-9 px-4 bg-[#2563EB] text-white rounded-lg text-sm font-medium hover:bg-[#be1d40] transition-colors"
             >
               <Download className="w-4 h-4" />
               导出
@@ -590,7 +590,7 @@ export default function RankingManagement() {
           {/* 统计信息 */}
           <div className="mt-3 flex items-center gap-4 text-sm">
             <span className="text-gray-500">
-              <span className="font-medium text-[#E11D48]">{timeRangeOptions.find(t => t.value === timeRange)?.label}</span>
+              <span className="font-medium text-[#2563EB]">{timeRangeOptions.find(t => t.value === timeRange)?.label}</span>
               {' '}共 <span className="font-semibold text-gray-900">{formatNumber(totalCount)}</span> 条记录
             </span>
             {activeTab !== 'post_heat' && (
@@ -624,7 +624,7 @@ export default function RankingManagement() {
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="flex flex-col items-center gap-3">
-              <div className="w-10 h-10 border-4 border-[#E11D48] border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-10 h-10 border-4 border-[#2563EB] border-t-transparent rounded-full animate-spin"></div>
               <span className="text-gray-500">加载中...</span>
             </div>
           </div>
@@ -697,7 +697,7 @@ export default function RankingManagement() {
                             </span>
                           </td>
                           <td className="px-4 py-3 text-right">
-                            <span className="font-bold text-[#E11D48]">
+                            <span className="font-bold text-[#2563EB]">
                               {formatNumber(
                                 activeTab === 'experience' ? profile.experience :
                                 activeTab === 'hot_points' ? profile.hot_points :
@@ -783,7 +783,7 @@ export default function RankingManagement() {
                             </div>
                           </td>
                           <td className="px-4 py-3 text-right">
-                            <span className="font-bold text-[#E11D48]">{formatHotValue(post.hot_value)}</span>
+                            <span className="font-bold text-[#2563EB]">{formatHotValue(post.hot_value)}</span>
                           </td>
                           {(timeRange === 'week' || timeRange === 'month') && (
                             <td className="px-4 py-3 text-right text-gray-400 text-sm">
@@ -846,7 +846,7 @@ export default function RankingManagement() {
                           onClick={() => setPage(pageNum)}
                           className={`w-8 h-8 rounded-lg text-sm ${
                             page === pageNum
-                              ? 'bg-[#E11D48] text-white'
+                              ? 'bg-[#2563EB] text-white'
                               : 'border border-gray-200 hover:bg-gray-50'
                           }`}
                         >
@@ -898,7 +898,7 @@ export default function RankingManagement() {
                       }}
                       className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                         exportTimeRange === opt.value && !exportStartDate
-                          ? 'bg-[#E11D48] text-white'
+                          ? 'bg-[#2563EB] text-white'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
@@ -918,7 +918,7 @@ export default function RankingManagement() {
                       setExportStartDate(e.target.value);
                       setExportTimeRange('all');
                     }}
-                    className="flex-1 h-10 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E11D48]"
+                    className="flex-1 h-10 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
                     placeholder="开始日期"
                   />
                   <span className="text-gray-400">至</span>
@@ -929,7 +929,7 @@ export default function RankingManagement() {
                       setExportEndDate(e.target.value);
                       setExportTimeRange('all');
                     }}
-                    className="flex-1 h-10 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E11D48]"
+                    className="flex-1 h-10 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
                     placeholder="结束日期"
                   />
                 </div>
@@ -946,7 +946,7 @@ export default function RankingManagement() {
                   <span className="font-medium">记录数量:</span> {formatNumber(totalCount)} 条
                 </p>
                 <p className="text-sm text-gray-600 mt-1">
-                  <span className="font-medium">文件名:</span> <span className="text-[#E11D48]">{tabConfig.find(t => t.id === activeTab)?.label}-{exportQuickOptions.find(t => t.value === exportTimeRange)?.label || '全部'}-{new Date().toISOString().split('T')[0]}.csv</span>
+                  <span className="font-medium">文件名:</span> <span className="text-[#2563EB]">{tabConfig.find(t => t.id === activeTab)?.label}-{exportQuickOptions.find(t => t.value === exportTimeRange)?.label || '全部'}-{new Date().toISOString().split('T')[0]}.csv</span>
                 </p>
               </div>
 
@@ -959,7 +959,7 @@ export default function RankingManagement() {
                 </button>
                 <button
                   onClick={handleExport}
-                  className="flex-1 h-11 bg-[#E11D48] text-white rounded-lg font-medium hover:bg-[#be1d40] transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 h-11 bg-[#2563EB] text-white rounded-lg font-medium hover:bg-[#be1d40] transition-colors flex items-center justify-center gap-2"
                 >
                   <Download className="w-4 h-4" />
                   确认导出

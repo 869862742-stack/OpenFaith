@@ -84,7 +84,7 @@ function NotificationSettings() {
                 <button
                   onClick={() => toggleSetting(item.key)}
                   className={`w-12 h-6 rounded-full transition-colors relative ${
-                    settings[item.key] ? 'bg-[#E11D48]' : 'bg-gray-300'
+                    settings[item.key] ? 'bg-[#2563EB]' : 'bg-gray-300'
                   }`}
                 >
                   <div

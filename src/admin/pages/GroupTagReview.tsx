@@ -336,7 +336,7 @@ function GroupTagReview() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E11D48]"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2563EB]"></div>
       </div>
     );
   }
@@ -359,7 +359,7 @@ function GroupTagReview() {
           onClick={() => setActiveTab('group')}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
             activeTab === 'group' 
-              ? 'bg-[#E11D48] text-white' 
+              ? 'bg-[#2563EB] text-white' 
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
@@ -377,7 +377,7 @@ function GroupTagReview() {
           onClick={() => setActiveTab('tag')}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
             activeTab === 'tag' 
-              ? 'bg-[#E11D48] text-white' 
+              ? 'bg-[#2563EB] text-white' 
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
@@ -412,9 +412,9 @@ function GroupTagReview() {
                   <div className="flex items-start gap-3">
                     <div 
                       className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: '#E11D48' + '15' }}
+                      style={{ backgroundColor: '#2563EB' + '15' }}
                     >
-                      <Users className="w-6 h-6 text-[#E11D48]" />
+                      <Users className="w-6 h-6 text-[#2563EB]" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
@@ -541,7 +541,7 @@ function GroupTagReview() {
                         <td className="px-4 py-3">
                           <button
                             onClick={() => setSelectedTag(request)}
-                            className="text-[#E11D48] hover:text-[#be123c] text-sm font-medium"
+                            className="text-[#2563EB] hover:text-[#be123c] text-sm font-medium"
                           >
                             查看详情
                           </button>
@@ -607,7 +607,7 @@ function GroupTagReview() {
                   <div className="flex items-center gap-2 mt-1">
                     <div 
                       className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden"
-                      style={{ backgroundColor: '#E11D4815' }}
+                      style={{ backgroundColor: '#2563EB15' }}
                     >
                       {selectedGroup.profiles?.avatar_url ? (
                         <img 
@@ -616,7 +616,7 @@ function GroupTagReview() {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <User className="w-4 h-4 text-[#E11D48]" />
+                        <User className="w-4 h-4 text-[#2563EB]" />
                       )}
                     </div>
                     <span className="text-gray-900">{selectedGroup.profiles?.username || '未知用户'}</span>
@@ -678,7 +678,7 @@ function GroupTagReview() {
                         onChange={(e) => setRejectReason(e.target.value)}
                         placeholder="请输入或选择拒绝原因..."
                         rows={3}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:border-[#E11D48] focus:outline-none resize-none"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:border-[#2563EB] focus:outline-none resize-none"
                       />
                     </div>
                     <div className="flex gap-3">
@@ -801,7 +801,7 @@ function GroupTagReview() {
                         onChange={(e) => setRejectReason(e.target.value)}
                         placeholder="请输入拒绝原因..."
                         rows={3}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:border-[#E11D48] focus:outline-none resize-none"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:border-[#2563EB] focus:outline-none resize-none"
                       />
                     </div>
                     <div className="flex gap-3">

@@ -434,7 +434,7 @@ function CommentManagement() {
                 placeholder="搜索评论内容、作者、笔记标题..."
                 value={searchQuery}
                 onChange={(e) => { setSearchQuery(e.target.value); }}
-                className="w-full h-10 pl-10 pr-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+                className="w-full h-10 pl-10 pr-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
               />
             </div>
           </div>
@@ -443,7 +443,7 @@ function CommentManagement() {
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setServerPage(1); }}
-              className="h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+              className="h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
             >
               {statusOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -508,7 +508,7 @@ function CommentManagement() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-8 h-8 text-[#E11D48] animate-spin" />
+            <Loader2 className="w-8 h-8 text-[#2563EB] animate-spin" />
             <span className="ml-3 text-gray-500">加载中...</span>
           </div>
         ) : groupedData.length === 0 ? (
@@ -535,9 +535,9 @@ function CommentManagement() {
                       <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
                     )}
                     {isPostExpanded ? (
-                      <FolderOpen className="w-5 h-5 text-[#E11D48] flex-shrink-0" />
+                      <FolderOpen className="w-5 h-5 text-[#2563EB] flex-shrink-0" />
                     ) : (
-                      <FolderClosed className="w-5 h-5 text-[#E11D48] flex-shrink-0" />
+                      <FolderClosed className="w-5 h-5 text-[#2563EB] flex-shrink-0" />
                     )}
                     <span className="font-medium text-gray-900 flex-1">
                       {highlightText(postGroup.title, debouncedSearch)}
@@ -636,7 +636,7 @@ function CommentManagement() {
                                         <td className="py-2">
                                           <div>
                                             {comment.parent_id && (
-                                              <span className="text-xs text-[#E11D48] mr-2 font-medium">[回复]</span>
+                                              <span className="text-xs text-[#2563EB] mr-2 font-medium">[回复]</span>
                                             )}
                                             <p className="text-sm text-gray-900">
                                               {highlightText(comment.content, debouncedSearch)}

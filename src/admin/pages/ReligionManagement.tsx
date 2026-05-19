@@ -203,7 +203,7 @@ function ReligionManagement() {
         <h1 className="text-2xl font-bold text-gray-900">百科管理</h1>
         <button
           onClick={handleAddClick}
-          className="flex items-center gap-2 px-4 py-2 bg-[#E11D48] text-white rounded-lg hover:bg-[#C41E3A] transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-[#2563EB] text-white rounded-lg hover:bg-[#C41E3A] transition-colors"
         >
           <Plus className="w-4 h-4" />
           添加宗教
@@ -222,7 +222,7 @@ function ReligionManagement() {
               setSearchQuery(e.target.value);
               setPage(1);
             }}
-            className="w-full h-10 pl-10 pr-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+            className="w-full h-10 pl-10 pr-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
           />
         </div>
       </div>
@@ -258,7 +258,7 @@ function ReligionManagement() {
                 <tr key={religion.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <Globe className="w-5 h-5 text-[#E11D48]" />
+                      <Globe className="w-5 h-5 text-[#2563EB]" />
                       <span className="font-medium text-gray-900">{religion.name}</span>
                     </div>
                   </td>
@@ -353,7 +353,7 @@ function ReligionManagement() {
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
                     required
                   />
                 </div>
@@ -364,7 +364,7 @@ function ReligionManagement() {
                   <select
                     value={formData.type}
                     onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
                     required
                   >
                     <option value="">请选择</option>
@@ -385,7 +385,7 @@ function ReligionManagement() {
                     type="text"
                     value={formData.origin_place}
                     onChange={(e) => setFormData({ ...formData, origin_place: e.target.value })}
-                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -396,7 +396,7 @@ function ReligionManagement() {
                     type="text"
                     value={formData.origin_time}
                     onChange={(e) => setFormData({ ...formData, origin_time: e.target.value })}
-                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
                   />
                 </div>
               </div>
@@ -409,7 +409,7 @@ function ReligionManagement() {
                     type="text"
                     value={formData.distribution}
                     onChange={(e) => setFormData({ ...formData, distribution: e.target.value })}
-                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -420,7 +420,7 @@ function ReligionManagement() {
                     type="text"
                     value={formData.followers_scale}
                     onChange={(e) => setFormData({ ...formData, followers_scale: e.target.value })}
-                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
                   />
                 </div>
               </div>
@@ -432,7 +432,7 @@ function ReligionManagement() {
                   type="text"
                   value={formData.core_belief}
                   onChange={(e) => setFormData({ ...formData, core_belief: e.target.value })}
-                  className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+                  className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
                 />
               </div>
               <div>
@@ -443,7 +443,7 @@ function ReligionManagement() {
                   value={formData.introduction}
                   onChange={(e) => setFormData({ ...formData, introduction: e.target.value })}
                   rows={3}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent resize-none"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent resize-none"
                 />
               </div>
               <div>
@@ -454,7 +454,7 @@ function ReligionManagement() {
                   value={formData.history}
                   onChange={(e) => setFormData({ ...formData, history: e.target.value })}
                   rows={3}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent resize-none"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent resize-none"
                 />
               </div>
               <div>
@@ -465,7 +465,7 @@ function ReligionManagement() {
                   value={formData.doctrines}
                   onChange={(e) => setFormData({ ...formData, doctrines: e.target.value })}
                   rows={3}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent resize-none"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent resize-none"
                 />
               </div>
               <div>
@@ -476,7 +476,7 @@ function ReligionManagement() {
                   value={formData.classics}
                   onChange={(e) => setFormData({ ...formData, classics: e.target.value })}
                   rows={2}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent resize-none"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent resize-none"
                 />
               </div>
               <div>
@@ -487,7 +487,7 @@ function ReligionManagement() {
                   value={formData.festivals}
                   onChange={(e) => setFormData({ ...formData, festivals: e.target.value })}
                   rows={2}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent resize-none"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent resize-none"
                 />
               </div>
               <div>
@@ -498,7 +498,7 @@ function ReligionManagement() {
                   value={formData.rituals}
                   onChange={(e) => setFormData({ ...formData, rituals: e.target.value })}
                   rows={2}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent resize-none"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent resize-none"
                 />
               </div>
               <div>
@@ -509,7 +509,7 @@ function ReligionManagement() {
                   value={formData.taboos}
                   onChange={(e) => setFormData({ ...formData, taboos: e.target.value })}
                   rows={2}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent resize-none"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent resize-none"
                 />
               </div>
               <div>
@@ -520,7 +520,7 @@ function ReligionManagement() {
                   value={formData.sacred_sites}
                   onChange={(e) => setFormData({ ...formData, sacred_sites: e.target.value })}
                   rows={2}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent resize-none"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent resize-none"
                 />
               </div>
               <div>
@@ -531,7 +531,7 @@ function ReligionManagement() {
                   value={formData.famous_figures}
                   onChange={(e) => setFormData({ ...formData, famous_figures: e.target.value })}
                   rows={2}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent resize-none"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent resize-none"
                 />
               </div>
               <div className="flex items-center gap-2">
@@ -539,7 +539,7 @@ function ReligionManagement() {
                   type="checkbox"
                   checked={formData.is_active}
                   onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                  className="w-4 h-4 rounded border-gray-300 text-[#E11D48] focus:ring-[#E11D48]"
+                  className="w-4 h-4 rounded border-gray-300 text-[#2563EB] focus:ring-[#2563EB]"
                 />
                 <span className="text-sm text-gray-700">启用</span>
               </div>
@@ -555,7 +555,7 @@ function ReligionManagement() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex-1 py-2 bg-[#E11D48] text-white rounded-lg hover:bg-[#C41E3A] transition-colors disabled:opacity-50 flex items-center justify-center"
+                  className="flex-1 py-2 bg-[#2563EB] text-white rounded-lg hover:bg-[#C41E3A] transition-colors disabled:opacity-50 flex items-center justify-center"
                 >
                   {isSubmitting ? (
                     <span className="flex items-center gap-2">

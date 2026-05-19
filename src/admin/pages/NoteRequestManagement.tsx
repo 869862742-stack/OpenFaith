@@ -326,7 +326,7 @@ export default function NoteRequestManagement() {
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
               placeholder="搜索申请人姓名或申请理由..."
-              className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E11D48]/30 focus:border-[#E11D48]"
+              className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB]"
             />
           </div>
           <div className="flex gap-2 flex-wrap">
@@ -336,7 +336,7 @@ export default function NoteRequestManagement() {
                 onClick={() => { setStatusFilter(f.value); setPage(1); }}
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   statusFilter === f.value
-                    ? 'bg-[#E11D48] text-white'
+                    ? 'bg-[#2563EB] text-white'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
@@ -358,7 +358,7 @@ export default function NoteRequestManagement() {
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-gray-400">
-            <div className="w-8 h-8 border-2 border-[#E11D48] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <div className="w-8 h-8 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
             加载中...
           </div>
         ) : filteredRequests.length === 0 ? (
@@ -459,7 +459,7 @@ export default function NoteRequestManagement() {
                         key={p}
                         onClick={() => setPage(p)}
                         className={`px-3 py-1.5 rounded-lg text-sm ${
-                          page === p ? 'bg-[#E11D48] text-white' : 'border border-gray-200 hover:bg-gray-50'
+                          page === p ? 'bg-[#2563EB] text-white' : 'border border-gray-200 hover:bg-gray-50'
                         }`}
                       >
                         {p}
@@ -545,7 +545,7 @@ export default function NoteRequestManagement() {
                     onChange={(e) => setAdminNote(e.target.value)}
                     placeholder="填写备注或拒绝理由..."
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#E11D48]/30 focus:border-[#E11D48]"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB]"
                   />
                 </div>
               ) : selectedRequest.admin_note ? (

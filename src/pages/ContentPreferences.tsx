@@ -57,7 +57,7 @@ function ContentPreferences() {
           className="bg-white rounded-xl border border-gray-100 p-4 mb-4"
         >
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-1 h-4 bg-[#E11D48] rounded-full" />
+            <div className="w-1 h-4 bg-[#2563EB] rounded-full" />
             <h2 className="text-sm font-bold text-[#1E293B]">偏好标签</h2>
           </div>
           <p className="text-xs text-[#94A3B8] mb-3">我们会为您优先推荐您感兴趣的学习内容</p>
@@ -66,10 +66,10 @@ function ContentPreferences() {
             {preferredTags.map(tag => (
               <span
                 key={tag}
-                className="px-3 py-1.5 bg-[#FEF2F2] text-[#E11D48] text-xs rounded-full flex items-center gap-1 border border-[#E11D48]/20"
+                className="px-3 py-1.5 bg-[#FEF2F2] text-[#2563EB] text-xs rounded-full flex items-center gap-1 border border-[#2563EB]/20"
               >
                 {tag}
-                <button onClick={() => removePreferredTag(tag)} className="ml-1 hover:bg-[#E11D48]/10 rounded-full p-0.5">
+                <button onClick={() => removePreferredTag(tag)} className="ml-1 hover:bg-[#2563EB]/10 rounded-full p-0.5">
                   <X className="w-3 h-3" />
                 </button>
               </span>
@@ -78,7 +78,7 @@ function ContentPreferences() {
 
           <button
             onClick={() => setShowAddPreferred(true)}
-            className="w-full h-10 bg-[#FEF2F2] rounded-xl flex items-center justify-center gap-2 text-[#E11D48] text-sm font-medium"
+            className="w-full h-10 bg-[#FEF2F2] rounded-xl flex items-center justify-center gap-2 text-[#2563EB] text-sm font-medium"
           >
             <Plus className="w-4 h-4" />
             管理与添加偏好
@@ -89,7 +89,7 @@ function ContentPreferences() {
           className="bg-white rounded-xl border border-gray-100 p-4"
         >
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-1 h-4 bg-[#E11D48] rounded-full" />
+            <div className="w-1 h-4 bg-[#2563EB] rounded-full" />
             <h2 className="text-sm font-bold text-[#1E293B]">屏蔽标签</h2>
           </div>
           <p className="text-xs text-[#94A3B8] mb-3">被屏蔽的标签内容将不会出现在您的推荐中</p>
@@ -156,7 +156,7 @@ function ContentPreferences() {
                   value={newTag}
                   onChange={(e) => setNewTag(e.target.value)}
                   placeholder="输入标签名称"
-                  className="flex-1 h-11 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#E11D48] focus:outline-none"
+                  className="flex-1 h-11 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#2563EB] focus:outline-none"
                 />
                 <button
                   onClick={() => {
@@ -166,7 +166,7 @@ function ContentPreferences() {
                       addBlockedTag(newTag);
                     }
                   }}
-                  className="px-5 h-11 bg-[#E11D48] text-white rounded-xl text-sm font-medium"
+                  className="px-5 h-11 bg-[#2563EB] text-white rounded-xl text-sm font-medium"
                 >
                   添加
                 </button>
@@ -188,7 +188,7 @@ function ContentPreferences() {
                         addBlockedTag(tag);
                       }
                     }}
-                    className="px-3 py-1.5 bg-white text-[#1E293B] text-xs rounded-full border border-gray-200 hover:border-[#E11D48] hover:text-[#E11D48] transition-colors shadow-sm"
+                    className="px-3 py-1.5 bg-white text-[#1E293B] text-xs rounded-full border border-gray-200 hover:border-[#2563EB] hover:text-[#2563EB] transition-colors shadow-sm"
                   >
                     {tag}
                   </button>

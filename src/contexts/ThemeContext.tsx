@@ -26,7 +26,7 @@ const THEME_COLORS: { [key: string]: string } = {
   coral: '#FB7185',
   indigo: '#6366F1',
   amber: '#F59E0B',
-  faith: '#E11D48',
+  faith: '#2563EB',
 };
 
 const STORAGE_KEY = 'openfaith-display-settings';

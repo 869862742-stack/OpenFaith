@@ -210,7 +210,7 @@ function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder={loginType === 'email' ? '请输入邮箱...' : '请输入账号...'}
-              className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#E11D48] focus:outline-none"
+              className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#2563EB] focus:outline-none"
             />
             {loginType === 'account' && (
               <p className="text-xs text-gray-400 mt-1">
@@ -226,26 +226,26 @@ function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="请输入密码..."
-              className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#E11D48] focus:outline-none"
+              className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#2563EB] focus:outline-none"
             />
           </div>
           
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full h-12 bg-[#E11D48] text-white rounded-xl font-medium hover:bg-[#C41D3D] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full h-12 bg-[#2563EB] text-white rounded-xl font-medium hover:bg-[#C41D3D] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? '登录中...' : '登录'}
           </button>
         </form>
         
         <div className="mt-6 text-center">
-          <button onClick={() => setShowForgotModal(true)} className="text-sm text-[#1E293B] hover:text-[#E11D48]">忘记密码？</button>
+          <button onClick={() => setShowForgotModal(true)} className="text-sm text-[#1E293B] hover:text-[#2563EB]">忘记密码？</button>
         </div>
         
         <div className="mt-6 pt-6 border-t border-gray-100 text-center">
           <p className="text-sm text-[#94A3B8] mb-3">还没有账号？</p>
-          <button onClick={() => navigate('/register')} className="text-sm text-[#E11D48] font-medium hover:underline">立即注册</button>
+          <button onClick={() => navigate('/register')} className="text-sm text-[#2563EB] font-medium hover:underline">立即注册</button>
         </div>
       </div>
 
@@ -271,12 +271,12 @@ function Login() {
                   value={forgotEmail}
                   onChange={(e) => setForgotEmail(e.target.value)}
                   placeholder="请输入注册邮箱"
-                  className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#E11D48] focus:outline-none"
+                  className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#2563EB] focus:outline-none"
                 />
                 <button
                   onClick={handleSendResetLink}
                   disabled={isSendingCode}
-                  className="w-full h-12 bg-[#E11D48] text-white rounded-xl font-medium hover:bg-[#C41D3D] transition-colors disabled:opacity-50"
+                  className="w-full h-12 bg-[#2563EB] text-white rounded-xl font-medium hover:bg-[#C41D3D] transition-colors disabled:opacity-50"
                 >
                   {isSendingCode ? '发送中...' : '发送重置链接'}
                 </button>
@@ -288,19 +288,19 @@ function Login() {
                   value={resetToken}
                   onChange={(e) => setResetToken(e.target.value)}
                   placeholder="请输入重置令牌"
-                  className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#E11D48] focus:outline-none"
+                  className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#2563EB] focus:outline-none"
                 />
                 <input
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="请输入新密码（至少6位）"
-                  className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#E11D48] focus:outline-none"
+                  className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#2563EB] focus:outline-none"
                 />
                 <button
                   onClick={handleResetPassword}
                   disabled={isLoading}
-                  className="w-full h-12 bg-[#E11D48] text-white rounded-xl font-medium hover:bg-[#C41D3D] transition-colors disabled:opacity-50"
+                  className="w-full h-12 bg-[#2563EB] text-white rounded-xl font-medium hover:bg-[#C41D3D] transition-colors disabled:opacity-50"
                 >
                   {isLoading ? '重置中...' : '确认重置'}
                 </button>

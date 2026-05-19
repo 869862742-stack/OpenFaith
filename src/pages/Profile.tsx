@@ -13,7 +13,7 @@ import { cachedFetch } from '../utils/apiCache';
 import { filterOutGroupChats } from '../utils/postUtils';
 import { getTagNames } from '../services/tagService';
 
-const PRIMARY_COLOR = '#E11D48';
+const PRIMARY_COLOR = '#2563EB';
 
 // ========== 通用函数：数量格式化（抖音风格） ==========
 function formatCount(num: number): string {

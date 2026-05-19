@@ -26,11 +26,11 @@ function Drafts() {
   const getIcon = (type: string) => {
     switch (type) {
       case 'note':
-        return <ImageIcon className="w-5 h-5 text-[#E11D48]" />;
+        return <ImageIcon className="w-5 h-5 text-[#2563EB]" />;
       case 'video':
-        return <Video className="w-5 h-5 text-[#E11D48]" />;
+        return <Video className="w-5 h-5 text-[#2563EB]" />;
       default:
-        return <FileText className="w-5 h-5 text-[#E11D48]" />;
+        return <FileText className="w-5 h-5 text-[#2563EB]" />;
     }
   };
 
@@ -70,7 +70,7 @@ function Drafts() {
                 className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-100 cursor-pointer"
                 onClick={() => navigate(`/drafts/${draft.id}`)}
               >
-                <div className="w-12 h-12 rounded-xl bg-[#E11D48]/10 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-xl bg-[#2563EB]/10 flex items-center justify-center">
                   {getIcon(draft.type)}
                 </div>
                 <div className="flex-1">

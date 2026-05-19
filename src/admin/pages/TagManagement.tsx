@@ -5,7 +5,7 @@ import { getSupabaseUrl } from '../supabase/client';
 // Service Role Key - 绕过 RLS
 const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE';
 
-const PRIMARY_COLOR = '#E11D48';
+const PRIMARY_COLOR = '#2563EB';
 
 type TagItem = {
   id: string;
@@ -330,7 +330,7 @@ export default function TagManagement() {
               setFormData({ name: '', type: activeTab, sort_order: 0, is_active: true });
               setShowModal(true);
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-[#E11D48] text-white rounded-lg hover:bg-[#C41E3A] transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-[#2563EB] text-white rounded-lg hover:bg-[#C41E3A] transition-colors"
           >
             <Plus className="w-4 h-4" />
             添加标签
@@ -347,18 +347,18 @@ export default function TagManagement() {
               onClick={() => setActiveTab(cat.value)}
               className={`flex-1 px-4 py-3 text-sm font-medium transition-colors relative ${
                 activeTab === cat.value
-                  ? 'text-[#E11D48] bg-red-50'
+                  ? 'text-[#2563EB] bg-red-50'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
             >
               {cat.label}
               <span className={`ml-2 px-1.5 py-0.5 text-xs rounded-full ${
-                activeTab === cat.value ? 'bg-[#E11D48] text-white' : 'bg-gray-100 text-gray-600'
+                activeTab === cat.value ? 'bg-[#2563EB] text-white' : 'bg-gray-100 text-gray-600'
               }`}>
                 {groupedTags[cat.value]?.length || 0}
               </span>
               {activeTab === cat.value && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#E11D48]" />
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2563EB]" />
               )}
             </button>
           ))}
@@ -375,7 +375,7 @@ export default function TagManagement() {
               placeholder={`搜索 ${getCategoryLabel(activeTab)}...`}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-10 pl-10 pr-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+              className="w-full h-10 pl-10 pr-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
             />
           </div>
           <div className={`px-3 py-2 rounded-lg ${getCategoryColor(activeTab)}`}>
@@ -400,7 +400,7 @@ export default function TagManagement() {
                   setFormData({ name: '', type: activeTab, sort_order: 0, is_active: true });
                   setShowModal(true);
                 }}
-                className="mt-4 text-[#E11D48] hover:underline"
+                className="mt-4 text-[#2563EB] hover:underline"
               >
                 添加第一个标签
               </button>
@@ -439,7 +439,7 @@ export default function TagManagement() {
                           type="number"
                           value={sortValue}
                           onChange={(e) => setSortValue(parseInt(e.target.value) || 0)}
-                          className="w-16 h-8 px-2 text-center border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-[#E11D48]"
+                          className="w-16 h-8 px-2 text-center border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
                         />
                         <button
                           onClick={() => handleBatchSort(tag)}
@@ -482,7 +482,7 @@ export default function TagManagement() {
                   </td>
                   <td className="px-4 py-3 text-center">
                     <span className={`text-sm font-medium ${
-                      getUsageCount(tag) > 0 ? 'text-[#E11D48]' : 'text-gray-500'
+                      getUsageCount(tag) > 0 ? 'text-[#2563EB]' : 'text-gray-500'
                     }`}>
                       {getUsageCount(tag)}
                     </span>
@@ -559,7 +559,7 @@ export default function TagManagement() {
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="请输入标签名称"
-                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
                   />
                 </div>
 
@@ -572,7 +572,7 @@ export default function TagManagement() {
                     <button
                       type="button"
                       onClick={() => setShowTypeDropdown(!showTypeDropdown)}
-                      className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent flex items-center justify-between"
+                      className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent flex items-center justify-between"
                     >
                       <span className={getCategoryColor(formData.type).split(' ')[1]}>{getCategoryLabel(formData.type)}</span>
                       <ChevronDown className="w-4 h-4 text-gray-400" />
@@ -607,7 +607,7 @@ export default function TagManagement() {
                     type="number"
                     value={formData.sort_order}
                     onChange={(e) => setFormData({ ...formData, sort_order: parseInt(e.target.value) || 0 })}
-                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
                   />
                   <p className="text-xs text-gray-500 mt-1">数值越小排序越靠前</p>
                 </div>
@@ -619,7 +619,7 @@ export default function TagManagement() {
                     id="is_active"
                     checked={formData.is_active}
                     onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                    className="w-4 h-4 rounded border-gray-300 text-[#E11D48] focus:ring-[#E11D48]"
+                    className="w-4 h-4 rounded border-gray-300 text-[#2563EB] focus:ring-[#2563EB]"
                   />
                   <label htmlFor="is_active" className="text-sm text-gray-700">
                     启用此标签 <span className="text-gray-500">(禁用后用户端不显示)</span>
@@ -639,7 +639,7 @@ export default function TagManagement() {
                 <button
                   type="button"
                   onClick={handleSave}
-                  className="flex-1 py-2.5 bg-[#E11D48] text-white rounded-lg hover:bg-[#C41E3A] transition-colors"
+                  className="flex-1 py-2.5 bg-[#2563EB] text-white rounded-lg hover:bg-[#C41E3A] transition-colors"
                 >
                   {editingTag ? '保存修改' : '添加'}
                 </button>

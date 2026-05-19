@@ -135,7 +135,7 @@ function RoomList({ onClose, onCreateRoom }: RoomListProps) {
       <button
         onClick={onCreateRoom}
         className="w-full mb-4 py-3 rounded-xl font-medium text-white flex items-center justify-center gap-2"
-        style={{ backgroundColor: '#E11D48' }}
+        style={{ backgroundColor: '#2563EB' }}
       >
         <Plus className="w-5 h-5" />
         创建房间
@@ -144,7 +144,7 @@ function RoomList({ onClose, onCreateRoom }: RoomListProps) {
       {/* 房间列表 */}
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="w-6 h-6 border-2 border-[#E11D48] border-t-transparent rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin" />
         </div>
       ) : filteredRooms.length === 0 ? (
         <div className="text-center py-12">
@@ -167,7 +167,7 @@ function RoomList({ onClose, onCreateRoom }: RoomListProps) {
                   className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
                   style={{ backgroundColor: 'rgba(225, 29, 72, 0.1)' }}
                 >
-                  <Moon className="w-6 h-6" style={{ color: '#E11D48' }} />
+                  <Moon className="w-6 h-6" style={{ color: '#2563EB' }} />
                 </div>
                 
                 {/* 内容 */}
@@ -182,7 +182,7 @@ function RoomList({ onClose, onCreateRoom }: RoomListProps) {
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <span 
                         className="text-xs px-2 py-0.5 rounded-full"
-                        style={{ backgroundColor: 'rgba(225, 29, 72, 0.1)', color: '#E11D48' }}
+                        style={{ backgroundColor: 'rgba(225, 29, 72, 0.1)', color: '#2563EB' }}
                       >
                         ID: {room.room_code}
                       </span>

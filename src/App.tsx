@@ -88,9 +88,9 @@ function PageLoader() {
   return (
     <div className="fixed inset-0 flex items-center justify-center" style={{ background: 'radial-gradient(ellipse at center, #1a1a2e 0%, #0a0a15 100%)' }}>
       <div className="flex items-center gap-3">
-        <span className="text-white text-3xl font-bold tracking-wide">Open Faith</span>
-        <span className="text-white/50 text-3xl font-light">·</span>
-        <span className="text-white text-3xl font-bold tracking-wide">Open World</span>
+        <span className="text-[#2563EB] text-3xl font-bold tracking-wide">Open Faith</span>
+        <span className="text-[#2563EB]/50 text-3xl font-light">·</span>
+        <span className="text-[#2563EB] text-3xl font-bold tracking-wide">Open World</span>
       </div>
     </div>
   );

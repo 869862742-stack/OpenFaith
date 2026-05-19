@@ -351,7 +351,7 @@ export default function BannedWordManagement() {
       {/* 统计卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-          <div className="text-2xl font-bold text-[#E11D48]">{stats.total}</div>
+          <div className="text-2xl font-bold text-[#2563EB]">{stats.total}</div>
           <div className="text-sm text-gray-500">总违规词数</div>
         </div>
         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
@@ -385,7 +385,7 @@ export default function BannedWordManagement() {
           </button>
           <button
             onClick={openAddModal}
-            className="flex items-center gap-2 px-4 py-2 bg-[#E11D48] text-white rounded-lg hover:bg-[#C41E3A] transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-[#2563EB] text-white rounded-lg hover:bg-[#C41E3A] transition-colors"
           >
             <Plus className="w-4 h-4" />
             添加违规词
@@ -404,7 +404,7 @@ export default function BannedWordManagement() {
                 placeholder="搜索违规词..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-10 pl-10 pr-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+                className="w-full h-10 pl-10 pr-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
               />
             </div>
           </div>
@@ -416,7 +416,7 @@ export default function BannedWordManagement() {
                 setCategoryFilter(e.target.value);
                 setPage(1);
               }}
-              className="h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+              className="h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
             >
               <option value="all">全部分类</option>
               {categoryOptions.map((opt) => (
@@ -429,7 +429,7 @@ export default function BannedWordManagement() {
                 setLanguageFilter(e.target.value);
                 setPage(1);
               }}
-              className="h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+              className="h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
             >
               <option value="all">全部语言</option>
               {languageOptions.map((opt) => (
@@ -563,7 +563,7 @@ export default function BannedWordManagement() {
                     value={formData.word}
                     onChange={(e) => setFormData({ ...formData, word: e.target.value })}
                     placeholder="请输入违规词"
-                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
                   />
                 </div>
 
@@ -575,7 +575,7 @@ export default function BannedWordManagement() {
                   <select
                     value={formData.language}
                     onChange={(e) => setFormData({ ...formData, language: e.target.value })}
-                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
                   >
                     {languageOptions.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -596,7 +596,7 @@ export default function BannedWordManagement() {
                   <select
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
                   >
                     {categoryOptions.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -614,7 +614,7 @@ export default function BannedWordManagement() {
                   <select
                     value={formData.severity}
                     onChange={(e) => setFormData({ ...formData, severity: e.target.value })}
-                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
                   >
                     <option value="low">低</option>
                     <option value="medium">中</option>
@@ -632,7 +632,7 @@ export default function BannedWordManagement() {
                     value={formData.variants}
                     onChange={(e) => setFormData({ ...formData, variants: e.target.value })}
                     placeholder="输入常见变体，用逗号分隔，如: 傻比,傻屌"
-                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     常见规避手段，如谐音、简写等
@@ -649,7 +649,7 @@ export default function BannedWordManagement() {
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     placeholder="简要描述该违规词的来源或用途"
-                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
                   />
                 </div>
               </div>
@@ -670,7 +670,7 @@ export default function BannedWordManagement() {
                   type="button"
                   onClick={editingWord ? handleEdit : handleAdd}
                   disabled={processing}
-                  className="flex-1 py-2.5 bg-[#E11D48] text-white rounded-lg hover:bg-[#C41E3A] transition-colors disabled:opacity-50"
+                  className="flex-1 py-2.5 bg-[#2563EB] text-white rounded-lg hover:bg-[#C41E3A] transition-colors disabled:opacity-50"
                 >
                   {editingWord ? '保存' : '添加'}
                 </button>
@@ -706,7 +706,7 @@ export default function BannedWordManagement() {
                     onChange={(e) => setBatchContent(e.target.value)}
                     placeholder="请输入违规词，每行一个&#10;示例：&#10;违规词1&#10;违规词2&#10;违规词3"
                     rows={8}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent resize-none font-mono text-sm"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent resize-none font-mono text-sm"
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     每行一个违规词，空行将被忽略
@@ -721,7 +721,7 @@ export default function BannedWordManagement() {
                   <select
                     value={batchLanguage}
                     onChange={(e) => setBatchLanguage(e.target.value)}
-                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
                   >
                     {languageOptions.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -739,7 +739,7 @@ export default function BannedWordManagement() {
                   <select
                     value={batchCategory}
                     onChange={(e) => setBatchCategory(e.target.value)}
-                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E11D48] focus:border-transparent"
+                    className="w-full h-10 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent"
                   >
                     {categoryOptions.map((opt) => (
                       <option key={opt.value} value={opt.value}>
