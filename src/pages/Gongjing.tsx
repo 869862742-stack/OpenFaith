@@ -2,28 +2,31 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, Music, Loader2 } from 'lucide-react';
+import { ArrowLeft, Upload, Music, Loader2, Moon, BookOpen, Heart, Brain, Hand, Sparkles } from 'lucide-react';
 
 // Service Role Key
 const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE';
 const SUPABASE_URL = 'https://rdhwmeittgdosmkxtpak.supabase.co';
 
 // 状态选项（静默同行）
+const primaryColor = '#E11D48';
+const ICON_MAP: Record<string, React.FC<any>> = { Moon, BookOpen, Heart, Brain, Hand, Sparkles };
+
 const STATUS_OPTIONS = [
-  { id: '安静中', emoji: '🌙', label: '安静中', color: '#93c5fd' },
-  { id: '阅读中', emoji: '📖', label: '阅读中', color: '#fde68a' },
-  { id: '反思中', emoji: '🤍', label: '反思中', color: '#f5f5f5' },
-  { id: '冥想中', emoji: '🧘', label: '冥想中', color: '#c4b5fd' },
-  { id: '祈祷时', emoji: '🙏', label: '祈祷时', color: '#fcd34d' },
+  { id: '安静中', icon: 'Moon', label: '安静中' },
+  { id: '阅读中', icon: 'BookOpen', label: '阅读中' },
+  { id: '反思中', icon: 'Heart', label: '反思中' },
+  { id: '冥想中', icon: 'Brain', label: '冥想中' },
+  { id: '祈祷时', icon: 'Hand', label: '祈祷时' },
 ];
 
 // 世界呼吸时刻状态选项（增加"感恩中"）
 const BREATHING_STATUS_OPTIONS = [
-  { id: '安静中', emoji: '🌙', label: '安静中', color: '#93c5fd' },
-  { id: '阅读中', emoji: '📖', label: '阅读中', color: '#fde68a' },
-  { id: '反思中', emoji: '🤍', label: '反思中', color: '#f5f5f5' },
-  { id: '冥想中', emoji: '🧘', label: '冥想中', color: '#c4b5fd' },
-  { id: '祈祷时', emoji: '🙏', label: '祈祷时', color: '#fcd34d' },
+  { id: '安静中', icon: 'Moon', label: '安静中' },
+  { id: '阅读中', icon: 'BookOpen', label: '阅读中' },
+  { id: '反思中', icon: 'Heart', label: '反思中' },
+  { id: '冥想中', icon: 'Brain', label: '冥想中' },
+  { id: '祈祷时', icon: 'Hand', label: '祈祷时' },
   { id: '感恩中', emoji: '💝', label: '感恩中', color: '#f9a8d4' },
 ];
 
@@ -494,12 +497,12 @@ export default function Gongjing() {
                         : 'bg-white/5 hover:bg-white/10'
                     }`}
                     style={{
-                      border: selectedStatus === status.id ? '1px solid rgba(244, 114, 182, 0.5)' : '1px solid rgba(255, 255, 255, 0.1)',
+                      border: selectedStatus === status.id ? `1px solid ${primaryColor}` : '1px solid rgba(255, 255, 255, 0.1)',
                       boxShadow: selectedStatus === status.id ? '0 0 20px rgba(244, 114, 182, 0.2)' : 'none',
                     }}
                   >
                     <div className="flex flex-col items-center gap-1">
-                      <span className="text-2xl">{status.emoji}</span>
+                      {(() => { const Icon = ICON_MAP[status.icon]; return Icon ? <Icon className="w-6 h-6" style={{ color: selectedStatus === status.id ? primaryColor : "rgba(255,255,255,0.5)" }} /> : null; })()}
                       <span className="text-white/90 text-xs">{status.label}</span>
                     </div>
                     {selectedStatus === status.id && (
@@ -741,7 +744,7 @@ export default function Gongjing() {
                     }}
                   >
                     <div className="flex flex-col items-center gap-1">
-                      <span className="text-2xl">{status.emoji}</span>
+                      {(() => { const Icon = ICON_MAP[status.icon]; return Icon ? <Icon className="w-6 h-6" style={{ color: selectedBreathingStatus === status.id ? primaryColor : "rgba(255,255,255,0.5)" }} /> : null; })()}
                       <span className="text-white/90 text-xs">{status.label}</span>
                     </div>
                     {breathingStatus === status.id && (
