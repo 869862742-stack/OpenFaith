@@ -1,4 +1,4 @@
-// 共境管理页面 - 管理世界呼吸时刻主题、音乐和静默同行房间
+// 共境管理页面 - 管理世界呼吸时刻主题、音乐、静默同行房间和跨信圆桌
 
 import React, { useState, useEffect, useRef } from 'react';
 import { getSupabaseUrl } from '../supabase/client';
@@ -19,6 +19,11 @@ import {
   Loader2,
   AlertCircle,
   Eye,
+  MessagesSquare,
+  UserCheck,
+  Flag,
+  AlertTriangle,
+  Download,
 } from 'lucide-react';
 
 // Service Role Key for bypassing RLS
@@ -26,7 +31,7 @@ const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhY
 
 function GongjingManagement() {
   // ============ 状态定义 ============
-  const [activeTab, setActiveTab] = useState<'breathing' | 'music' | 'rooms'>('breathing');
+  const [activeTab, setActiveTab] = useState<'breathing' | 'music' | 'rooms' | 'roundtable'>('breathing');
 
   // 世界呼吸时刻主题状态
   const [breathingMoments, setBreathingMoments] = useState<any[]>([]);
@@ -56,6 +61,19 @@ function GongjingManagement() {
   const [roomsLoading, setRoomsLoading] = useState(false);
   const [roomsPage, setRoomsPage] = useState(1);
   const [roomsTotal, setRoomsTotal] = useState(0);
+
+  // 跨信圆桌状态
+  const [roundtables, setRoundtables] = useState<any[]>([]);
+  const [roundtablesLoading, setRoundtablesLoading] = useState(false);
+  const [moderatorApplications, setModeratorApplications] = useState<any[]>([]);
+  const [applicationsLoading, setApplicationsLoading] = useState(false);
+  const [roundtableReports, setRoundtableReports] = useState<any[]>([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [showCreateRoundtable, setShowCreateRoundtable] = useState(false);
+  const [roundtableForm, setRoundtableForm] = useState({
+    topic: '',
+    max_speaking_time: 60,
+  });
 
   const pageSize = 10;
   const supabaseUrl = getSupabaseUrl();
@@ -280,27 +298,38 @@ function GongjingManagement() {
 
   // 播放/暂停音乐
   const togglePlayMusic = (url: string) => {
-    const audio = document.getElementById('music-player') as HTMLAudioElement;
-    if (!audio) return;
+    const player = document.getElementById('music-player') as HTMLAudioElement;
+    if (!player) return;
 
     if (playingMusic === url) {
-      audio.pause();
+      player.pause();
       setPlayingMusic(null);
     } else {
-      audio.src = url;
-      audio.play();
+      player.src = url;
+      player.play();
       setPlayingMusic(url);
     }
   };
 
-  // 设置活跃音乐（用于创建主题时快速选择）
+  // 设置活跃音乐
   const setActiveMusic = (url: string, name: string) => {
     setActiveMusicUrl(url);
-    setBreathingForm(prev => ({
-      ...prev,
-      music_url: url,
-      music_name: name,
-    }));
+    alert(`已设置「${name}」为活跃音乐`);
+  };
+
+  // 格式化文件大小
+  const formatSize = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  // 格式化日期
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('zh-CN');
   };
 
   // ============ 静默同行房间管理 ============
@@ -310,12 +339,13 @@ function GongjingManagement() {
     setRoomsLoading(true);
     try {
       const params = new URLSearchParams();
-      params.append('select', '*,room_participants(count)');
+      params.append('select', '*');
+      params.append('type', 'eq.silent_companion');
       params.append('order', 'created_at.desc');
       params.append('offset', String((roomsPage - 1) * pageSize));
       params.append('limit', String(pageSize));
 
-      const res = await fetch(`${supabaseUrl}/rest/v1/rooms?type=eq.silent_companion&${params.toString()}`, { headers });
+      const res = await fetch(`${supabaseUrl}/rest/v1/rooms?${params.toString()}`, { headers });
       if (res.ok) {
         const data = await res.json();
         setRooms(Array.isArray(data) ? data : []);
@@ -349,100 +379,300 @@ function GongjingManagement() {
           ended_at: new Date().toISOString(),
         }),
       });
-      if (!res.ok) throw new Error('操作失败');
+      if (!res.ok) throw new Error('结束房间失败');
       alert('房间已结束！');
       fetchRooms();
     } catch (err: any) {
-      alert(`操作失败: ${err.message}`);
+      alert(`结束房间失败: ${err.message}`);
     }
   };
 
-  // 格式化时间
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleString('zh-CN');
+  // ============ 跨信圆桌管理 ============
+
+  // 获取圆桌列表
+  const fetchRoundtables = async () => {
+    setRoundtablesLoading(true);
+    try {
+      const res = await fetch(`${supabaseUrl}/rest/v1/roundtables?select=*&order=created_at.desc`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        setRoundtables(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      console.error('获取圆桌列表失败:', err);
+    }
+    setRoundtablesLoading(false);
   };
 
-  // 格式化文件大小
-  const formatSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  // 创建圆桌
+  const createRoundtable = async () => {
+    if (!roundtableForm.topic.trim()) {
+      alert('请输入话题');
+      return;
+    }
+
+    try {
+      // 获取当前用户作为主持人（这里简化处理，实际应该选择已批准的主持人）
+      const userInfo = localStorage.getItem('user_info');
+      if (!userInfo) {
+        alert('请先登录');
+        return;
+      }
+      const parsed = JSON.parse(userInfo);
+      const moderatorId = parsed.user_id || parsed.id;
+
+      const res = await fetch(`${supabaseUrl}/rest/v1/roundtables`, {
+        method: 'POST',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation',
+        },
+        body: JSON.stringify({
+          topic: roundtableForm.topic.trim(),
+          moderator_id: moderatorId,
+          moderator_name: parsed.nickname || '管理员',
+          status: 'waiting',
+          max_speaking_time: roundtableForm.max_speaking_time,
+          participant_count: 0,
+          audience_count: 0,
+        }),
+      });
+
+      if (!res.ok) throw new Error('创建失败');
+      alert('圆桌创建成功！');
+      setShowCreateRoundtable(false);
+      setRoundtableForm({ topic: '', max_speaking_time: 60 });
+      fetchRoundtables();
+    } catch (err: any) {
+      alert(`创建失败: ${err.message}`);
+    }
   };
 
-  // 初始化加载
+  // 结束圆桌
+  const endRoundtable = async (id: string) => {
+    if (!confirm('确定要结束这个圆桌吗？')) return;
+
+    try {
+      const res = await fetch(`${supabaseUrl}/rest/v1/roundtables?id=eq.${id}`, {
+        method: 'PATCH',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: 'ended',
+          ended_at: new Date().toISOString(),
+        }),
+      });
+      if (!res.ok) throw new Error('结束圆桌失败');
+      alert('圆桌已结束！');
+      fetchRoundtables();
+    } catch (err: any) {
+      alert(`结束圆桌失败: ${err.message}`);
+    }
+  };
+
+  // 删除圆桌
+  const deleteRoundtable = async (id: string) => {
+    if (!confirm('确定要删除这个圆桌吗？')) return;
+
+    try {
+      const res = await fetch(`${supabaseUrl}/rest/v1/roundtables?id=eq.${id}`, {
+        method: 'DELETE',
+        headers,
+      });
+      if (!res.ok) throw new Error('删除失败');
+      alert('圆桌已删除！');
+      fetchRoundtables();
+    } catch (err: any) {
+      alert(`删除失败: ${err.message}`);
+    }
+  };
+
+  // 获取主持人申请列表
+  const fetchModeratorApplications = async () => {
+    setApplicationsLoading(true);
+    try {
+      const res = await fetch(`${supabaseUrl}/rest/v1/moderator_applications?select=*&order=created_at.desc`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        setModeratorApplications(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      console.error('获取申请列表失败:', err);
+    }
+    setApplicationsLoading(false);
+  };
+
+  // 审核主持人申请
+  const reviewApplication = async (id: string, status: 'approved' | 'rejected') => {
+    if (!confirm(`确定要${status === 'approved' ? '通过' : '拒绝'}这个申请吗？`)) return;
+
+    try {
+      const res = await fetch(`${supabaseUrl}/rest/v1/moderator_applications?id=eq.${id}`, {
+        method: 'PATCH',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status,
+          reviewed_at: new Date().toISOString(),
+        }),
+      });
+      if (!res.ok) throw new Error('审核失败');
+      alert(`申请已${status === 'approved' ? '通过' : '拒绝'}！`);
+      fetchModeratorApplications();
+    } catch (err: any) {
+      alert(`审核失败: ${err.message}`);
+    }
+  };
+
+  // 获取举报列表
+  const fetchRoundtableReports = async () => {
+    setReportsLoading(true);
+    try {
+      const res = await fetch(`${supabaseUrl}/rest/v1/roundtable_reports?select=*&order=created_at.desc`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        setRoundtableReports(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      console.error('获取举报列表失败:', err);
+    }
+    setReportsLoading(false);
+  };
+
+  // 处理举报
+  const handleReport = async (id: string, status: 'resolved' | 'dismissed') => {
+    if (!confirm(`确定要将此举报标记为${status === 'resolved' ? '已处理' : '已驳回'}吗？`)) return;
+
+    try {
+      const res = await fetch(`${supabaseUrl}/rest/v1/roundtable_reports?id=eq.${id}`, {
+        method: 'PATCH',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status,
+        }),
+      });
+      if (!res.ok) throw new Error('处理失败');
+      alert('举报已处理！');
+      fetchRoundtableReports();
+    } catch (err: any) {
+      alert(`处理失败: ${err.message}`);
+    }
+  };
+
+  // ============ 生命周期 ============
+
   useEffect(() => {
-    fetchBreathingMoments();
-    fetchMusicFiles();
-    fetchRooms();
-  }, [breathingPage, roomsPage]);
-
-  // ============ 渲染 ============
+    if (activeTab === 'breathing') {
+      fetchBreathingMoments();
+    } else if (activeTab === 'music') {
+      fetchMusicFiles();
+    } else if (activeTab === 'rooms') {
+      fetchRooms();
+    } else if (activeTab === 'roundtable') {
+      fetchRoundtables();
+      fetchModeratorApplications();
+      fetchRoundtableReports();
+    }
+  }, [activeTab, breathingPage, roomsPage]);
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="p-6">
       {/* 页面标题 */}
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900">共境管理</h1>
-        <p className="text-gray-500 text-sm mt-1">管理世界呼吸时刻主题、背景音乐和静默同行房间</p>
+        <h1 className="text-2xl font-bold text-gray-900">共境管理</h1>
+        <p className="text-gray-500 text-sm mt-1">管理世界呼吸时刻、背景音乐、静默同行房间和跨信圆桌</p>
       </div>
 
       {/* Tab切换 */}
-      <div className="flex border-b border-gray-200 mb-6">
+      <div className="flex gap-2 mb-6 border-b border-gray-200">
         <button
           onClick={() => setActiveTab('breathing')}
-          className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+          className={`px-4 py-2 text-sm font-medium transition-colors relative ${
             activeTab === 'breathing'
-              ? 'border-rose-500 text-rose-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'text-rose-500'
+              : 'text-gray-500 hover:text-gray-700'
           }`}
         >
-          <Globe className="w-4 h-4 inline mr-2" />
+          <Globe className="w-4 h-4 inline mr-1" />
           世界呼吸时刻
+          {activeTab === 'breathing' && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-rose-500" />
+          )}
         </button>
         <button
           onClick={() => setActiveTab('music')}
-          className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+          className={`px-4 py-2 text-sm font-medium transition-colors relative ${
             activeTab === 'music'
-              ? 'border-rose-500 text-rose-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'text-rose-500'
+              : 'text-gray-500 hover:text-gray-700'
           }`}
         >
-          <Music className="w-4 h-4 inline mr-2" />
+          <Music className="w-4 h-4 inline mr-1" />
           背景音乐
+          {activeTab === 'music' && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-rose-500" />
+          )}
         </button>
         <button
           onClick={() => setActiveTab('rooms')}
-          className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+          className={`px-4 py-2 text-sm font-medium transition-colors relative ${
             activeTab === 'rooms'
-              ? 'border-rose-500 text-rose-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'text-rose-500'
+              : 'text-gray-500 hover:text-gray-700'
           }`}
         >
-          <Users className="w-4 h-4 inline mr-2" />
-          静默同行房间
+          <Users className="w-4 h-4 inline mr-1" />
+          静默同行
+          {activeTab === 'rooms' && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-rose-500" />
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab('roundtable')}
+          className={`px-4 py-2 text-sm font-medium transition-colors relative ${
+            activeTab === 'roundtable'
+              ? 'text-rose-500'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <MessagesSquare className="w-4 h-4 inline mr-1" />
+          跨信圆桌
+          {activeTab === 'roundtable' && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-rose-500" />
+          )}
         </button>
       </div>
 
-      {/* 世界呼吸时刻主题管理 */}
+      {/* 世界呼吸时刻管理 */}
       {activeTab === 'breathing' && (
         <div>
           {/* 工具栏 */}
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-4">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="text"
                   placeholder="搜索主题..."
                   value={breathingSearch}
-                  onChange={(e) => {
-                    setBreathingSearch(e.target.value);
-                    setBreathingPage(1);
-                  }}
-                  className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                  onChange={(e) => setBreathingSearch(e.target.value)}
+                  className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent text-sm"
                 />
+                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
               </div>
+              <button
+                onClick={fetchBreathingMoments}
+                className="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                刷新
+              </button>
             </div>
             <button
               onClick={() => {
@@ -464,16 +694,16 @@ function GongjingManagement() {
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      今晚主题
+                      主题
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      状态
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       背景音乐
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       计划时间
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      状态
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       创建时间
@@ -494,45 +724,42 @@ function GongjingManagement() {
                   ) : breathingMoments.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                        暂无主题记录
+                        暂无主题
                       </td>
                     </tr>
                   ) : (
                     breathingMoments.map((item) => (
                       <tr key={item.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4">
-                          <span className="text-gray-900 font-medium">{item.theme || '-'}</span>
+                          <div className="flex items-center gap-2">
+                            <Globe className="w-4 h-4 text-gray-400" />
+                            <span className="text-gray-900">{item.theme}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              item.status === 'pending'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-green-100 text-green-800'
+                            }`}
+                          >
+                            {item.status === 'pending' ? '待发布' : '已发布'}
+                          </span>
                         </td>
                         <td className="px-6 py-4">
                           {item.music_name ? (
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
                               <Music className="w-4 h-4 text-rose-500" />
-                              <span className="text-gray-600 text-sm">{item.music_name}</span>
+                              {item.music_name}
                             </div>
                           ) : (
                             <span className="text-gray-400 text-sm">无</span>
                           )}
                         </td>
                         <td className="px-6 py-4">
-                          <span className="text-gray-600 text-sm">
+                          <span className="text-gray-500 text-sm">
                             {item.scheduled_time ? formatDate(item.scheduled_time) : '-'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              item.status === 'active'
-                                ? 'bg-green-100 text-green-800'
-                                : item.status === 'completed'
-                                ? 'bg-gray-100 text-gray-800'
-                                : 'bg-yellow-100 text-yellow-800'
-                            }`}
-                          >
-                            {item.status === 'active'
-                              ? '进行中'
-                              : item.status === 'completed'
-                              ? '已结束'
-                              : '待发布'}
                           </span>
                         </td>
                         <td className="px-6 py-4">
@@ -827,6 +1054,240 @@ function GongjingManagement() {
         </div>
       )}
 
+      {/* 跨信圆桌管理 */}
+      {activeTab === 'roundtable' && (
+        <div>
+          {/* 子Tab */}
+          <div className="flex gap-2 mb-6">
+            <button
+              onClick={() => { fetchRoundtables(); }}
+              className="px-4 py-2 text-sm font-medium text-rose-500 bg-rose-50 rounded-lg">
+              <MessagesSquare className="w-4 h-4 inline mr-1" />
+              圆桌列表 ({roundtables.length})
+            </button>
+            <button
+              onClick={() => { fetchModeratorApplications(); }}
+              className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">
+              <UserCheck className="w-4 h-4 inline mr-1" />
+              主持人申请 ({moderatorApplications.filter(a => a.status === 'pending').length})
+            </button>
+            <button
+              onClick={() => { fetchRoundtableReports(); }}
+              className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg relative">
+              <Flag className="w-4 h-4 inline mr-1" />
+              举报处理 ({roundtableReports.filter(r => r.status === 'pending').length})
+            </button>
+          </div>
+
+          {/* 圆桌列表 */}
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
+            <div className="flex justify-between items-center p-4 border-b border-gray-200">
+              <h3 className="font-medium text-gray-900">圆桌列表</h3>
+              <button
+                onClick={() => setShowCreateRoundtable(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                创建圆桌
+              </button>
+            </div>
+
+            {roundtablesLoading ? (
+              <div className="p-12 text-center text-gray-500">
+                <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
+                加载中...
+              </div>
+            ) : roundtables.length === 0 ? (
+              <div className="p-12 text-center text-gray-500">
+                <MessagesSquare className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                <p>暂无圆桌</p>
+              </div>
+            ) : (
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">话题</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">主持人</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">参与方</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">观众</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">创建时间</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {roundtables.map((rt) => (
+                    <tr key={rt.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <span className="text-gray-900">{rt.topic}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-gray-600 text-sm">{rt.moderator_name || '未知'}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          rt.status === 'active' ? 'bg-green-100 text-green-800' :
+                          rt.status === 'waiting' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {rt.status === 'active' ? '进行中' : rt.status === 'waiting' ? '等待开始' : '已结束'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-gray-600">{rt.participant_count || 0}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-gray-600">{rt.audience_count || 0}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-gray-500 text-sm">{formatDate(rt.created_at)}</span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          {rt.status !== 'ended' && (
+                            <button
+                              onClick={() => endRoundtable(rt.id)}
+                              className="px-3 py-1.5 text-sm text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors"
+                            >
+                              结束
+                            </button>
+                          )}
+                          <button
+                            onClick={() => deleteRoundtable(rt.id)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* 主持人申请列表 */}
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
+            <div className="p-4 border-b border-gray-200">
+              <h3 className="font-medium text-gray-900">主持人申请待审核 ({moderatorApplications.filter(a => a.status === 'pending').length})</h3>
+            </div>
+
+            {applicationsLoading ? (
+              <div className="p-12 text-center text-gray-500">
+                <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
+                加载中...
+              </div>
+            ) : moderatorApplications.filter(a => a.status === 'pending').length === 0 ? (
+              <div className="p-12 text-center text-gray-500">
+                <UserCheck className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                <p>暂无待审核申请</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-200">
+                {moderatorApplications.filter(a => a.status === 'pending').map((app) => (
+                  <div key={app.id} className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-gray-900 font-medium">{app.nickname || '匿名用户'}</span>
+                          <span className={`px-2 py-0.5 rounded-full text-xs ${
+                            app.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                            app.status === 'approved' ? 'bg-green-100 text-green-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {app.status === 'pending' ? '待审核' : app.status === 'approved' ? '已通过' : '已拒绝'}
+                          </span>
+                        </div>
+                        {app.bio && <p className="text-gray-600 text-sm mb-2">简介: {app.bio}</p>}
+                        <div className="bg-gray-50 p-3 rounded-lg">
+                          <p className="text-gray-500 text-xs mb-1">申请理由:</p>
+                          <p className="text-gray-700 text-sm">{app.reason}</p>
+                        </div>
+                        <p className="text-gray-400 text-xs mt-2">申请时间: {formatDate(app.created_at)}</p>
+                      </div>
+                      <div className="flex items-center gap-2 ml-4">
+                        <button
+                          onClick={() => reviewApplication(app.id, 'approved')}
+                          className="px-4 py-2 text-sm text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
+                        >
+                          <Check className="w-4 h-4 inline mr-1" />
+                          通过
+                        </button>
+                        <button
+                          onClick={() => reviewApplication(app.id, 'rejected')}
+                          className="px-4 py-2 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                        >
+                          <X className="w-4 h-4 inline mr-1" />
+                          拒绝
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 举报列表 */}
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-gray-200">
+              <h3 className="font-medium text-gray-900">举报待处理 ({roundtableReports.filter(r => r.status === 'pending').length})</h3>
+            </div>
+
+            {reportsLoading ? (
+              <div className="p-12 text-center text-gray-500">
+                <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
+                加载中...
+              </div>
+            ) : roundtableReports.filter(r => r.status === 'pending').length === 0 ? (
+              <div className="p-12 text-center text-gray-500">
+                <Flag className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                <p>暂无待处理举报</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-200">
+                {roundtableReports.filter(r => r.status === 'pending').map((report) => (
+                  <div key={report.id} className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <AlertTriangle className="w-4 h-4 text-orange-500" />
+                          <span className="px-2 py-0.5 rounded-full text-xs bg-orange-100 text-orange-800">
+                            待处理
+                          </span>
+                          <span className="text-gray-500 text-sm">圆桌ID: {report.roundtable_id?.slice(0, 8) || '未知'}...</span>
+                        </div>
+                        <div className="bg-orange-50 p-3 rounded-lg">
+                          <p className="text-gray-700 text-sm">{report.reason}</p>
+                        </div>
+                        <p className="text-gray-400 text-xs mt-2">举报时间: {formatDate(report.created_at)}</p>
+                      </div>
+                      <div className="flex items-center gap-2 ml-4">
+                        <button
+                          onClick={() => handleReport(report.id, 'resolved')}
+                          className="px-4 py-2 text-sm text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
+                        >
+                          <Check className="w-4 h-4 inline mr-1" />
+                          已处理
+                        </button>
+                        <button
+                          onClick={() => handleReport(report.id, 'dismissed')}
+                          className="px-4 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                        >
+                          <X className="w-4 h-4 inline mr-1" />
+                          驳回
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* 隐藏的音频播放器 */}
       <audio id="music-player" className="hidden" onEnded={() => setPlayingMusic(null)} />
 
@@ -947,6 +1408,77 @@ function GongjingManagement() {
                 className="px-4 py-2 bg-rose-500 text-white hover:bg-rose-600 rounded-lg transition-colors"
               >
                 保存
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 创建圆桌弹窗 */}
+      {showCreateRoundtable && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">创建圆桌</h3>
+              <button
+                onClick={() => {
+                  setShowCreateRoundtable(false);
+                  setRoundtableForm({ topic: '', max_speaking_time: 60 });
+                }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* 话题输入 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  话题 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={roundtableForm.topic}
+                  onChange={(e) => setRoundtableForm({ ...roundtableForm, topic: e.target.value })}
+                  placeholder="例如：信仰与科学能否共存？"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* 发言时间 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  每轮发言时间（秒）
+                </label>
+                <select
+                  value={roundtableForm.max_speaking_time}
+                  onChange={(e) => setRoundtableForm({ ...roundtableForm, max_speaking_time: Number(e.target.value) })}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                >
+                  <option value={30}>30秒</option>
+                  <option value={60}>60秒</option>
+                  <option value={90}>90秒</option>
+                  <option value={120}>120秒</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
+              <button
+                onClick={() => {
+                  setShowCreateRoundtable(false);
+                  setRoundtableForm({ topic: '', max_speaking_time: 60 });
+                }}
+                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={createRoundtable}
+                className="px-4 py-2 bg-rose-500 text-white hover:bg-rose-600 rounded-lg transition-colors"
+              >
+                创建
               </button>
             </div>
           </div>

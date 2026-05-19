@@ -1,14 +1,13 @@
-// Build: 20250519 - 共境(静默同行/世界呼吸时刻/树洞回声/跨信圆桌)入口页面
+// Build: 20250519 - 共境(静默同行/世界呼吸时刻/树洞回声)入口页面
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, Music, Loader2, Moon, BookOpen, Heart, Brain, Hand, Sparkles, Send, X, Volume2, MessageCircle, Globe, MessagesSquare, Users, Clock, AlertTriangle, UserPlus, Mic, MicOff, Download, Flag, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Upload, Music, Loader2, Moon, BookOpen, Heart, Brain, Hand, Sparkles, Send, X, Volume2, MessageCircle, Globe } from 'lucide-react';
 import { checkBadWords } from '../utils/badWordFilter/index';
 
 // Service Role Key
 const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE';
 const SUPABASE_URL = 'https://rdhwmeittgdosmkxtpak.supabase.co';
-const API_PREFIX = '/sb-api/';
 
 // 状态选项（静默同行）
 const primaryColor = '#E11D48';
@@ -101,46 +100,7 @@ const CONTINENTS_DATA = {
 };
 
 // 类型定义
-type TabType = 'silent' | 'breathing' | 'echo' | 'roundtable';
-
-// 跨信圆桌相关类型
-interface Roundtable {
-  id: string;
-  topic: string;
-  moderator_id: string;
-  moderator_name?: string;
-  status: 'waiting' | 'active' | 'ended';
-  max_speaking_time: number;
-  current_speaker_index: number;
-  current_round: number;
-  participant_count: number;
-  audience_count: number;
-  created_at: string;
-  ended_at?: string;
-}
-
-interface RoundtableParticipant {
-  id: string;
-  roundtable_id: string;
-  team_name: string;
-  captain_id: string;
-  captain_name?: string;
-  members: string[];
-  member_count: number;
-  speaking_order: number;
-}
-
-interface RoundtableSpeech {
-  id: string;
-  roundtable_id: string;
-  participant_id?: string;
-  speaker_id: string;
-  speaker_name: string;
-  content: string;
-  round_number: number;
-  duration: number;
-  created_at: string;
-}
+type TabType = 'silent' | 'breathing' | 'echo';
 
 interface EchoShare {
   id: string;
@@ -231,26 +191,6 @@ export default function Gongjing() {
   const [userReactions, setUserReactions] = useState<Record<string, string[]>>({});
   const [isNightMode, setIsNightMode] = useState(false);
   
-  // 跨信圆桌状态
-  const [roundtables, setRoundtables] = useState<Roundtable[]>([]);
-  const [roundtablesLoading, setRoundtablesLoading] = useState(false);
-  const [isInRoundtable, setIsInRoundtable] = useState(false);
-  const [currentRoundtable, setCurrentRoundtable] = useState<Roundtable | null>(null);
-  const [roundtableParticipants, setRoundtableParticipants] = useState<RoundtableParticipant[]>([]);
-  const [roundtableSpeeches, setRoundtableSpeeches] = useState<RoundtableSpeech[]>([]);
-  const [showModeratorApplication, setShowModeratorApplication] = useState(false);
-  const [moderatorForm, setModeratorForm] = useState({ nickname: '', bio: '', reason: '' });
-  const [submittingApplication, setSubmittingApplication] = useState(false);
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [reportReason, setReportReason] = useState('');
-  const [speakingTime, setSpeakingTime] = useState(60);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [speechContent, setSpeechContent] = useState('');
-  const [isUserParticipant, setIsUserParticipant] = useState(false);
-  const [userParticipantInfo, setUserParticipantInfo] = useState<RoundtableParticipant | null>(null);
-  const [showModeratorPanel, setShowModeratorPanel] = useState(false);
-  const [moderatorActions, setModeratorActions] = useState({ extendTime: 0, nextSpeaker: false, endRoundtable: false });
-  
   // 通用状态
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
@@ -274,7 +214,7 @@ export default function Gongjing() {
     setEchoLoading(true);
     try {
       const res = await fetch(
-        `${API_PREFIX}rest/v1/echo_shares?select=*,echo_echoes(*),echo_reactions(*)&order=created_at.desc&limit=30`,
+        '/sb-api/rest/v1/echo_shares?select=*,echo_echoes(*),echo_reactions(*)&order=created_at.desc&limit=30',
         {
           headers: {
             'apikey': SERVICE_ROLE_KEY,
@@ -320,7 +260,7 @@ export default function Gongjing() {
       try {
         // 获取今日主题
         const themeRes = await fetch(
-          `${API_PREFIX}rest/v1/breathing_moments?select=*&order=created_at.desc&limit=1`,
+          '/sb-api/rest/v1/breathing_moments?select=*&order=created_at.desc&limit=1',
           {
             headers: {
               'apikey': SERVICE_ROLE_KEY,
@@ -341,7 +281,7 @@ export default function Gongjing() {
       try {
         // 获取世界呼吸时刻房间数量（模拟参与人数）
         const roomsRes = await fetch(
-          `${API_PREFIX}rest/v1/rooms?type=eq.world_breathing&status=eq.active&select=id`,
+          '/sb-api/rest/v1/rooms?type=eq.world_breathing&status=eq.active&select=id',
           {
             headers: {
               'apikey': SERVICE_ROLE_KEY,
@@ -384,293 +324,6 @@ export default function Gongjing() {
       return () => clearInterval(interval);
     }
   }, [activeTab]);
-
-  // ============ 跨信圆桌相关函数 ============
-
-  // 加载圆桌列表
-  const loadRoundtables = async () => {
-    setRoundtablesLoading(true);
-    try {
-      const res = await fetch(
-        `${API_PREFIX}rest/v1/roundtables?select=*&order=created_at.desc`,
-        {
-          headers: {
-            'apikey': SERVICE_ROLE_KEY,
-            'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
-          },
-        }
-      );
-      if (res.ok) {
-        const data = await res.json();
-        setRoundtables(data || []);
-      }
-    } catch (err) {
-      console.warn('加载圆桌列表失败:', err);
-    } finally {
-      setRoundtablesLoading(false);
-    }
-  };
-
-  // 加载圆桌数据
-  const loadRoundtableData = async (roundtableId: string) => {
-    try {
-      // 加载圆桌信息
-      const rtRes = await fetch(
-        `${API_PREFIX}rest/v1/roundtables?id=eq.${roundtableId}&select=*`,
-        {
-          headers: {
-            'apikey': SERVICE_ROLE_KEY,
-            'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
-          },
-        }
-      );
-      if (rtRes.ok) {
-        const rtData = await rtRes.json();
-        if (rtData && rtData.length > 0) {
-          setCurrentRoundtable(rtData[0]);
-        }
-      }
-
-      // 加载参与者
-      const participantsRes = await fetch(
-        `${API_PREFIX}rest/v1/roundtable_participants?roundtable_id=eq.${roundtableId}&select=*&order=speaking_order.asc`,
-        {
-          headers: {
-            'apikey': SERVICE_ROLE_KEY,
-            'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
-          },
-        }
-      );
-      if (participantsRes.ok) {
-        const participantsData = await participantsRes.json();
-        setRoundtableParticipants(participantsData || []);
-      }
-
-      // 加载发言记录
-      const speechesRes = await fetch(
-        `${API_PREFIX}rest/v1/roundtable_speeches?roundtable_id=eq.${roundtableId}&select=*&order=created_at.asc`,
-        {
-          headers: {
-            'apikey': SERVICE_ROLE_KEY,
-            'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
-          },
-        }
-      );
-      if (speechesRes.ok) {
-        const speechesData = await speechesRes.json();
-        setRoundtableSpeeches(speechesData || []);
-      }
-
-      // 检查当前用户是否为参与者
-      const userInfo = localStorage.getItem('user_info');
-      if (userInfo) {
-        const parsed = JSON.parse(userInfo);
-        const userId = parsed.user_id || parsed.id;
-        const userAsParticipant = (await fetch(
-          `${API_PREFIX}rest/v1/roundtable_participants?roundtable_id=eq.${roundtableId}&captain_id=eq.${userId}&select=*`,
-          {
-            headers: {
-              'apikey': SERVICE_ROLE_KEY,
-              'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
-            },
-          }
-        ).then(r => r.json()));
-        
-        if (userAsParticipant && userAsParticipant.length > 0) {
-          setIsUserParticipant(true);
-          setUserParticipantInfo(userAsParticipant[0]);
-        } else {
-          setIsUserParticipant(false);
-          setUserParticipantInfo(null);
-        }
-      }
-    } catch (err) {
-      console.warn('加载圆桌数据失败:', err);
-    }
-  };
-
-  // 进入圆桌（观众身份）
-  const enterRoundtable = async (roundtableId: string) => {
-    setIsInRoundtable(true);
-    await loadRoundtableData(roundtableId);
-  };
-
-  // 退出圆桌
-  const exitRoundtable = () => {
-    setIsInRoundtable(false);
-    setCurrentRoundtable(null);
-    setRoundtableParticipants([]);
-    setRoundtableSpeeches([]);
-    setIsUserParticipant(false);
-    setUserParticipantInfo(null);
-    setShowModeratorPanel(false);
-  };
-
-  // 提交主持人申请
-  const submitModeratorApplication = async () => {
-    if (!moderatorForm.nickname.trim() || !moderatorForm.reason.trim()) {
-      setError('请填写昵称和申请理由');
-      return;
-    }
-
-    setSubmittingApplication(true);
-    setError('');
-
-    try {
-      const userInfo = localStorage.getItem('user_info');
-      if (!userInfo) {
-        setError('请先登录');
-        return;
-      }
-      const parsed = JSON.parse(userInfo);
-      const userId = parsed.user_id || parsed.id;
-      if (!userId) {
-        setError('无法获取用户信息');
-        return;
-      }
-
-      const res = await fetch(`${API_PREFIX}rest/v1/moderator_applications`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SERVICE_ROLE_KEY,
-          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
-        },
-        body: JSON.stringify({
-          user_id: userId,
-          nickname: moderatorForm.nickname.trim(),
-          bio: moderatorForm.bio.trim(),
-          reason: moderatorForm.reason.trim(),
-          status: 'pending',
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error('提交申请失败');
-      }
-
-      setShowModeratorApplication(false);
-      setModeratorForm({ nickname: '', bio: '', reason: '' });
-      alert('申请已提交，请等待管理员审核');
-    } catch (err: any) {
-      setError(err.message || '提交申请失败');
-    } finally {
-      setSubmittingApplication(false);
-    }
-  };
-
-  // 提交举报
-  const submitReport = async () => {
-    if (!reportReason.trim()) {
-      setError('请填写举报原因');
-      return;
-    }
-
-    try {
-      const userInfo = localStorage.getItem('user_info');
-      if (!userInfo) {
-        setError('请先登录');
-        return;
-      }
-      const parsed = JSON.parse(userInfo);
-      const userId = parsed.user_id || parsed.id;
-      if (!userId) {
-        setError('无法获取用户信息');
-        return;
-      }
-
-      const res = await fetch(`${API_PREFIX}rest/v1/roundtable_reports`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SERVICE_ROLE_KEY,
-          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
-        },
-        body: JSON.stringify({
-          roundtable_id: currentRoundtable?.id,
-          reporter_id: userId,
-          reason: reportReason.trim(),
-          status: 'pending',
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error('提交举报失败');
-      }
-
-      setShowReportModal(false);
-      setReportReason('');
-      alert('举报已提交，管理员会尽快处理');
-    } catch (err: any) {
-      setError(err.message || '提交举报失败');
-    }
-  };
-
-  // 发言计时器
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (isSpeaking && speakingTime > 0) {
-      timer = setInterval(() => {
-        setSpeakingTime(prev => {
-          if (prev <= 1) {
-            setIsSpeaking(false);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => clearInterval(timer);
-  }, [isSpeaking, speakingTime]);
-
-  // 刷新圆桌数据
-  useEffect(() => {
-    if (activeTab === 'roundtable' && !isInRoundtable) {
-      loadRoundtables();
-      const interval = setInterval(loadRoundtables, 30000);
-      return () => clearInterval(interval);
-    }
-  }, [activeTab, isInRoundtable]);
-
-  // 刷新圆桌内数据
-  useEffect(() => {
-    if (isInRoundtable && currentRoundtable) {
-      loadRoundtableData(currentRoundtable.id);
-      const interval = setInterval(() => loadRoundtableData(currentRoundtable.id), 10000);
-      return () => clearInterval(interval);
-    }
-  }, [isInRoundtable, currentRoundtable]);
-
-  // 下载讨论内容
-  const downloadRoundtableContent = () => {
-    if (!currentRoundtable) return;
-
-    let content = `# 跨信圆桌讨论记录\n\n`;
-    content += `## 话题\n${currentRoundtable.topic}\n\n`;
-    content += `## 主持人\n${currentRoundtable.moderator_name || '未知'}\n\n`;
-    content += `## 参与方\n`;
-    roundtableParticipants.forEach(p => {
-      content += `- ${p.team_name}（队长: ${p.captain_name || '未知'}，队员: ${p.member_count - 1}人）\n`;
-    });
-    content += `\n## 讨论记录\n\n`;
-
-    let currentRound = 0;
-    roundtableSpeeches.forEach(speech => {
-      if (speech.round_number !== currentRound) {
-        currentRound = speech.round_number;
-        content += `\n### 第${currentRound}轮\n\n`;
-      }
-      content += `**${speech.speaker_name}** (${speech.duration}秒):\n${speech.content}\n\n`;
-    });
-
-    const blob = new Blob([content], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `圆桌讨论_${currentRoundtable.topic}_${new Date().toLocaleDateString()}.md`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
 
   // 处理静默同行音乐文件选择
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -779,7 +432,7 @@ export default function Gongjing() {
         description: `与你一起${selectedStatus}的静默时光`,
       };
 
-      const res = await fetch(`${API_PREFIX}rest/v1/rooms`, {
+      const res = await fetch('/sb-api/rest/v1/rooms', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -874,7 +527,7 @@ export default function Gongjing() {
         authorName = parsed.nickname;
       }
 
-      const res = await fetch(`${API_PREFIX}rest/v1/echo_shares`, {
+      const res = await fetch('/sb-api/rest/v1/echo_shares', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -932,7 +585,7 @@ export default function Gongjing() {
         return;
       }
 
-      const res = await fetch(`${API_PREFIX}rest/v1/echo_echoes`, {
+      const res = await fetch('/sb-api/rest/v1/echo_echoes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -979,7 +632,7 @@ export default function Gongjing() {
       if (hasReacted) {
         // 移除反应
         await fetch(
-          `${API_PREFIX}rest/v1/echo_reactions?share_id=eq.${shareId}&user_id=eq.${userId}&reaction_type=eq.${reactionType}`,
+          `/sb-api/rest/v1/echo_reactions?share_id=eq.${shareId}&user_id=eq.${userId}&reaction_type=eq.${reactionType}`,
           {
             method: 'DELETE',
             headers: {
@@ -994,7 +647,7 @@ export default function Gongjing() {
         }));
       } else {
         // 添加反应
-        await fetch(`${API_PREFIX}rest/v1/echo_reactions`, {
+        await fetch('/sb-api/rest/v1/echo_reactions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1031,7 +684,7 @@ export default function Gongjing() {
       if (!userId) return;
 
       await fetch(
-        `${API_PREFIX}rest/v1/echo_shares?id=eq.${shareId}&user_id=eq.${userId}`,
+        `/sb-api/rest/v1/echo_shares?id=eq.${shareId}&user_id=eq.${userId}`,
         {
           method: 'DELETE',
           headers: {
@@ -1077,13 +730,6 @@ export default function Gongjing() {
       return share.author_name;
     }
     return 'Anonymous Soul';
-  };
-
-  // 格式化秒为 mm:ss
-  const formatSpeakingTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const currentUserId = getUserId();
@@ -1174,21 +820,6 @@ export default function Gongjing() {
             }}
           >
             树洞回声
-          </button>
-          {/* 跨信圆桌 Tab */}
-          <button
-            onClick={() => { setActiveTab('roundtable'); setIsInBreathing(false); }}
-            className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all duration-300 ${
-              activeTab === 'roundtable'
-                ? 'text-white shadow-lg'
-                : 'bg-white/5 text-white/60 hover:bg-white/10'
-            }`}
-            style={{
-              background: activeTab === 'roundtable' ? `${primaryColor}30` : undefined,
-              border: activeTab === 'roundtable' ? `1px solid ${primaryColor}50` : 'none',
-            }}
-          >
-            跨信圆桌
           </button>
         </div>
       </div>
@@ -2138,526 +1769,7 @@ export default function Gongjing() {
             </div>
           </div>
         )}
-
-        {/* 跨信圆桌 Tab */}
-        {activeTab === 'roundtable' && !isInRoundtable && (
-          <div className="space-y-6" style={{ animation: 'fadeIn 0.3s ease-out' }}>
-            {/* 标题区域 */}
-            <div className="text-center mb-8" style={{ animation: 'fadeInUp 0.5s ease-out' }}>
-              <div className="inline-flex items-center gap-2 mb-4">
-                <MessagesSquare className="w-8 h-8" style={{ color: primaryColor }} />
-              </div>
-              <h2 className="text-white text-xl font-light mb-2">跨信圆桌</h2>
-              <p className="text-white/50 text-sm" style={{ animation: 'fadeInUp 0.5s ease-out 0.2s both' }}>
-                哲思与信仰的对话场
-              </p>
-            </div>
-
-            {/* 圆桌列表 */}
-            <div className="space-y-4">
-              {roundtablesLoading ? (
-                <div className="text-center py-10">
-                  <Loader2 className="w-8 h-8 text-rose-400/50 animate-spin mx-auto" />
-                  <p className="text-white/40 text-sm mt-3">加载中...</p>
-                </div>
-              ) : roundtables.length === 0 ? (
-                <div className="text-center py-10">
-                  <MessagesSquare className="w-10 h-10 text-rose-400/30 mx-auto mb-4" style={{ color: primaryColor }} />
-                  <p className="text-white/40 text-sm">暂无进行中的圆桌</p>
-                  <p className="text-white/30 text-xs mt-2">成为第一个创建者吧</p>
-                </div>
-              ) : (
-                roundtables.map((rt, index) => (
-                  <div
-                    key={rt.id}
-                    className="p-5 rounded-2xl backdrop-blur-md cursor-pointer transition-all duration-300 hover:scale-[1.02]"
-                    style={{
-                      background: 'rgba(225, 29, 72, 0.08)',
-                      border: '1px solid rgba(225, 29, 72, 0.2)',
-                      animation: `fadeInUp 0.5s ease-out ${index * 0.1}s both`,
-                    }}
-                    onClick={() => enterRoundtable(rt.id)}
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <h3 className="text-white text-lg font-medium mb-1">{rt.topic}</h3>
-                        <p className="text-white/50 text-sm">
-                          主持人: {rt.moderator_name || '未知'}
-                        </p>
-                      </div>
-                      <div className="flex flex-col items-end gap-2">
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            rt.status === 'active'
-                              ? 'bg-green-500/20 text-green-400'
-                              : rt.status === 'waiting'
-                              ? 'bg-yellow-500/20 text-yellow-400'
-                              : 'bg-gray-500/20 text-gray-400'
-                          }`}
-                        >
-                          {rt.status === 'active' ? '进行中' : rt.status === 'waiting' ? '等待开始' : '已结束'}
-                        </span>
-                        {rt.status !== 'ended' && (
-                          <ChevronRight className="w-5 h-5 text-white/30" />
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4 text-white/40 text-xs">
-                      <div className="flex items-center gap-1">
-                        <Users className="w-4 h-4" />
-                        <span>{rt.participant_count} 方</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Eye className="w-4 h-4" />
-                        <span>{rt.audience_count} 观众</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-4 h-4" />
-                        <span>{formatTime(rt.created_at)}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* 底部按钮 */}
-            <div className="space-y-3 mt-8">
-              {/* 申请成为主持人 */}
-              <button
-                onClick={() => setShowModeratorApplication(true)}
-                className="w-full py-4 rounded-2xl backdrop-blur-md text-white font-medium transition-all duration-300 flex items-center justify-center gap-2"
-                style={{
-                  background: 'rgba(225, 29, 72, 0.1)',
-                  border: '1px solid rgba(225, 29, 72, 0.3)',
-                }}
-              >
-                <UserPlus className="w-5 h-5" style={{ color: primaryColor }} />
-                <span>申请成为主持人</span>
-              </button>
-
-              {/* 创建圆桌（暂时隐藏，后续开放） */}
-              {/* 
-              <button
-                onClick={() => {/* TODO: 打开创建圆桌表单 */}}
-                className="w-full py-4 rounded-2xl backdrop-blur-md text-white font-medium transition-all duration-300 flex items-center justify-center gap-2"
-                style={{
-                  background: `linear-gradient(135deg, ${primaryColor}40 0%, ${primaryColor}20 100%)`,
-                  border: `1px solid ${primaryColor}50`,
-                  boxShadow: `0 0 20px ${primaryColor}20`,
-                }}
-              >
-                <MessagesSquare className="w-5 h-5" />
-                <span>创建圆桌</span>
-              </button>
-              */}
-            </div>
-
-            {/* 底部提示 */}
-            <div className="mt-8 text-center">
-              <p className="text-white/30 text-xs italic">
-                Where wisdom meets across faiths.
-              </p>
-              <p className="text-white/20 text-xs mt-2">
-                哲思与信仰，在对话中相遇
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* 圆桌详情页 */}
-        {activeTab === 'roundtable' && isInRoundtable && currentRoundtable && (
-          <div className="space-y-6" style={{ animation: 'fadeIn 0.3s ease-out' }}>
-            {/* 返回按钮 */}
-            <button
-              onClick={exitRoundtable}
-              className="flex items-center gap-2 text-white/60 hover:text-white transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="text-sm">返回圆桌列表</span>
-            </button>
-
-            {/* 圆桌信息 */}
-            <div
-              className="p-5 rounded-2xl backdrop-blur-md"
-              style={{
-                background: 'rgba(225, 29, 72, 0.08)',
-                border: '1px solid rgba(225, 29, 72, 0.2)',
-              }}
-            >
-              <h2 className="text-white text-xl font-medium mb-3">{currentRoundtable.topic}</h2>
-              <div className="flex items-center gap-4 text-white/50 text-sm mb-4">
-                <span>主持人: {currentRoundtable.moderator_name || '未知'}</span>
-                <span className="px-2 py-0.5 rounded-full text-xs"
-                  style={{
-                    background: currentRoundtable.status === 'active' 
-                      ? 'rgba(34, 197, 94, 0.2)' 
-                      : currentRoundtable.status === 'waiting'
-                      ? 'rgba(234, 179, 8, 0.2)'
-                      : 'rgba(156, 163, 175, 0.2)',
-                    color: currentRoundtable.status === 'active' 
-                      ? '#22c55e' 
-                      : currentRoundtable.status === 'waiting'
-                      ? '#eab308'
-                      : '#9ca3af',
-                  }}
-                >
-                  {currentRoundtable.status === 'active' ? '进行中' : currentRoundtable.status === 'waiting' ? '等待开始' : '已结束'}
-                </span>
-              </div>
-
-              {/* 参与方列表 */}
-              <div className="space-y-2 mb-4">
-                <h3 className="text-white/70 text-sm font-medium">参与方 ({roundtableParticipants.length})</h3>
-                {roundtableParticipants.map((p) => (
-                  <div
-                    key={p.id}
-                    className="flex items-center justify-between p-3 rounded-xl"
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.03)',
-                      border: '1px solid rgba(255, 255, 255, 0.05)',
-                    }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Users className="w-4 h-4 text-rose-400/50" />
-                      <div>
-                        <p className="text-white/90 text-sm">{p.team_name}</p>
-                        <p className="text-white/40 text-xs">队长: {p.captain_name || '未知'}</p>
-                      </div>
-                    </div>
-                    <span className="text-white/40 text-xs">{p.member_count - 1} 名队员</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* 当前轮次 */}
-              <div className="flex items-center gap-4 text-sm">
-                <span className="text-white/50">当前轮次: 第 {currentRoundtable.current_round} 轮</span>
-                <span className="text-white/50">发言时间: {currentRoundtable.max_speaking_time}秒</span>
-              </div>
-            </div>
-
-            {/* 观众提示 */}
-            {!isUserParticipant && currentRoundtable.status !== 'ended' && (
-              <div
-                className="p-4 rounded-xl backdrop-blur-md text-center"
-                style={{
-                  background: 'rgba(59, 130, 246, 0.1)',
-                  border: '1px solid rgba(59, 130, 246, 0.2)',
-                }}
-              >
-                <p className="text-blue-300 text-sm">👁️ 您正在旁听</p>
-              </div>
-            )}
-
-            {/* 发言区域（仅参与者可见） */}
-            {isUserParticipant && currentRoundtable.status === 'active' && (
-              <div
-                className="p-5 rounded-2xl backdrop-blur-md"
-                style={{
-                  background: 'rgba(34, 197, 94, 0.08)',
-                  border: '1px solid rgba(34, 197, 94, 0.2)',
-                }}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-white/80 text-sm font-medium">发言区域</h3>
-                  <div className="flex items-center gap-2">
-                    <Mic className="w-5 h-5" style={{ color: isSpeaking ? '#22c55e' : '#6b7280' }} />
-                    <span className={`text-lg font-mono ${isSpeaking ? 'text-green-400' : 'text-white/50'}`}>
-                      {formatSpeakingTime(speakingTime)}
-                    </span>
-                  </div>
-                </div>
-
-                <textarea
-                  value={speechContent}
-                  onChange={(e) => setSpeechContent(e.target.value)}
-                  placeholder="在此输入您的发言..."
-                  maxLength={500}
-                  rows={4}
-                  className="w-full bg-white/5 text-white placeholder-white/30 rounded-xl p-3 resize-none focus:outline-none text-sm"
-                  style={{
-                    border: '1px solid rgba(34, 197, 94, 0.2)',
-                  }}
-                  disabled={isSpeaking}
-                />
-
-                <div className="flex items-center justify-between mt-3">
-                  <span className="text-white/30 text-xs">{speechContent.length}/500</span>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        setSpeakingTime(currentRoundtable?.max_speaking_time || 60);
-                        setIsSpeaking(true);
-                      }}
-                      disabled={isSpeaking || !speechContent.trim()}
-                      className="px-4 py-2 rounded-full text-white text-sm font-medium transition-all duration-300 flex items-center gap-2"
-                      style={{
-                        background: isSpeaking || !speechContent.trim()
-                          ? 'rgba(255, 255, 255, 0.1)'
-                          : 'rgba(34, 197, 94, 0.3)',
-                        border: '1px solid rgba(34, 197, 94, 0.3)',
-                        opacity: isSpeaking || !speechContent.trim() ? 0.5 : 1,
-                      }}
-                    >
-                      <Mic className="w-4 h-4" />
-                      开始发言
-                    </button>
-                    <button
-                      onClick={() => setIsSpeaking(false)}
-                      disabled={!isSpeaking}
-                      className="px-4 py-2 rounded-full text-white text-sm font-medium transition-all duration-300 flex items-center gap-2"
-                      style={{
-                        background: isSpeaking
-                          ? 'rgba(239, 68, 68, 0.3)'
-                          : 'rgba(255, 255, 255, 0.1)',
-                        border: '1px solid rgba(239, 68, 68, 0.3)',
-                        opacity: isSpeaking ? 1 : 0.5,
-                      }}
-                    >
-                      <MicOff className="w-4 h-4" />
-                      结束发言
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* 讨论记录 */}
-            <div
-              className="p-5 rounded-2xl backdrop-blur-md"
-              style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid rgba(255, 255, 255, 0.05)',
-              }}
-            >
-              <h3 className="text-white/70 text-sm font-medium mb-4">讨论记录</h3>
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {roundtableSpeeches.length === 0 ? (
-                  <p className="text-white/30 text-sm text-center py-4">暂无发言记录</p>
-                ) : (
-                  roundtableSpeeches.map((speech, index) => (
-                    <div
-                      key={speech.id}
-                      className="p-3 rounded-xl"
-                      style={{
-                        background: 'rgba(255, 255, 255, 0.03)',
-                        borderLeft: '2px solid rgba(225, 29, 72, 0.3)',
-                      }}
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-rose-400 text-sm font-medium">{speech.speaker_name}</span>
-                        <span className="text-white/30 text-xs">·</span>
-                        <span className="text-white/40 text-xs">第{speech.round_number}轮 · {speech.duration}秒</span>
-                      </div>
-                      <p className="text-white/80 text-sm leading-relaxed">{speech.content}</p>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* 操作按钮 */}
-            <div className="flex gap-3">
-              {/* 举报按钮 */}
-              <button
-                onClick={() => setShowReportModal(true)}
-                className="flex-1 py-3 rounded-xl backdrop-blur-md text-white/70 text-sm transition-all duration-300 flex items-center justify-center gap-2 hover:bg-white/5"
-                style={{
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                }}
-              >
-                <Flag className="w-4 h-4" />
-                <span>举报主持人</span>
-              </button>
-
-              {/* 下载按钮（圆桌结束后可用） */}
-              {currentRoundtable.status === 'ended' && (
-                <button
-                  onClick={downloadRoundtableContent}
-                  className="flex-1 py-3 rounded-xl backdrop-blur-md text-white text-sm transition-all duration-300 flex items-center justify-center gap-2"
-                  style={{
-                    background: `rgba(225, 29, 72, 0.2)`,
-                    border: `1px solid rgba(225, 29, 72, 0.3)`,
-                  }}
-                >
-                  <Download className="w-4 h-4" />
-                  <span>下载讨论内容</span>
-                </button>
-              )}
-            </div>
-          </div>
-        )}
       </div>
-
-      {/* 主持人申请弹窗 */}
-      {showModeratorApplication && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div
-            className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto"
-          >
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">申请成为主持人</h3>
-              <button
-                onClick={() => setShowModeratorApplication(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              {/* 昵称 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  昵称 <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={moderatorForm.nickname}
-                  onChange={(e) => setModeratorForm({ ...moderatorForm, nickname: e.target.value })}
-                  placeholder="请输入您的昵称"
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
-                />
-              </div>
-
-              {/* 个人简介 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  个人简介
-                </label>
-                <textarea
-                  value={moderatorForm.bio}
-                  onChange={(e) => setModeratorForm({ ...moderatorForm, bio: e.target.value })}
-                  placeholder="简单介绍一下自己（可选）"
-                  maxLength={200}
-                  rows={3}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent resize-none"
-                />
-                <p className="text-gray-400 text-xs mt-1">{moderatorForm.bio.length}/200</p>
-              </div>
-
-              {/* 申请理由 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  申请理由 <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  value={moderatorForm.reason}
-                  onChange={(e) => setModeratorForm({ ...moderatorForm, reason: e.target.value })}
-                  placeholder="为什么想成为主持人？"
-                  maxLength={500}
-                  rows={4}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent resize-none"
-                />
-                <p className="text-gray-400 text-xs mt-1">{moderatorForm.reason.length}/500</p>
-              </div>
-
-              {error && (
-                <div className="p-3 rounded-lg bg-red-50 text-red-600 text-sm">
-                  {error}
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
-              <button
-                onClick={() => {
-                  setShowModeratorApplication(false);
-                  setModeratorForm({ nickname: '', bio: '', reason: '' });
-                  setError('');
-                }}
-                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              >
-                取消
-              </button>
-              <button
-                onClick={submitModeratorApplication}
-                disabled={submittingApplication}
-                className="px-4 py-2 bg-rose-500 text-white hover:bg-rose-600 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
-              >
-                {submittingApplication && <Loader2 className="w-4 h-4 animate-spin" />}
-                提交申请
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 举报弹窗 */}
-      {showReportModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div
-            className="bg-white rounded-2xl shadow-xl w-full max-w-md"
-          >
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">举报主持人</h3>
-              <button
-                onClick={() => setShowReportModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div
-                className="p-4 rounded-lg bg-yellow-50 border border-yellow-200 mb-4"
-              >
-                <div className="flex items-center gap-2 text-yellow-800 mb-2">
-                  <AlertTriangle className="w-5 h-5" />
-                  <span className="font-medium">举报须知</span>
-                </div>
-                <p className="text-yellow-700 text-sm">
-                  如果您认为主持人在圆桌讨论中存在偏袒或其他违规行为，请在此举报。管理员会尽快审核处理。
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  举报原因 <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  value={reportReason}
-                  onChange={(e) => setReportReason(e.target.value)}
-                  placeholder="请详细描述举报原因..."
-                  maxLength={500}
-                  rows={5}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent resize-none"
-                />
-                <p className="text-gray-400 text-xs mt-1">{reportReason.length}/500</p>
-              </div>
-
-              {error && (
-                <div className="p-3 rounded-lg bg-red-50 text-red-600 text-sm">
-                  {error}
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
-              <button
-                onClick={() => {
-                  setShowReportModal(false);
-                  setReportReason('');
-                  setError('');
-                }}
-                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              >
-                取消
-              </button>
-              <button
-                onClick={submitReport}
-                className="px-4 py-2 bg-rose-500 text-white hover:bg-rose-600 rounded-lg transition-colors flex items-center gap-2"
-              >
-                <Flag className="w-4 h-4" />
-                提交举报
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* CSS动画 */}
       <style>{`
