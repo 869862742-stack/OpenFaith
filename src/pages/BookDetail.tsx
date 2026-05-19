@@ -129,6 +129,8 @@ const BookDetail: React.FC = () => {
   const pendingHighlightRef = useRef<{text: string, chapterId: string} | null>(null);
   // 标记是否从URL参数触发的高亮跳转
   const urlHighlightRef = useRef<{text: string, chapterId: string} | null>(null);
+  // 标记当前是否应该恢复滚动位置（从直接打开书籍时恢复，从搜索/感悟跳转时不恢复）
+  const shouldRestoreScrollRef = useRef(false);
 
   // 滚动到高亮位置（带重试）
   // 查找包含指定文字的段落并居中滚动（使用window滚动，因为实际滚动发生在window上）
@@ -434,6 +436,9 @@ const BookDetail: React.FC = () => {
     const chapterIndexParam = params.get('chapterIndex');
     const highlight = params.get('highlight');
     
+    // 标记为高亮跳转，不恢复滚动位置
+    shouldRestoreScrollRef.current = false;
+    
     // 支持 chapterIndex 参数（从感悟页面跳转）
     if (!chapterId && chapterIndexParam) {
       const idx = parseInt(chapterIndexParam, 10);
@@ -692,6 +697,9 @@ const BookDetail: React.FC = () => {
         setVolumeNames(nameMap);
         if (volList.length > 0) setSelectedVolume(volList[0]);
         
+        // 标记为直接打开书籍，应该恢复滚动位置
+        shouldRestoreScrollRef.current = true;
+        
         // 恢复阅读进度
         const progressKey = `reading_progress_${id}`;
         const savedProgress = localStorage.getItem(progressKey);
@@ -831,7 +839,46 @@ const BookDetail: React.FC = () => {
       return;
     }
     
-    // 正常章节切换（无高亮），直接滚动到顶部
+    // 尝试恢复保存的滚动位置（仅在直接打开书籍时）
+    const savedPosition = shouldRestoreScrollRef.current ? 
+      (() => {
+        try {
+          const saved = localStorage.getItem(`reading_position_${id}`);
+          if (saved) {
+            const pos = JSON.parse(saved);
+            if (pos.scrollTop && pos.scrollTop > 100) {
+              return pos.scrollTop;
+            }
+          }
+        } catch (e) {}
+        return 0;
+      })() : 0;
+    
+    // 如果需要恢复滚动位置
+    if (savedPosition > 0) {
+      const restoreScrollPosition = () => {
+        if (contentRef.current) {
+          contentRef.current.scrollTop = savedPosition;
+        }
+        window.scrollTo({ top: savedPosition, behavior: 'instant' });
+        document.documentElement.scrollTop = savedPosition;
+        console.log('[DBG] 恢复滚动位置:', savedPosition);
+      };
+      
+      // 等待内容渲染后恢复
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            restoreScrollPosition();
+            setIsChapterTransitioning(false);
+            chapterTransitionRef.current = false;
+          });
+        });
+      });
+      return;
+    }
+    
+    // 正常章节切换（无高亮，无恢复位置），直接滚动到顶部
     const scrollToTopAfterRender = () => {
       // 1. 滚动main容器（如果它是滚动容器）
       if (contentRef.current) {
@@ -978,18 +1025,22 @@ const BookDetail: React.FC = () => {
 
 
 
-  // 保存阅读位置到localStorage
+  // 保存阅读位置到localStorage（包括chapterIndex和scrollTop）
   useEffect(() => {
-    if (id && chapters.length > 0 && currentChapterIndex >= 0) {
-      try {
-        localStorage.setItem(`reading_position_${id}`, JSON.stringify({
-          chapterIndex: currentChapterIndex,
-          chapterId: chapters[currentChapterIndex]?.id || '',
-          timestamp: Date.now()
-        }));
-      } catch (e) {
-        // ignore
-      }
+    if (!id || chapters.length === 0 || currentChapterIndex < 0) return;
+    
+    // 获取当前滚动位置
+    const currentScrollTop = contentRef.current?.scrollTop || window.scrollY || 0;
+    
+    try {
+      localStorage.setItem(`reading_position_${id}`, JSON.stringify({
+        chapterIndex: currentChapterIndex,
+        chapterId: chapters[currentChapterIndex]?.id || '',
+        scrollTop: currentScrollTop,
+        timestamp: Date.now()
+      }));
+    } catch (e) {
+      // ignore
     }
   }, [id, currentChapterIndex, chapters]);
   const goToChapter = (index: number) => {
