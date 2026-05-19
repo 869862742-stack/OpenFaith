@@ -36,7 +36,7 @@ function Welcome() {
       <div
         className="flex flex-col items-center"
       >
-        <h1 className="text-3xl font-bold text-[#E11D48] mb-2">OpenFaith</h1>
+        <h1 className="text-3xl font-bold text-[#3B82F6] mb-2">OpenFaith</h1>
         <p className="text-sm text-[#94A3B8] mb-12">Open Faith · Open World</p>
 
         <div className="w-48 h-48 mb-12 relative">
@@ -57,10 +57,10 @@ function Welcome() {
           ) : (
             <button
               onClick={handleUploadClick}
-              className="w-full h-full rounded-2xl border-2 border-dashed border-[#E11D48] border-opacity-40 flex flex-col items-center justify-center bg-[#FEF2F2] cursor-pointer"
+              className="w-full h-full rounded-2xl border-2 border-dashed border-[#3B82F6] border-opacity-40 flex flex-col items-center justify-center bg-[#FEF2F2] cursor-pointer"
             >
               <svg
-                className="w-12 h-12 text-[#E11D48] mb-2"
+                className="w-12 h-12 text-[#3B82F6] mb-2"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -72,14 +72,14 @@ function Welcome() {
                   d="M12 4v16m8-8H4"
                 />
               </svg>
-              <span className="text-sm text-[#E11D48]">上传图片</span>
+              <span className="text-sm text-[#3B82F6]">上传图片</span>
             </button>
           )}
         </div>
 
         <button
           onClick={() => navigate('/register')}
-          className="w-full max-w-xs py-3 bg-[#E11D48] text-white rounded-full font-medium mb-4"
+          className="w-full max-w-xs py-3 bg-[#3B82F6] text-white rounded-full font-medium mb-4"
         >
           注册
         </button>
@@ -88,7 +88,7 @@ function Welcome() {
           onClick={() => navigate('/login')}
           className="text-sm text-[#64748B]"
         >
-          已有账号？<span className="text-[#E11D48]">立即登录</span>
+          已有账号？<span className="text-[#3B82F6]">立即登录</span>
         </button>
       </div>
     </div>

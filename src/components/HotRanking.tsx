@@ -278,7 +278,7 @@ function HotRanking({ onPostClick }: HotRankingProps) {
             <div className="p-4 pb-24 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 120px)' }}>
               {loading ? (
                 <div className="text-center py-12">
-                  <div className="w-6 h-6 border-2 border-[#E11D48] border-t-transparent rounded-full animate-spin mx-auto" />
+                  <div className="w-6 h-6 border-2 border-[#3B82F6] border-t-transparent rounded-full animate-spin mx-auto" />
                 </div>
               ) : hotPosts.length === 0 ? (
                 <div className="text-center py-12">

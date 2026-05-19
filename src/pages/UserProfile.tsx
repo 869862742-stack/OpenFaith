@@ -7,7 +7,7 @@ import PostDetailModal from '../components/PostDetailModal';
 import { cachedFetch } from '../utils/apiCache';
 import { useAuthStore } from '../stores/auth';
 
-const PRIMARY_COLOR = '#E11D48';
+const PRIMARY_COLOR = '#3B82F6';
 
 function formatCount(num: number): string {
   if (num < 10000) return String(num);

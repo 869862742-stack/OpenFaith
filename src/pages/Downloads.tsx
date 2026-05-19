@@ -45,7 +45,7 @@ function Downloads() {
   const textColor = 'var(--text-color)';
   const textSecondary = 'var(--text-secondary)';
   const borderColor = 'var(--border-color)';
-  const primaryColor = '#E11D48';
+  const primaryColor = '#3B82F6';
 
   // 监听网络状态
   useEffect(() => {

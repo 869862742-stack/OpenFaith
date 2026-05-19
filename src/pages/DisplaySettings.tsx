@@ -6,11 +6,10 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../supabase/client';
 import { useThemeContext } from '../contexts/ThemeContext';
 
-const PRIMARY_COLOR = '#E11D48';
+const PRIMARY_COLOR = '#3B82F6';
 
 const themes = [
-  { id: 'default', name: '默认色', color: '#E11D48', nameKey: 'default' },
-  { id: 'sky', name: '天空蓝', color: '#3B82F6', nameKey: 'sky' },
+  { id: 'default', name: '星空蓝', color: '#3B82F6', nameKey: 'default' },
   { id: 'forest', name: '森林绿', color: '#22C55E', nameKey: 'forest' },
   { id: 'lavender', name: '薰衣草紫', color: '#8B5CF6', nameKey: 'lavender' },
   { id: 'rose', name: '玫瑰粉', color: '#EC4899', nameKey: 'rose' },
@@ -21,6 +20,7 @@ const themes = [
   { id: 'coral', name: '珊瑚粉', color: '#FB7185', nameKey: 'coral' },
   { id: 'indigo', name: '靛青蓝', color: '#6366F1', nameKey: 'indigo' },
   { id: 'amber', name: '琥珀金', color: '#F59E0B', nameKey: 'amber' },
+  { id: 'faith', name: '信仰红', color: '#E11D48', nameKey: 'faith' },
 ];
 
 const fontSizes = [

@@ -68,7 +68,7 @@ function PostCard({ post, isVip = false, onClick }: PostCardProps) {
   return (
     <div
       className={`bg-white rounded-xl overflow-hidden cursor-pointer shadow-sm relative ${
-        isVip ? 'ring-2 ring-[#E11D48]/30' : ''
+        isVip ? 'ring-2 ring-[#3B82F6]/30' : ''
       }`}
       onClick={handleClick}
     >
@@ -84,7 +84,7 @@ function PostCard({ post, isVip = false, onClick }: PostCardProps) {
         
         {/* VIP 标识 */}
         {isVip && (
-          <div className="absolute top-2 left-2 px-2 py-0.5 bg-gradient-to-r from-[#E11D48] to-[#F97316] rounded-full flex items-center gap-1">
+          <div className="absolute top-2 left-2 px-2 py-0.5 bg-gradient-to-r from-[#3B82F6] to-[#F97316] rounded-full flex items-center gap-1">
             <Crown className="w-3 h-3 text-white" />
             <span className="text-[10px] text-white font-medium">VIP</span>
           </div>
@@ -100,7 +100,7 @@ function PostCard({ post, isVip = false, onClick }: PostCardProps) {
         {/* 已点赞状态 */}
         {isLiked && !showLikeAnimation && (
           <div className="absolute bottom-2 right-2">
-            <Heart className="w-5 h-5 text-white fill-[#E11D48]" />
+            <Heart className="w-5 h-5 text-white fill-[#3B82F6]" />
           </div>
         )}
       </div>
@@ -125,8 +125,8 @@ function PostCard({ post, isVip = false, onClick }: PostCardProps) {
                 key={idx}
                 className={`px-2 py-0.5 text-[10px] rounded-full ${
                   isVip
-                    ? 'bg-gradient-to-r from-[#E11D48]/10 to-[#F97316]/10 text-[#E11D48]'
-                    : 'bg-[#E11D48]/10 text-[#E11D48]'
+                    ? 'bg-gradient-to-r from-[#3B82F6]/10 to-[#F97316]/10 text-[#3B82F6]'
+                    : 'bg-[#3B82F6]/10 text-[#3B82F6]'
                 }`}
               >
                 {tag}

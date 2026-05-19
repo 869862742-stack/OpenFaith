@@ -15,8 +15,7 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 const THEME_COLORS: { [key: string]: string } = {
-  default: '#E11D48',
-  sky: '#3B82F6',
+  default: '#3B82F6',
   forest: '#22C55E',
   lavender: '#8B5CF6',
   rose: '#EC4899',
@@ -27,6 +26,7 @@ const THEME_COLORS: { [key: string]: string } = {
   coral: '#FB7185',
   indigo: '#6366F1',
   amber: '#F59E0B',
+  faith: '#E11D48',
 };
 
 const STORAGE_KEY = 'openfaith-display-settings';

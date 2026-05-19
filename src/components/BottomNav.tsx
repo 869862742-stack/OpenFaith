@@ -6,7 +6,7 @@ import { useThemeContext } from '../contexts/ThemeContext';
 import CreateRoom from '../pages/CreateRoom';
 
 // 安全默认值
-const DEFAULT_PRIMARY_COLOR = '#E11D48';
+const DEFAULT_PRIMARY_COLOR = '#3B82F6';
 
 // Service Role Key
 const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE';

@@ -29,21 +29,21 @@ function ChannelTabs({ activeTab, onTabChange }: ChannelTabsProps) {
         <button
           key={tab.id}
           onClick={() => onTabChange(tab.id)}
-          className={`relative px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${activeTab === tab.id ? 'text-[#E11D48]' : 'text-gray-500'}`}
+          className={`relative px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${activeTab === tab.id ? 'text-[#3B82F6]' : 'text-gray-500'}`}
         >
           {tab.label}
           {activeTab === tab.id && (
-            <div className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-[#E11D48]" />
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-[#3B82F6]" />
           )}
         </button>
       ))}
       <button
         onClick={handleGongjing}
-        className={`relative px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${activeTab === 'gongjing' ? 'text-[#E11D48]' : 'text-gray-500'}`}
+        className={`relative px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${activeTab === 'gongjing' ? 'text-[#3B82F6]' : 'text-gray-500'}`}
       >
         共境
         {activeTab === 'gongjing' && (
-          <div className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-[#E11D48]" />
+          <div className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-[#3B82F6]" />
         )}
       </button>
     </div>

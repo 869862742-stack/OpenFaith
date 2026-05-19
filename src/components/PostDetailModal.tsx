@@ -1551,7 +1551,7 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
               {username}
             </span>
             {comment.user_id === postUserId && (
-              <span className="px-1 py-0.5 bg-[#E11D48] text-white text-[10px] rounded">作者</span>
+              <span className="px-1 py-0.5 bg-[#3B82F6] text-white text-[10px] rounded">作者</span>
             )}
             <span className={`text-xs text-gray-400 ${isReply ? '' : ''}`}>
               {new Date(comment.created_at).toLocaleDateString()}
@@ -1562,7 +1562,7 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
             <div className="flex items-center gap-3 mt-1">
               <button 
                 onClick={() => handleReplyClick(comment.id, username)}
-                className="text-xs text-gray-500 hover:text-[#E11D48]"
+                className="text-xs text-gray-500 hover:text-[#3B82F6]"
               >
                 回复
               </button>
@@ -1596,7 +1596,7 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
         {hidden > 0 && (
           <button 
             onClick={() => toggleRepliesCollapse(parentId)}
-            className="text-xs text-[#E11D48] mt-2 flex items-center gap-1"
+            className="text-xs text-[#3B82F6] mt-2 flex items-center gap-1"
           >
             {isCollapsed ? (
               <>
@@ -1616,7 +1616,7 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
   };
 
   // 主色值
-  const primaryColor = '#E11D48';
+  const primaryColor = '#3B82F6';
 
   if (!currentPost) return null;
 
@@ -1703,7 +1703,7 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
                     onClick={() => setPostImageIndex(idx)}
                     className={`w-1.5 h-1.5 rounded-full transition-all ${
                       idx === postImageIndex
-                        ? 'bg-[#E11D48] w-3'
+                        ? 'bg-[#3B82F6] w-3'
                         : 'bg-gray-300 hover:bg-gray-400'
                     }`}
                     aria-label={`查看第 ${idx + 1} 张图片`}
@@ -1737,7 +1737,7 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
                 {currentPost.created_at ? new Date(currentPost.created_at).toLocaleDateString() : ''}
               </p>
             </div>
-            <button className="px-4 py-1.5 bg-[#E11D48] text-white text-sm rounded-full">
+            <button className="px-4 py-1.5 bg-[#3B82F6] text-white text-sm rounded-full">
               + 关注
             </button>
           </div>
@@ -1805,7 +1805,7 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
                 key={idx}
                 onClick={() => handleEmojiClick(item.emoji)}
                 className="w-8 h-8 flex items-center justify-center hover:bg-gray-200 rounded transition-colors"
-                style={{ color: '#E11D48' }}
+                style={{ color: '#3B82F6' }}
               >
                 {item.icon}
               </button>
@@ -1851,7 +1851,7 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
                   <Image className="w-4 h-4" />
                 </button>
                 {newComment.trim() && (
-                  <button onClick={(e) => { e.stopPropagation(); handleSubmitComment(); }} className="text-[#E11D48] flex-shrink-0">
+                  <button onClick={(e) => { e.stopPropagation(); handleSubmitComment(); }} className="text-[#3B82F6] flex-shrink-0">
                     <Send className="w-4 h-4" />
                   </button>
                 )}
@@ -1862,7 +1862,7 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
                   e.stopPropagation();
                   setShowEmojiPicker(!showEmojiPicker);
                 }}
-                className={`flex-shrink-0 ${showEmojiPicker ? 'text-[#E11D48]' : 'text-gray-500'}`}
+                className={`flex-shrink-0 ${showEmojiPicker ? 'text-[#3B82F6]' : 'text-gray-500'}`}
                 title="表情"
               >
                 <Smile className="w-5 h-5" />
@@ -1876,8 +1876,8 @@ export default function PostDetailModal({ posts, initialIndex, onClose, onLike }
               </button>
               {/* 加热 */}
               <button onClick={handleHeat} className="flex flex-col items-center min-w-[36px]">
-                <Flame className={`w-4 h-4 ${isHeated ? 'text-[#E11D48]' : 'text-gray-500'}`} />
-                <span className={`text-[9px] ${isHeated ? 'text-[#E11D48]' : 'text-gray-400'}`}>{heatCount}</span>
+                <Flame className={`w-4 h-4 ${isHeated ? 'text-[#3B82F6]' : 'text-gray-500'}`} />
+                <span className={`text-[9px] ${isHeated ? 'text-[#3B82F6]' : 'text-gray-400'}`}>{heatCount}</span>
               </button>
               {/* 收藏 */}
               <button 

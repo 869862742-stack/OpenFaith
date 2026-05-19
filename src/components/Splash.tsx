@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import ErrorBoundary from './ErrorBoundary';
 
 // 安全默认值
-const DEFAULT_PRIMARY_COLOR = '#E11D48';
+const DEFAULT_PRIMARY_COLOR = '#3B82F6';
 
 // Splash 完成标记的 localStorage key
 const SPLASH_DONE_KEY = 'openfaith_splash_done';
@@ -173,7 +173,7 @@ const Gongjing = React.lazy(() => import('../pages/Gongjing'));
 // 页面加载器
 function PageLoader() {
   return (
-    <div className="fixed inset-0 flex items-center justify-center" style={{ backgroundColor: '#E11D48' }}>
+    <div className="fixed inset-0 flex items-center justify-center" style={{ backgroundColor: '#3B82F6' }}>
       <div className="flex items-center gap-3">
         <span className="text-white text-3xl font-bold tracking-wide">Open Faith</span>
         <span className="text-white/50 text-3xl font-light">·</span>
@@ -455,7 +455,7 @@ export default function SplashPage() {
               }
             }}
             placeholder="访问密码"
-            className="w-full h-11 px-4 rounded-xl bg-white/10 text-white text-sm border border-white/20 focus:border-[#E11D48] focus:outline-none placeholder-gray-500"
+            className="w-full h-11 px-4 rounded-xl bg-white/10 text-white text-sm border border-white/20 focus:border-[#3B82F6] focus:outline-none placeholder-gray-500"
           />
           <button
             onClick={() => {
@@ -466,7 +466,7 @@ export default function SplashPage() {
                 setAccessError(true);
               }
             }}
-            className="w-full h-11 bg-[#E11D48] text-white font-medium rounded-xl hover:bg-[#c41a3f] transition-colors"
+            className="w-full h-11 bg-[#3B82F6] text-white font-medium rounded-xl hover:bg-[#c41a3f] transition-colors"
           >
             进入
           </button>
@@ -550,7 +550,7 @@ export default function SplashPage() {
           <Route path="/admin/*" element={<AdminApp />} />
 
           {/* 404 处理 */}
-          <Route path="*" element={<div style={{padding:'40px',textAlign:'center'}}><h2>{t('errors.notFound')}</h2><p>路径: {window.location.hash}</p><button onClick={()=>window.location.hash='/'} style={{marginTop:'20px',padding:'10px 20px',background:'#E11D48',color:'white',border:'none',borderRadius:'5px',cursor:'pointer'}}>{t('common.backHome')}</button></div>} />
+          <Route path="*" element={<div style={{padding:'40px',textAlign:'center'}}><h2>{t('errors.notFound')}</h2><p>路径: {window.location.hash}</p><button onClick={()=>window.location.hash='/'} style={{marginTop:'20px',padding:'10px 20px',background:'#3B82F6',color:'white',border:'none',borderRadius:'5px',cursor:'pointer'}}>{t('common.backHome')}</button></div>} />
         </Routes>
       </React.Suspense>
     </ErrorBoundary>

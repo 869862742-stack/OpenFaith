@@ -34,8 +34,8 @@ html[data-font-size="large"] {
   --card-bg: #FFFFFF;
   --border-color: #E2E8F0;
   --icon-color: #94A3B8;
-  --primary-color: #E11D48;
-  --secondary-color: #FB7185;
+  --primary-color: #3B82F6;
+  --secondary-color: #93C5FD;
   --bg-secondary: #F8FAFC;
 }
 
@@ -47,8 +47,8 @@ html[data-font-size="large"] {
   --card-bg: #1E1E1E;
   --border-color: #2D2D2D;
   --icon-color: #6B7280;
-  --primary-color: #F43F5E;
-  --secondary-color: #FDA4AF;
+  --primary-color: #60A5FA;
+  --secondary-color: #BFDBFE;
   --bg-secondary: #1A1A1A;
 }
 
@@ -65,7 +65,7 @@ body {
 
 /* 主题色变量 - 通过JS动态修改 */
 :root {
-  --theme-primary: #E11D48;
+  --theme-primary: #3B82F6;
 }
 
 /* 使用主题色的元素 */

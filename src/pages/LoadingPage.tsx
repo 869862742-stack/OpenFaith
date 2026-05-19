@@ -171,7 +171,7 @@ function LoadingPage() {
       width: '32px',
       height: '32px',
       border: '3px solid #E5E7EB',
-      borderTopColor: '#E11D48',
+      borderTopColor: '#3B82F6',
       borderRadius: '50%',
       animation: 'spin 1s linear infinite',
       margin: '0 auto 16px',

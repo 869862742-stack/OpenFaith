@@ -150,13 +150,13 @@ function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-[#E11D48] flex flex-col items-center justify-center px-6">
+    <div className="min-h-screen bg-[#3B82F6] flex flex-col items-center justify-center px-6">
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-white mb-2">OpenFaith</h1>
       </div>
 
       <div className="w-full max-w-sm bg-white rounded-2xl p-6">
-        <h2 className="text-xl font-semibold text-[#E11D48] text-center mb-6">注册</h2>
+        <h2 className="text-xl font-semibold text-[#3B82F6] text-center mb-6">注册</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -166,7 +166,7 @@ function Register() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="请输入邮箱..."
-              className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#E11D48] focus:outline-none"
+              className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#3B82F6] focus:outline-none"
             />
           </div>
 
@@ -177,7 +177,7 @@ function Register() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="请输入密码（至少6位）..."
-              className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#E11D48] focus:outline-none"
+              className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#3B82F6] focus:outline-none"
             />
           </div>
 
@@ -188,19 +188,19 @@ function Register() {
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
               placeholder="请输入昵称..."
-              className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#E11D48] focus:outline-none"
+              className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#3B82F6] focus:outline-none"
             />
           </div>
 
           <div>
             <label className="block text-sm text-[#1E293B] mb-1">
-              身份标签 <span className="text-[#E11D48]">*</span>
+              身份标签 <span className="text-[#3B82F6]">*</span>
             </label>
             <div className="relative">
               <button
                 type="button"
                 onClick={() => setShowTagDropdown(!showTagDropdown)}
-                className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#E11D48] focus:outline-none flex items-center justify-between bg-white"
+                className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#3B82F6] focus:outline-none flex items-center justify-between bg-white"
               >
                 <span className={faithTag ? 'text-[#1E293B]' : 'text-gray-400'}>
                   {faithTag || '请选择身份标签...'}
@@ -228,7 +228,7 @@ function Register() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full h-11 bg-[#E11D48] text-white font-medium rounded-xl mt-2 hover:bg-[#c41a3f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full h-11 bg-[#3B82F6] text-white font-medium rounded-xl mt-2 hover:bg-[#c41a3f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? '注册中...' : '注册'}
           </button>
@@ -236,7 +236,7 @@ function Register() {
 
         <div className="mt-6 text-center">
           <p className="text-sm text-[#64748B] mb-2">已有账号？</p>
-          <Link to="/login" className="inline-block px-6 py-2 text-sm text-[#E11D48] border border-[#E11D48] rounded-full hover:bg-[#E11D48] hover:text-white transition-colors">
+          <Link to="/login" className="inline-block px-6 py-2 text-sm text-[#3B82F6] border border-[#3B82F6] rounded-full hover:bg-[#3B82F6] hover:text-white transition-colors">
             立即登录
           </Link>
         </div>

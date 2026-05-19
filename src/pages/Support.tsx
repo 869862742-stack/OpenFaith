@@ -166,7 +166,7 @@ function Support() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E11D48]"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3B82F6]"></div>
       </div>
     );
   }
@@ -203,8 +203,8 @@ function Support() {
         {isVip && (
           <div className="bg-gradient-to-r from-[#FEF2F2] to-[#FFF1F2] rounded-xl p-4 mb-4">
             <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-[#E11D48]" />
-              <span className="text-sm font-medium text-[#E11D48]">会员优先客服</span>
+              <Zap className="w-4 h-4 text-[#3B82F6]" />
+              <span className="text-sm font-medium text-[#3B82F6]">会员优先客服</span>
               <span className="text-xs text-[#64748B]">您的工单将进入优先队列</span>
             </div>
           </div>
@@ -224,14 +224,14 @@ function Support() {
                   <div
                     key={ticket.id}
                     className={`bg-white rounded-xl border p-4 ${
-                      ticket.isVip ? 'border-[#E11D48]/30 bg-[#FEF2F2]/30' : 'border-gray-100'
+                      ticket.isVip ? 'border-[#3B82F6]/30 bg-[#FEF2F2]/30' : 'border-gray-100'
                     }`}
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <h3 className="text-sm font-medium text-[#1E293B]">{ticket.title}</h3>
                         {ticket.isVip && (
-                          <Crown className="w-3 h-3 text-[#E11D48]" />
+                          <Crown className="w-3 h-3 text-[#3B82F6]" />
                         )}
                       </div>
                       <span className={`text-xs ${getStatusColor(ticket.status)}`}>
@@ -259,7 +259,7 @@ function Support() {
             <p className="text-[#64748B] text-sm mb-4">点击新建工单反馈您的问题</p>
             <button
               onClick={() => setShowNewTicket(true)}
-              className="px-6 py-2 bg-[#E11D48] text-white rounded-full text-sm"
+              className="px-6 py-2 bg-[#3B82F6] text-white rounded-full text-sm"
             >
               新建工单
             </button>
@@ -275,7 +275,7 @@ function Support() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="请简要描述您的问题"
-                className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#E11D48] focus:outline-none"
+                className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm focus:border-[#3B82F6] focus:outline-none"
               />
             </div>
 
@@ -286,7 +286,7 @@ function Support() {
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="请详细描述您遇到的问题，以便我们更好地帮助您..."
                 rows={5}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:border-[#E11D48] focus:outline-none resize-none"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:border-[#3B82F6] focus:outline-none resize-none"
               />
             </div>
 
@@ -332,7 +332,7 @@ function Support() {
               disabled={!canSubmit || createTicketMutation.isPending}
               className={`w-full h-12 rounded-xl font-medium flex items-center justify-center gap-2 transition-colors ${
                 canSubmit && !createTicketMutation.isPending
-                  ? 'bg-[#E11D48] text-white'
+                  ? 'bg-[#3B82F6] text-white'
                   : 'bg-gray-200 text-gray-400 cursor-not-allowed'
               }`}
             >

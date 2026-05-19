@@ -11,7 +11,7 @@ const SUPABASE_URL = 'https://rdhwmeittgdosmkxtpak.supabase.co';
 const API_PREFIX = '/sb-api/';
 
 // 状态选项（静默同行）
-const primaryColor = '#E11D48';
+const primaryColor = '#3B82F6';
 const ICON_MAP: Record<string, React.FC<any>> = { Moon, BookOpen, Heart, Brain, Hand, Sparkles };
 
 const STATUS_OPTIONS = [

@@ -52,7 +52,7 @@ function Scan() {
 
           <button
             onClick={handleCameraScan}
-            className="w-full h-12 bg-[#E11D48] text-white rounded-xl flex items-center justify-center gap-2 mb-3"
+            className="w-full h-12 bg-[#3B82F6] text-white rounded-xl flex items-center justify-center gap-2 mb-3"
           >
             <Camera className="w-5 h-5" />
             <span className="text-sm font-medium">打开相机扫描</span>

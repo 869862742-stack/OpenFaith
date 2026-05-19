@@ -262,7 +262,7 @@ export const TagBadge = memo(function TagBadge({
   size = 'sm',
   onRemove,
 }: TagBadgeProps) {
-  const bgColor = color || '#E11D48';
+  const bgColor = color || '#3B82F6';
   const textColor = '#ffffff';
   
   return (

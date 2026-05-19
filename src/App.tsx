@@ -41,7 +41,7 @@ const AdminApp = React.lazy(() => import('./admin/App'));
 // ============ Loading 组件（与开机画面风格一致，红色背景无缝过渡）===========
 function PageLoader() {
   return (
-    <div className="fixed inset-0 flex items-center justify-center" style={{ backgroundColor: '#E11D48' }}>
+    <div className="fixed inset-0 flex items-center justify-center" style={{ backgroundColor: '#3B82F6' }}>
       <div className="flex items-center gap-3">
         <span className="text-white text-3xl font-bold tracking-wide">Open Faith</span>
         <span className="text-white/50 text-3xl font-light">·</span>
