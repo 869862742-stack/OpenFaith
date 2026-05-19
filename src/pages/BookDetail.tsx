@@ -125,14 +125,21 @@ const BookDetail: React.FC = () => {
   const highlightTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const chapterTransitionRef = useRef(false); // 用于防止章节切换过程中重复触发翻页
+  // 用ref标记是否需要高亮跳转（避免React batch更新导致state判断不准）
+  const pendingHighlightRef = useRef<{text: string, chapterId: string} | null>(null);
+  // 标记是否从URL参数触发的高亮跳转
+  const urlHighlightRef = useRef<{text: string, chapterId: string} | null>(null);
 
   // 滚动到高亮位置（带重试）
   // 查找包含指定文字的段落并居中滚动（使用window滚动，因为实际滚动发生在window上）
   const scrollToText = (targetText: string, maxRetries: number = 20, interval: number = 200) => {
+    if (!targetText) return;
+    
     let retries = 0;
+    const targetPrefix = targetText.substring(0, Math.min(20, targetText.length)); // 使用前20个字符作为备用匹配
     
     const tryScroll = () => {
-      if (!targetText) return true;
+      console.log('[DBG] scrollToText retry:', retries, 'target:', targetText.substring(0,30), 'window.scrollY:', window.scrollY);
       
       // 方法1：查找data-highlight属性
       const highlightEl = document.querySelector('[data-highlight="true"]');
@@ -141,23 +148,45 @@ const BookDetail: React.FC = () => {
         const windowHeight = window.innerHeight;
         // 计算让元素在窗口垂直居中
         const scrollTarget = elementRect.top + window.scrollY - (windowHeight / 2) + (elementRect.height / 2);
+        console.log('[DBG] 方法1命中! elementRect.top:', elementRect.top, 'scrollTarget:', scrollTarget);
         window.scrollTo({ top: Math.max(0, scrollTarget), behavior: 'smooth' });
         return true;
       }
       
-      // 方法2：遍历所有段落，查找包含目标文字的元素
+      // 方法2：遍历所有段落，查找包含目标文字的元素（全局搜索，不限于contentRef内）
       const paragraphs = document.querySelectorAll('p');
+      
+      // 首先尝试完整匹配
       for (const p of paragraphs) {
         if (p.textContent && p.textContent.includes(targetText)) {
           const elementRect = p.getBoundingClientRect();
           const windowHeight = window.innerHeight;
           // 计算让元素在窗口垂直居中
           const scrollTarget = elementRect.top + window.scrollY - (windowHeight / 2) + (elementRect.height / 2);
+          console.log('[DBG] 方法2完整匹配命中! scrollTarget:', scrollTarget, 'text:', p.textContent.substring(0,40));
           window.scrollTo({ top: Math.max(0, scrollTarget), behavior: 'smooth' });
           p.style.backgroundColor = `${primaryColor}20`;
           p.style.transition = 'background-color 0.3s';
           setTimeout(() => { p.style.backgroundColor = ''; }, 5000);
           return true;
+        }
+      }
+      
+      // 如果完整匹配不到，尝试匹配前20个字符
+      if (targetPrefix.length >= 5) {
+        for (const p of paragraphs) {
+          if (p.textContent && p.textContent.includes(targetPrefix)) {
+            const elementRect = p.getBoundingClientRect();
+            const windowHeight = window.innerHeight;
+            // 计算让元素在窗口垂直居中
+            const scrollTarget = elementRect.top + window.scrollY - (windowHeight / 2) + (elementRect.height / 2);
+            console.log('[DBG] 方法2前缀匹配命中! scrollTarget:', scrollTarget, 'text:', p.textContent.substring(0,40));
+            window.scrollTo({ top: Math.max(0, scrollTarget), behavior: 'smooth' });
+            p.style.backgroundColor = `${primaryColor}20`;
+            p.style.transition = 'background-color 0.3s';
+            setTimeout(() => { p.style.backgroundColor = ''; }, 5000);
+            return true;
+          }
         }
       }
       
@@ -167,6 +196,7 @@ const BookDetail: React.FC = () => {
     const attemptScroll = () => {
       retries++;
       if (!tryScroll() && retries < maxRetries) {
+        console.log('[DBG] scrollToText will retry, retries:', retries);
         setTimeout(attemptScroll, interval);
       }
     };
@@ -219,7 +249,6 @@ const BookDetail: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [pageContent, setPageContent] = useState<string[]>([]);
   const [isChapterTransitioning, setIsChapterTransitioning] = useState(false); // 章节切换中，用于禁用过渡动画
-  const swipeContainerRef = useRef<HTMLDivElement>(null);
 
   // 设置更新函数（带持久化）
   const setFontSize = useCallback((size: number) => {
@@ -410,28 +439,17 @@ const BookDetail: React.FC = () => {
       const idx = parseInt(chapterIndexParam, 10);
       if (!isNaN(idx) && idx >= 0 && idx < chapters.length) {
         setCurrentChapterIndex(idx);
-        setUrlParamsProcessed(true);
         
         if (highlight) {
           const decodedHighlight = decodeURIComponent(highlight);
+          // 使用ref标记，避免React batch更新问题
+          urlHighlightRef.current = { text: decodedHighlight, chapterId: chapters[idx].id };
+          pendingHighlightRef.current = { text: decodedHighlight, chapterId: chapters[idx].id };
           setHighlightChapterId(chapters[idx].id);
           setHighlightText(decodedHighlight);
-          
-          // 轮询查找高亮元素并居中滚动
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              scrollToText(decodedHighlight, 20, 200);
-            });
-          });
-          
-          if (highlightTimeoutRef.current) {
-            clearTimeout(highlightTimeoutRef.current);
-          }
-          highlightTimeoutRef.current = setTimeout(() => {
-            setHighlightChapterId(null);
-            setHighlightText('');
-          }, 3000);
         }
+        
+        setUrlParamsProcessed(true);
         return;
       }
     }
@@ -443,24 +461,11 @@ const BookDetail: React.FC = () => {
         
         if (highlight) {
           const decodedHighlight = decodeURIComponent(highlight);
+          // 使用ref标记，避免React batch更新问题
+          urlHighlightRef.current = { text: decodedHighlight, chapterId: chapterId };
+          pendingHighlightRef.current = { text: decodedHighlight, chapterId: chapterId };
           setHighlightChapterId(chapterId);
           setHighlightText(decodedHighlight);
-          
-          // 轮询查找高亮元素并居中滚动
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              scrollToText(decodedHighlight, 20, 200);
-            });
-          });
-          
-          // 5秒后清除高亮
-          if (highlightTimeoutRef.current) {
-            clearTimeout(highlightTimeoutRef.current);
-          }
-          highlightTimeoutRef.current = setTimeout(() => {
-            setHighlightChapterId(null);
-            setHighlightText('');
-          }, 5000);
         }
       }
       
@@ -783,30 +788,63 @@ const BookDetail: React.FC = () => {
 
   // 章节切换时自动滚动到顶部（如果有高亮跳转则跳过，让scrollToText控制）
   useEffect(() => {
+    console.log('[DBG] 章节切换effect, idx:', currentChapterIndex, 'hlText:', highlightText?.substring(0,20), 'hlChId:', highlightChapterId);
     setCurrentPage(0);
     setHasReachedBottom(false);
-    
-    if (highlightText && highlightChapterId) {
-      setIsChapterTransitioning(false);
-      chapterTransitionRef.current = false;
-      return;
-    }
     
     // 在章节切换时禁用过渡动画，避免看到内容"滑动"过程
     setIsChapterTransitioning(true);
     chapterTransitionRef.current = true;
     
-    // 多重保障确保内容渲染完后再scrollTop=0
+    // 检查是否有待处理的高亮跳转（优先处理pendingHighlightRef，避免React batch问题）
+    if (pendingHighlightRef.current || urlHighlightRef.current) {
+      const highlightData = pendingHighlightRef.current || urlHighlightRef.current;
+      const { text } = highlightData!;
+      
+      // 清除ref
+      pendingHighlightRef.current = null;
+      urlHighlightRef.current = null;
+      
+      // 在swipe模式下也需要重置页码
+      setCurrentPage(0);
+      
+      // 等待内容渲染后滚动
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            scrollToText(text, 20, 200);
+          });
+        });
+      });
+      
+      // 5秒后清除高亮
+      if (highlightTimeoutRef.current) {
+        clearTimeout(highlightTimeoutRef.current);
+      }
+      highlightTimeoutRef.current = setTimeout(() => {
+        setHighlightChapterId(null);
+        setHighlightText('');
+      }, 5000);
+      
+      setIsChapterTransitioning(false);
+      chapterTransitionRef.current = false;
+      return;
+    }
+    
+    // 正常章节切换（无高亮），直接滚动到顶部
     const scrollToTopAfterRender = () => {
       // 1. 滚动main容器（如果它是滚动容器）
       if (contentRef.current) {
+        console.log('[DBG] scrollTop=0, container before:', contentRef.current.scrollTop, 'window.scrollY:', window.scrollY);
         contentRef.current.scrollTop = 0;
         contentRef.current.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+        console.log('[DBG] scrollTop=0, container after:', contentRef.current.scrollTop);
       }
       // 2. 同时滚动window（实际滚动发生在window上）
       window.scrollTo({ top: 0, behavior: 'instant' });
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
+      console.log('[DBG] scrollTop=0, window after:', window.scrollY);
     };
     
     // 立即尝试
@@ -917,20 +955,24 @@ const BookDetail: React.FC = () => {
   };
 
   const goToPrevChapter = () => {
+    console.log('[DBG] goToPrevChapter: currentChapterIndex=', currentChapterIndex, 'chapters.length=', chapters.length);
     if (currentChapterIndex > 0) {
       // 清除高亮状态
       setHighlightChapterId(null);
       setHighlightText('');
       setCurrentChapterIndex(currentChapterIndex - 1);
+      console.log('[DBG] goToPrevChapter: setCurrentChapterIndex to', currentChapterIndex - 1);
     }
   };
 
   const goToNextChapter = () => {
+    console.log('[DBG] goToNextChapter: currentChapterIndex=', currentChapterIndex, 'chapters.length=', chapters.length);
     if (currentChapterIndex < chapters.length - 1) {
       // 清除高亮状态（上一页/下一页不需要高亮）
       setHighlightChapterId(null);
       setHighlightText('');
       setCurrentChapterIndex(currentChapterIndex + 1);
+      console.log('[DBG] goToNextChapter: setCurrentChapterIndex to', currentChapterIndex + 1);
     }
   };
 
@@ -966,28 +1008,11 @@ const BookDetail: React.FC = () => {
       // 同一本书，直接跳转章节
       const chapterIndex = chapters.findIndex(ch => ch.id === result.chapterId);
       if (chapterIndex >= 0) {
-        // 先设置高亮文本，再切换章节
+        // 使用ref标记，避免React batch更新问题
+        pendingHighlightRef.current = { text: result.matchedText, chapterId: result.chapterId };
         setHighlightText(result.matchedText);
         setHighlightChapterId(result.chapterId);
         setCurrentChapterIndex(chapterIndex);
-        
-        // 使用 requestAnimationFrame 确保章节内容渲染后再滚动
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            setTimeout(() => {
-              scrollToText(result.matchedText, 20, 200);
-            }, 100);
-          });
-        });
-        
-        // 5秒后清除高亮
-        if (highlightTimeoutRef.current) {
-          clearTimeout(highlightTimeoutRef.current);
-        }
-        highlightTimeoutRef.current = setTimeout(() => {
-          setHighlightChapterId(null);
-          setHighlightText('');
-        }, 5000);
       }
     } else {
       // 不同书籍，导航到该书籍，传递高亮文本
@@ -1600,8 +1625,7 @@ const BookDetail: React.FC = () => {
 
       {/* 主内容区 */}
       {pageMode === 'swipe' ? (
-        /* swipe模式：水平翻页显示 */
-        
+        /* swipe模式：分页显示，只渲染当前页，左右滑动翻页 */
         <main 
           ref={contentRef}
           className="flex-1 relative overflow-hidden"
@@ -1609,59 +1633,42 @@ const BookDetail: React.FC = () => {
           onTouchEnd={handleTouchEnd}
           onContextMenu={handleContextMenu}
         >
-          {/* 横向分页内容容器 */}
-          <div 
-            ref={swipeContainerRef}
-            style={{ 
-              display: 'flex',
-              width: `${totalPages * 100}%`,
-              transform: `translateX(-${currentPage * (100 / totalPages)}%)`,
-              transition: isChapterTransitioning ? 'none' : 'transform 300ms ease-out',
-              height: '100%'
-            }}
-          >
-            {pageContent.map((page, pageIdx) => (
-            <div key={pageIdx} className="h-full overflow-auto" style={{ width: `${100 / totalPages}%`, flexShrink: 0 }}>
-              <div className="max-w-2xl mx-auto px-6 py-8">
-                {currentChapter && pageIdx === 0 && (
-                  <div className="mb-6">
-                    <h2 className="text-xl font-bold" style={{ color: 'var(--text-color)' }}>
-                      {currentChapter.title || `第 ${currentChapter.number} 章`}
-                    </h2>
-                    {currentChapter.volume && volumes.length > 1 && (
-                      <p className="text-sm mt-1 cursor-pointer" style={{ color: primaryColor }} onClick={() => setShowVolumeSelector(true)}>
-                        {volumeNames[currentChapter.volume] || currentChapter.volume} ▼
-                      </p>
-                    )}
-                  </div>
-                )}
-                
-                <div
-                  className="whitespace-pre-wrap"
-                  style={{
-                    fontSize: `${fontSize}px`,
-                    lineHeight: lineHeight,
-                    color: 'var(--text-color)',
-                    textAlign: 'justify',
-                    userSelect: 'text',
-                    WebkitUserSelect: 'text'
-                  }}
-                >
-                  {page ? (
-                    page.split('\n').map((para, idx) => (
-                      para.trim() && (
-                        <p key={idx} className="mb-4" style={{ textIndent: '2em' }}>
-                          {highlightInsightText(para, currentChapterIndex)}
-                        </p>
-                      )
-                    ))
-                  ) : (
-                    <p style={{ color: 'var(--text-secondary)' }}>{t('reader.noContent')}</p>
-                  )}
+          {/* 当前页内容 */}
+          <div className="h-full overflow-hidden">
+            <div className="max-w-2xl mx-auto px-6 py-8">
+              {currentChapter && (
+                <div className="mb-6">
+                  <h2 className="text-xl font-bold" style={{ color: 'var(--text-color)' }}>
+                    {currentChapter.title || `第 ${currentChapter.number} 章`}
+                  </h2>
                 </div>
+              )}
+              
+              {/* 分页内容 - 只渲染当前页 */}
+              <div
+                className="whitespace-pre-wrap"
+                style={{
+                  fontSize: `${fontSize}px`,
+                  lineHeight: lineHeight,
+                  color: 'var(--text-color)',
+                  textAlign: 'justify',
+                  userSelect: 'text',
+                  WebkitUserSelect: 'text'
+                }}
+              >
+                {pageContent[currentPage] ? (
+                  pageContent[currentPage].split('\n').map((para, idx) => (
+                    para.trim() && (
+                      <p key={idx} className="mb-4" style={{ textIndent: '2em' }}>
+                        {highlightInsightText(para, currentChapterIndex)}
+                      </p>
+                    )
+                  ))
+                ) : (
+                  <p style={{ color: 'var(--text-secondary)' }}>{t('reader.noContent')}</p>
+                )}
               </div>
             </div>
-            ))}
           </div>
           
           {/* 页码指示器 */}
@@ -1678,6 +1685,8 @@ const BookDetail: React.FC = () => {
         <main 
           ref={contentRef} 
           className="flex-1 overflow-auto"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
           onContextMenu={handleContextMenu}
           onScroll={(e) => {
             const el = e.target as HTMLDivElement;

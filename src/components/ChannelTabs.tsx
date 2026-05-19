@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 
@@ -9,8 +10,7 @@ interface ChannelTabsProps {
 
 function ChannelTabs({ activeTab, onTabChange }: ChannelTabsProps) {
   const { t } = useTranslation();
-  const primaryColor = '#E11D48';
-  const [showToast, setShowToast] = useState(false);
+  const navigate = useNavigate();
 
   const tabs = [
     { id: 'recommend', label: t('home.recommend') },
@@ -20,8 +20,7 @@ function ChannelTabs({ activeTab, onTabChange }: ChannelTabsProps) {
 
   const handleGongjing = () => {
     onTabChange('gongjing');
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 2000);
+    navigate('/gongjing');
   };
 
   return (
@@ -47,11 +46,6 @@ function ChannelTabs({ activeTab, onTabChange }: ChannelTabsProps) {
           <div className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-[#E11D48]" />
         )}
       </button>
-      {showToast && (
-        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-4 py-2 bg-gray-800 text-white text-sm rounded-lg shadow-lg z-50 animate-fade-in">
-          敬请期待 ✨
-        </div>
-      )}
     </div>
   );
 }

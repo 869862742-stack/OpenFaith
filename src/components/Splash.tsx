@@ -168,6 +168,7 @@ const UserProfile = React.lazy(() => import('../pages/UserProfile'));
 const VIP = React.lazy(() => import('../pages/VIP'));
 const AdminApp = React.lazy(() => import('../admin/App'));
 const SilentRoom = React.lazy(() => import('../pages/SilentRoom'));
+const Gongjing = React.lazy(() => import('../pages/Gongjing'));
 
 // 页面加载器
 function PageLoader() {
@@ -541,6 +542,9 @@ export default function SplashPage() {
 
           {/* 静默陪伴房间 */}
           <Route path="/room/:roomId" element={<SilentRoom />} />
+
+          {/* 共境(静默同行)入口 */}
+          <Route path="/gongjing" element={<Gongjing />} />
 
           {/* 管理员入口 */}
           <Route path="/admin/*" element={<AdminApp />} />
