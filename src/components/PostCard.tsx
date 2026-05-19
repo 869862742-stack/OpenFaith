@@ -67,9 +67,10 @@ function PostCard({ post, isVip = false, onClick }: PostCardProps) {
 
   return (
     <div
-      className={`bg-white rounded-xl overflow-hidden cursor-pointer shadow-sm relative ${
+      className={`rounded-xl overflow-hidden cursor-pointer shadow-sm relative ${
         isVip ? 'ring-2 ring-[#3B82F6]/30' : ''
       }`}
+      style={{ backgroundColor: 'var(--card-bg)' }}
       onClick={handleClick}
     >
       {/* 图片区域 - 不叠加内容，保持原色 */}

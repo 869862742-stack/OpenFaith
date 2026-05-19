@@ -38,7 +38,7 @@ interface StoredSettings {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [themeMode, setThemeModeState] = useState<'light' | 'dark'>('light');
+  const [themeMode, setThemeModeState] = useState<'light' | 'dark'>('dark');
   const [themeColor, setThemeColorState] = useState<string>('default');
   const [fontSize, setFontSizeState] = useState<'small' | 'standard' | 'large'>('standard');
   const [isInitialized, setIsInitialized] = useState(false);
@@ -67,7 +67,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           .maybeSingle();
         
         if (data) {
-          const mode = data.theme_mode || 'light';
+          const mode = data.theme_mode || 'dark';
           const color = data.theme_color || 'default';
           const size = data.font_size || 'standard';
           
@@ -98,7 +98,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (stored) {
       try {
         const settings: StoredSettings = JSON.parse(stored);
-        const mode = settings.themeMode || 'light';
+        const mode = settings.themeMode || 'dark';
         const color = settings.themeColor || 'default';
         const size = settings.fontSize || 'standard';
         

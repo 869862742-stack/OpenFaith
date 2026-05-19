@@ -41,15 +41,15 @@ html[data-font-size="large"] {
 
 /* 夜间模式 */
 [data-theme="dark"] {
-  --bg-color: #121212;
+  --bg-color: #0a0a15;
   --text-color: #E2E8F0;
   --text-secondary: #9CA3AF;
-  --card-bg: #1E1E1E;
-  --border-color: #2D2D2D;
+  --card-bg: rgba(26, 26, 46, 0.8);
+  --border-color: rgba(255, 255, 255, 0.08);
   --icon-color: #6B7280;
-  --primary-color: #60A5FA;
-  --secondary-color: #BFDBFE;
-  --bg-secondary: #1A1A1A;
+  --primary-color: #3B82F6;
+  --secondary-color: #93C5FD;
+  --bg-secondary: #12122a;
 }
 
 body {
@@ -61,6 +61,19 @@ body {
   background-color: var(--bg-color);
   color: var(--text-color);
   transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* 星空深色背景 */
+[data-theme="dark"] body,
+[data-theme="dark"] #root {
+  background: radial-gradient(ellipse at center, #1a1a2e 0%, #0a0a15 100%);
+  min-height: 100vh;
+}
+
+/* 星空粒子动画 */
+@keyframes starTwinkle {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.8; }
 }
 
 /* 主题色变量 - 通过JS动态修改 */

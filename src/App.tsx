@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useThemeContext } from './contexts/ThemeContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import './styles/index.css';
 
@@ -38,7 +39,51 @@ const BookDetail = React.lazy(() => import('./pages/BookDetail'));
 // ============ 代码分割：管理员页面（独立 chunk）===========
 const AdminApp = React.lazy(() => import('./admin/App'));
 
-// ============ Loading 组件（与开机画面风格一致，红色背景无缝过渡）===========
+// ============ 星空粒子背景（仅dark模式） ============
+function StarField() {
+  const [stars] = useState(() => 
+    Array.from({ length: 40 }, (_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      size: Math.random() * 2 + 1,
+      delay: Math.random() * 3,
+      duration: 2 + Math.random() * 3,
+    }))
+  );
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      pointerEvents: 'none',
+      zIndex: 0,
+      overflow: 'hidden',
+    }}>
+      {stars.map(star => (
+        <div
+          key={star.id}
+          style={{
+            position: 'absolute',
+            width: star.size,
+            height: star.size,
+            backgroundColor: 'rgba(255, 255, 255, 0.6)',
+            borderRadius: '50%',
+            left: star.left + '%',
+            top: star.top + '%',
+            animation: `starTwinkle ${star.duration}s ease-in-out infinite`,
+            animationDelay: star.delay + 's',
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ============ Loading 组件（与开机画面风格一致，蓝色背景无缝过渡）===========
 function PageLoader() {
   return (
     <div className="fixed inset-0 flex items-center justify-center" style={{ backgroundColor: '#3B82F6' }}>
@@ -53,12 +98,18 @@ function PageLoader() {
 
 // ============ 主应用组件 ============
 function App() {
+  const { themeMode } = useThemeContext();
+  const isDark = themeMode === 'dark';
+
   return (
     <ErrorBoundary>
-      <React.Suspense fallback={<PageLoader />}>
-        {/* Splash 初始化组件 - 只在首次加载时运行 */}
-        <SplashPage />
-      </React.Suspense>
+      {isDark && <StarField />}
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <React.Suspense fallback={<PageLoader />}>
+          {/* Splash 初始化组件 - 只在首次加载时运行 */}
+          <SplashPage />
+        </React.Suspense>
+      </div>
     </ErrorBoundary>
   );
 }
