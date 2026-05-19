@@ -23,6 +23,10 @@ const adminFetch = async (url: string, options: RequestInit = {}) => {
     const error = await response.json().catch(() => ({ message: 'Request failed' }));
     throw new Error(error.message || 'Request failed');
   }
+  // DELETE请求通常不返回body，直接返回
+  if (options.method === 'DELETE') {
+    return null;
+  }
   return response.json();
 };
 
