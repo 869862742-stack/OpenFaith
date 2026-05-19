@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, Music, Loader2, Moon, BookOpen, Heart, Brain, Hand, Sparkles, Send, X, Volume2 } from 'lucide-react';
+import { ArrowLeft, Upload, Music, Loader2, Moon, BookOpen, Heart, Brain, Hand, Sparkles, Send, X, Volume2, MessageCircle, Globe } from 'lucide-react';
 import { checkBadWords } from '../utils/badWordFilter/index';
 
 // Service Role Key
@@ -46,6 +46,59 @@ const REACTION_TYPES = [
   { id: 'quiet_support', emoji: '🌙', label: 'Quiet Support' },
 ];
 
+// 洲和国家数据
+const CONTINENTS_DATA = {
+  '亚洲': {
+    countries: [
+      { name: '中国', flag: '🇨🇳' },
+      { name: '日本', flag: '🇯🇵' },
+      { name: '韩国', flag: '🇰🇷' },
+      { name: '印度', flag: '🇮🇳' },
+      { name: '泰国', flag: '🇹🇭' },
+      { name: '菲律宾', flag: '🇵🇭' },
+    ]
+  },
+  '欧洲': {
+    countries: [
+      { name: '英国', flag: '🇬🇧' },
+      { name: '法国', flag: '🇫🇷' },
+      { name: '德国', flag: '🇩🇪' },
+      { name: '意大利', flag: '🇮🇹' },
+      { name: '西班牙', flag: '🇪🇸' },
+      { name: '荷兰', flag: '🇳🇱' },
+    ]
+  },
+  '非洲': {
+    countries: [
+      { name: '南非', flag: '🇿🇦' },
+      { name: '尼日利亚', flag: '🇳🇬' },
+      { name: '肯尼亚', flag: '🇰🇪' },
+      { name: '埃及', flag: '🇪🇬' },
+      { name: '加纳', flag: '🇬🇭' },
+    ]
+  },
+  '北美洲': {
+    countries: [
+      { name: '美国', flag: '🇺🇸' },
+      { name: '加拿大', flag: '🇨🇦' },
+      { name: '墨西哥', flag: '🇲🇽' },
+    ]
+  },
+  '南美洲': {
+    countries: [
+      { name: '巴西', flag: '🇧🇷' },
+      { name: '阿根廷', flag: '🇦🇷' },
+      { name: '智利', flag: '🇨🇱' },
+    ]
+  },
+  '大洋洲': {
+    countries: [
+      { name: '澳大利亚', flag: '🇦🇺' },
+      { name: '新西兰', flag: '🇳🇿' },
+    ]
+  },
+};
+
 // 类型定义
 type TabType = 'silent' | 'breathing' | 'echo';
 
@@ -54,6 +107,7 @@ interface EchoShare {
   content: string;
   user_id: string;
   created_at: string;
+  author_name: string | null;
   echo_echoes?: EchoEcho[];
   echo_reactions?: EchoReaction[];
 }
@@ -74,10 +128,37 @@ interface EchoReaction {
   created_at: string;
 }
 
+// 模拟等待人数生成函数
+let participantCountGlobal = 0;
+const generateMockWaitingCounts = () => {
+  const counts: Record<string, Record<string, number>> = {};
+  let remaining = participantCountGlobal;
+  
+  Object.keys(CONTINENTS_DATA).forEach(continent => {
+    counts[continent] = {};
+    const countryCount = CONTINENTS_DATA[continent as keyof typeof CONTINENTS_DATA].countries.length;
+    const baseCount = Math.floor(remaining / (7 - Object.keys(counts).length));
+    const count = Math.max(0, Math.min(baseCount + Math.floor(Math.random() * 5), remaining));
+    remaining -= count;
+    
+    let countryRemaining = count;
+    CONTINENTS_DATA[continent as keyof typeof CONTINENTS_DATA].countries.forEach((country, idx) => {
+      if (idx === CONTINENTS_DATA[continent as keyof typeof CONTINENTS_DATA].countries.length - 1) {
+        counts[continent][country.name] = countryRemaining;
+      } else {
+        const c = Math.floor(countryRemaining / (CONTINENTS_DATA[continent as keyof typeof CONTINENTS_DATA].countries.length - idx));
+        counts[continent][country.name] = c;
+        countryRemaining -= c;
+      }
+    });
+  });
+  
+  return counts;
+};
+
 export default function Gongjing() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const breathingFileInputRef = useRef<HTMLInputElement>(null);
   
   // Tab状态
   const [activeTab, setActiveTab] = useState<TabType>('silent');
@@ -90,14 +171,16 @@ export default function Gongjing() {
   
   // 世界呼吸时刻状态
   const [breathingStatus, setBreathingStatus] = useState<string>('安静中');
-  const [breathingDuration, setBreathingDuration] = useState<number>(30);
-  const [breathingMusicFile, setBreathingMusicFile] = useState<File | null>(null);
-  const [breathingMusicName, setBreathingMusicName] = useState<string>('');
   const [breathingTheme, setBreathingTheme] = useState<string>('');
   const [participantCount, setParticipantCount] = useState<number>(0);
+  const [isInBreathing, setIsInBreathing] = useState(false);
+  const [showContinentList, setShowContinentList] = useState(false);
+  const [selectedContinent, setSelectedContinent] = useState<string | null>(null);
+  const [waitingCounts, setWaitingCounts] = useState<Record<string, Record<string, number>>>({});
   
   // 树洞回声状态
   const [echoContent, setEchoContent] = useState<string>('');
+  const [isAnonymous, setIsAnonymous] = useState<boolean>(true);
   const [echoList, setEchoList] = useState<EchoShare[]>([]);
   const [echoLoading, setEchoLoading] = useState(false);
   const [echoSubmitting, setEchoSubmitting] = useState(false);
@@ -212,10 +295,15 @@ export default function Gongjing() {
           const baseCount = rooms.length || 0;
           const simulatedCount = baseCount > 0 ? baseCount * 3 + Math.floor(Math.random() * 50) + 12 : Math.floor(Math.random() * 30) + 5;
           setParticipantCount(simulatedCount);
+          participantCountGlobal = simulatedCount;
+          // 更新等待人数
+          setWaitingCounts(generateMockWaitingCounts());
         }
       } catch (err) {
         console.warn('获取参与人数失败:', err);
-        setParticipantCount(Math.floor(Math.random() * 30) + 5);
+        const count = Math.floor(Math.random() * 30) + 5;
+        setParticipantCount(count);
+        participantCountGlobal = count;
       }
     };
 
@@ -255,38 +343,12 @@ export default function Gongjing() {
     }
   };
 
-  // 处理世界呼吸时刻音乐文件选择
-  const handleBreathingFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 20 * 1024 * 1024) {
-        setError('音频文件不能超过20MB');
-        return;
-      }
-      if (!file.type.startsWith('audio/')) {
-        setError('请上传音频文件');
-        return;
-      }
-      setBreathingMusicFile(file);
-      setBreathingMusicName(file.name.replace(/\.[^/.]+$/, ''));
-      setError('');
-    }
-  };
-
   // 移除音乐
-  const removeMusic = (type: 'silent' | 'breathing') => {
-    if (type === 'silent') {
-      setMusicFile(null);
-      setMusicName('');
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    } else {
-      setBreathingMusicFile(null);
-      setBreathingMusicName('');
-      if (breathingFileInputRef.current) {
-        breathingFileInputRef.current.value = '';
-      }
+  const removeMusic = () => {
+    setMusicFile(null);
+    setMusicName('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -393,79 +455,35 @@ export default function Gongjing() {
     }
   };
 
-  // 进入世界呼吸时刻
-  const handleEnterBreathing = async () => {
-    setCreating(true);
-    setError('');
+  // 进入世界呼吸时刻 - 不再创建房间，直接进入沉浸界面
+  const handleEnterBreathing = () => {
+    setIsInBreathing(true);
+    setShowContinentList(false);
+    setSelectedContinent(null);
+    setWaitingCounts(generateMockWaitingCounts());
+  };
 
-    try {
-      const userInfo = localStorage.getItem('user_info');
-      if (!userInfo) {
-        setError('请先登录');
-        return;
-      }
-      const parsed = JSON.parse(userInfo);
-      const userId = parsed.user_id || parsed.id;
-      if (!userId) {
-        setError('无法获取用户信息');
-        return;
-      }
+  // 退出世界呼吸时刻
+  const handleExitBreathing = () => {
+    setIsInBreathing(false);
+    setShowContinentList(false);
+    setSelectedContinent(null);
+  };
 
-      let musicUrl: string | null = null;
-      
-      // 上传音乐（如果有）
-      if (breathingMusicFile) {
-        try {
-          musicUrl = await uploadMusic(breathingMusicFile, userId);
-        } catch (err) {
-          console.warn('音乐上传失败，继续创建房间:', err);
-        }
-      }
+  // 点击地球展开洲列表
+  const handleEarthClick = () => {
+    setShowContinentList(true);
+    setSelectedContinent(null);
+  };
 
-      const roomCode = generateRoomCode();
-      const expiresAt = new Date(Date.now() + breathingDuration * 60000).toISOString();
+  // 点击洲展开国家列表
+  const handleContinentClick = (continent: string) => {
+    setSelectedContinent(continent);
+  };
 
-      // 创建世界呼吸时刻房间
-      const roomData = {
-        room_code: roomCode,
-        title: `世界呼吸时刻 · ${breathingStatus}`,
-        type: 'world_breathing',
-        creator_id: userId,
-        status: 'active',
-        max_participants: 999,
-        current_participants: 1,
-        music_url: musicUrl,
-        music_name: breathingMusicName || null,
-        duration: breathingDuration,
-        expires_at: expiresAt,
-        tags: [breathingStatus, 'world_breathing'],
-        created_at: new Date().toISOString(),
-        ambient_sound: musicUrl ? 'custom' : 'nature',
-        custom_audio_url: musicUrl,
-        description: `与世界各地的人一起${breathingStatus}`,
-      };
-
-      const res = await fetch('/sb-api/rest/v1/rooms', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SERVICE_ROLE_KEY,
-          'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
-        },
-        body: JSON.stringify(roomData),
-      });
-
-      if (!res.ok) {
-        throw new Error('创建房间失败');
-      }
-
-      const room = await res.json();
-      navigate(`/silent-room/${room.id}`);
-    } catch (err: any) {
-      setError(err.message || '创建失败');
-    } finally {
-      setCreating(false);
-    }
+  // 返回洲列表
+  const handleBackToContinents = () => {
+    setSelectedContinent(null);
   };
 
   // 发布回声分享
@@ -503,6 +521,12 @@ export default function Gongjing() {
         return;
       }
 
+      // 获取用户昵称
+      let authorName: string | null = null;
+      if (!isAnonymous && parsed.nickname) {
+        authorName = parsed.nickname;
+      }
+
       const res = await fetch('/sb-api/rest/v1/echo_shares', {
         method: 'POST',
         headers: {
@@ -513,6 +537,7 @@ export default function Gongjing() {
         body: JSON.stringify({
           content: echoContent.trim(),
           user_id: userId,
+          author_name: authorName,
         }),
       });
 
@@ -699,6 +724,14 @@ export default function Gongjing() {
     }
   };
 
+  // 获取显示名称
+  const getDisplayName = (share: EchoShare) => {
+    if (share.author_name) {
+      return share.author_name;
+    }
+    return 'Anonymous Soul';
+  };
+
   const currentUserId = getUserId();
 
   // 深夜模式样式
@@ -752,7 +785,7 @@ export default function Gongjing() {
         {/* Tab切换 */}
         <div className="flex px-4 pb-3 gap-2">
           <button
-            onClick={() => setActiveTab('silent')}
+            onClick={() => { setActiveTab('silent'); setIsInBreathing(false); }}
             className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all duration-300 ${
               activeTab === 'silent'
                 ? 'bg-white/15 text-white shadow-lg'
@@ -762,7 +795,7 @@ export default function Gongjing() {
             静默同行
           </button>
           <button
-            onClick={() => setActiveTab('breathing')}
+            onClick={() => { setActiveTab('breathing'); setIsInBreathing(false); }}
             className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all duration-300 ${
               activeTab === 'breathing'
                 ? 'bg-blue-500/20 text-white shadow-lg'
@@ -775,7 +808,7 @@ export default function Gongjing() {
             世界呼吸
           </button>
           <button
-            onClick={() => setActiveTab('echo')}
+            onClick={() => { setActiveTab('echo'); setIsInBreathing(false); }}
             className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all duration-300 ${
               activeTab === 'echo'
                 ? 'text-white shadow-lg'
@@ -786,7 +819,7 @@ export default function Gongjing() {
               border: activeTab === 'echo' ? '1px solid rgba(245, 158, 11, 0.4)' : 'none',
             }}
           >
-            🌙 树洞回声
+            树洞回声
           </button>
         </div>
       </div>
@@ -802,7 +835,6 @@ export default function Gongjing() {
                 <Moon className="w-8 h-8" style={{ color: primaryColor }} />
               </div>
               <h2 className="text-white text-xl font-light mb-2">静默同行</h2>
-              <p className="text-white/50 text-sm italic">Silent Companion</p>
               <p className="text-white/40 text-xs mt-2">一对一安静陪伴</p>
             </div>
 
@@ -890,7 +922,7 @@ export default function Gongjing() {
                     <Music className="w-5 h-5" style={{ color: primaryColor }} />
                     <span className="text-white/90 text-sm truncate max-w-xs">{musicName}</span>
                     <button
-                      onClick={(e) => { e.stopPropagation(); removeMusic('silent'); }}
+                      onClick={(e) => { e.stopPropagation(); removeMusic(); }}
                       className="text-white/50 hover:text-white ml-2"
                     >
                       ×
@@ -956,252 +988,486 @@ export default function Gongjing() {
         {/* 世界呼吸时刻 Tab */}
         {activeTab === 'breathing' && (
           <div className="space-y-6" style={{ animation: 'fadeIn 0.3s ease-out' }}>
-            {/* 标题区域 */}
-            <div className="text-center mb-8" style={{ animation: 'fadeInUp 0.5s ease-out' }}>
-              <div className="inline-flex items-center gap-2 mb-4">
-                <div 
-                  className="w-16 h-16 rounded-full flex items-center justify-center"
-                  style={{
-                    background: 'radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%)',
-                    animation: 'breathing 4s ease-in-out infinite',
-                  }}
+            {/* 进入世界呼吸时刻后的沉浸界面 */}
+            {isInBreathing ? (
+              <div className="min-h-[70vh] flex flex-col items-center justify-center">
+                {/* 退出按钮 */}
+                <button
+                  onClick={handleExitBreathing}
+                  className="absolute top-24 right-4 px-4 py-2 rounded-full bg-white/10 text-white/70 text-sm hover:bg-white/20 transition-colors"
                 >
-                  <span className="text-3xl">🌍</span>
-                </div>
-              </div>
-              <h2 className="text-white text-xl font-light mb-2">世界呼吸时刻</h2>
-              <p className="text-white/50 text-sm italic">World Breathing Moment</p>
-            </div>
+                  退出
+                </button>
 
-            {/* 呼吸地球动画 */}
-            <div className="flex justify-center mb-8">
-              <div className="relative">
-                {/* 外层光晕 */}
-                <div 
-                  className="absolute inset-0 rounded-full opacity-30"
-                  style={{
-                    background: 'radial-gradient(circle, rgba(59, 130, 246, 0.4) 0%, transparent 70%)',
-                    animation: 'glowPulse 4s ease-in-out infinite',
-                    transform: 'scale(1.5)',
-                  }}
-                />
-                {/* 中层光晕 */}
-                <div 
-                  className="absolute inset-0 rounded-full opacity-50"
-                  style={{
-                    background: 'radial-gradient(circle, rgba(59, 130, 246, 0.5) 0%, transparent 70%)',
-                    animation: 'glowPulse 4s ease-in-out infinite 0.5s',
-                    transform: 'scale(1.2)',
-                  }}
-                />
-                {/* 地球主体 */}
-                <div 
-                  className="relative w-32 h-32 rounded-full"
-                  style={{
-                    background: 'radial-gradient(circle at 30% 30%, #60a5fa 0%, #3b82f6 40%, #1d4ed8 70%, #1e3a8a 100%)',
-                    animation: 'earthBreathing 4s ease-in-out infinite',
-                    boxShadow: '0 0 40px rgba(59, 130, 246, 0.3)',
-                  }}
-                >
-                  {/* 地球上的光点 */}
-                  {[...Array(8)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="absolute w-1.5 h-1.5 rounded-full bg-white/80"
+                {/* 呼吸地球动画 */}
+                <div className="flex flex-col items-center gap-6">
+                  {/* 地球主体 - 可点击 */}
+                  <div 
+                    className="relative cursor-pointer"
+                    onClick={handleEarthClick}
+                  >
+                    {/* 外层光晕 */}
+                    <div 
+                      className="absolute inset-0 rounded-full opacity-30"
                       style={{
-                        left: `${20 + Math.random() * 60}%`,
-                        top: `${20 + Math.random() * 60}%`,
-                        animation: `floatParticle ${2 + Math.random() * 2}s ease-in-out infinite`,
-                        animationDelay: `${Math.random() * 2}s`,
+                        background: 'radial-gradient(circle, rgba(59, 130, 246, 0.4) 0%, transparent 70%)',
+                        animation: 'glowPulse 4s ease-in-out infinite',
+                        transform: 'scale(1.5)',
                       }}
                     />
-                  ))}
-                </div>
-                {/* 浮动粒子 */}
-                {[...Array(12)].map((_, i) => (
-                  <div
-                    key={`particle-${i}`}
-                    className="absolute w-1 h-1 rounded-full bg-blue-300/60"
-                    style={{
-                      left: `${Math.random() * 100}%`,
-                      top: `${Math.random() * 100}%`,
-                      animation: `floatParticle ${3 + Math.random() * 2}s ease-in-out infinite`,
-                      animationDelay: `${Math.random() * 3}s`,
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <p className="text-center text-white/50 text-sm italic mb-8" style={{ animation: 'fadeInUp 0.5s ease-out' }}>
-              Every light is someone awake tonight.
-            </p>
-
-            {/* 今日主题 */}
-            <div 
-              className="mb-8 p-5 rounded-2xl backdrop-blur-md text-center"
-              style={{
-                background: 'rgba(59, 130, 246, 0.1)',
-                border: '1px solid rgba(59, 130, 246, 0.2)',
-                boxShadow: '0 0 30px rgba(59, 130, 246, 0.1)',
-              }}
-            >
-              <p className="text-white/60 text-xs mb-2">今晚主题</p>
-              <p className="text-white text-lg font-light">
-                {breathingTheme || '今夜，安静相伴'}
-              </p>
-            </div>
-
-            {/* 实时状态 */}
-            <div className="mb-8 text-center">
-              <p className="text-white/80 text-lg mb-1">
-                🌍 {participantCount} people are quietly present now
-              </p>
-              <p className="text-white/50 text-sm italic">
-                The world is breathing quietly together.
-              </p>
-            </div>
-
-            {/* 状态选择 */}
-            <div className="mb-8">
-              <h2 className="text-white/80 text-sm mb-4 text-center">此刻你的状态</h2>
-              <div className="flex flex-wrap justify-center gap-3">
-                {BREATHING_STATUS_OPTIONS.map((status) => (
-                  <button
-                    key={status.id}
-                    onClick={() => setBreathingStatus(status.id)}
-                    className={`relative px-4 py-3 rounded-2xl backdrop-blur-md transition-all duration-300 ${
-                      breathingStatus === status.id
-                        ? 'bg-white/15 shadow-lg scale-105'
-                        : 'bg-white/5 hover:bg-white/10'
-                    }`}
-                    style={{
-                      border: breathingStatus === status.id ? `1px solid ${status.color}80` : '1px solid rgba(255, 255, 255, 0.1)',
-                      boxShadow: breathingStatus === status.id ? `0 0 20px ${status.color}30` : 'none',
-                    }}
-                  >
-                    <div className="flex flex-col items-center gap-1">
-                      {(() => { const Icon = ICON_MAP[status.icon]; return Icon ? <Icon className="w-6 h-6" style={{ color: selectedBreathingStatus === status.id ? primaryColor : "rgba(255,255,255,0.5)" }} /> : null; })()}
-                      <span className="text-white/90 text-xs">{status.label}</span>
-                    </div>
-                    {breathingStatus === status.id && (
-                      <div 
-                        className="absolute inset-0 rounded-2xl animate-pulse" 
-                        style={{ border: `1px solid ${status.color}50` }}
-                      />
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* 时长选择 */}
-            <div className="mb-8">
-              <h2 className="text-white/80 text-sm mb-4 text-center">陪伴时长</h2>
-              <div className="flex justify-center gap-4">
-                {DURATION_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => setBreathingDuration(option.value)}
-                    className={`px-6 py-3 rounded-full backdrop-blur-md transition-all duration-300 ${
-                      breathingDuration === option.value
-                        ? 'bg-blue-500/20 text-white shadow-lg'
-                        : 'bg-white/5 text-white/70 hover:bg-white/10'
-                    }`}
-                    style={{
-                      border: breathingDuration === option.value ? '1px solid rgba(59, 130, 246, 0.5)' : '1px solid rgba(255, 255, 255, 0.1)',
-                      boxShadow: breathingDuration === option.value ? '0 0 15px rgba(59, 130, 246, 0.2)' : 'none',
-                    }}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* 音乐上传（可选） */}
-            <div className="mb-10">
-              <h2 className="text-white/80 text-sm mb-4 text-center">背景音乐（可选）</h2>
-              <input
-                ref={breathingFileInputRef}
-                type="file"
-                accept="audio/*"
-                onChange={handleBreathingFileChange}
-                className="hidden"
-              />
-              <button
-                onClick={() => breathingFileInputRef.current?.click()}
-                className="w-full p-6 rounded-2xl backdrop-blur-md transition-all duration-300 hover:bg-white/10"
-                style={{
-                  backgroundColor: breathingMusicFile ? 'rgba(59, 130, 246, 0.1)' : 'rgba(255, 255, 255, 0.05)',
-                  border: breathingMusicFile ? '1px solid rgba(59, 130, 246, 0.3)' : '1px dashed rgba(255, 255, 255, 0.2)',
-                }}
-              >
-                {breathingMusicFile ? (
-                  <div className="flex items-center justify-center gap-3">
-                    <Music className="w-5 h-5 text-blue-400" />
-                    <span className="text-white/90 text-sm truncate max-w-xs">{breathingMusicName}</span>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); removeMusic('breathing'); }}
-                      className="text-white/50 hover:text-white ml-2"
+                    {/* 中层光晕 */}
+                    <div 
+                      className="absolute inset-0 rounded-full opacity-50"
+                      style={{
+                        background: 'radial-gradient(circle, rgba(59, 130, 246, 0.5) 0%, transparent 70%)',
+                        animation: 'glowPulse 4s ease-in-out infinite 0.5s',
+                        transform: 'scale(1.2)',
+                      }}
+                    />
+                    {/* 地球主体 */}
+                    <div 
+                      className="relative w-40 h-40 rounded-full"
+                      style={{
+                        background: 'radial-gradient(circle at 30% 30%, #60a5fa 0%, #3b82f6 40%, #1d4ed8 70%, #1e3a8a 100%)',
+                        animation: 'earthBreathing 4s ease-in-out infinite',
+                        boxShadow: '0 0 60px rgba(59, 130, 246, 0.4)',
+                      }}
                     >
-                      ×
+                      {/* 地球上的光点 */}
+                      {[...Array(12)].map((_, i) => (
+                        <div
+                          key={i}
+                          className="absolute w-2 h-2 rounded-full bg-white/80"
+                          style={{
+                            left: `${15 + Math.random() * 70}%`,
+                            top: `${15 + Math.random() * 70}%`,
+                            animation: `floatParticle ${2 + Math.random() * 2}s ease-in-out infinite`,
+                            animationDelay: `${Math.random() * 2}s`,
+                          }}
+                        />
+                      ))}
+                    </div>
+                    {/* 浮动粒子 */}
+                    {[...Array(16)].map((_, i) => (
+                      <div
+                        key={`particle-${i}`}
+                        className="absolute w-1 h-1 rounded-full bg-blue-300/60"
+                        style={{
+                          left: `${Math.random() * 100}%`,
+                          top: `${Math.random() * 100}%`,
+                          animation: `floatParticle ${3 + Math.random() * 2}s ease-in-out infinite`,
+                          animationDelay: `${Math.random() * 3}s`,
+                        }}
+                      />
+                    ))}
+                  </div>
+
+                  {/* 参与人数 */}
+                  <div className="text-center">
+                    <p className="text-white text-2xl font-light mb-1">
+                      🌍 {participantCount} 人此刻同行
+                    </p>
+                    <p className="text-white/50 text-sm italic">
+                      点击地球查看各洲分布
+                    </p>
+                  </div>
+
+                  {/* 洲/国家列表 */}
+                  {showContinentList && (
+                    <div className="w-full max-w-md mt-4 space-y-3 animate-fadeIn">
+                      {/* 返回按钮 */}
+                      {selectedContinent && (
+                        <button
+                          onClick={handleBackToContinents}
+                          className="flex items-center gap-2 text-white/60 hover:text-white text-sm mb-2 transition-colors"
+                        >
+                          <ArrowLeft className="w-4 h-4" />
+                          返回洲列表
+                        </button>
+                      )}
+
+                      {/* 洲列表 */}
+                      {!selectedContinent ? (
+                        Object.entries(CONTINENTS_DATA).map(([continent, data]) => (
+                          <button
+                            key={continent}
+                            onClick={() => handleContinentClick(continent)}
+                            className="w-full p-4 rounded-xl backdrop-blur-md transition-all duration-300 hover:bg-white/10"
+                            style={{
+                              background: 'rgba(59, 130, 246, 0.1)',
+                              border: '1px solid rgba(59, 130, 246, 0.2)',
+                            }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <Globe className="w-5 h-5" style={{ color: '#3b82f6' }} />
+                                <span className="text-white text-sm">{continent}</span>
+                              </div>
+                              <span className="text-white/50 text-sm">
+                                {waitingCounts[continent] ? Object.values(waitingCounts[continent]).reduce((a, b) => a + b, 0) : 0} 人
+                              </span>
+                            </div>
+                          </button>
+                        ))
+                      ) : (
+                        // 国家列表
+                        <div className="space-y-2">
+                          <h3 className="text-white/80 text-sm mb-3">{selectedContinent} - 国家分布</h3>
+                          {CONTINENTS_DATA[selectedContinent as keyof typeof CONTINENTS_DATA].countries.map((country) => (
+                            <div
+                              key={country.name}
+                              className="flex items-center justify-between p-3 rounded-xl backdrop-blur-md"
+                              style={{
+                                background: 'rgba(59, 130, 246, 0.05)',
+                                border: '1px solid rgba(59, 130, 246, 0.1)',
+                              }}
+                            >
+                              <div className="flex items-center gap-3">
+                                <span className="text-lg">{country.flag}</span>
+                                <span className="text-white/80 text-sm">{country.name}</span>
+                              </div>
+                              <span className="text-white/50 text-sm">
+                                {waitingCounts[selectedContinent]?.[country.name] || 0} 人
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 当前状态 */}
+                  {breathingTheme && (
+                    <div 
+                      className="mt-6 p-4 rounded-xl backdrop-blur-md text-center"
+                      style={{
+                        background: 'rgba(59, 130, 246, 0.1)',
+                        border: '1px solid rgba(59, 130, 246, 0.2)',
+                      }}
+                    >
+                      <p className="text-white/60 text-xs mb-1">此刻主题</p>
+                      <p className="text-white text-lg font-light">{breathingTheme}</p>
+                    </div>
+                  )}
+
+                  {/* 状态选择 */}
+                  <div className="mt-4 w-full max-w-md">
+                    <h3 className="text-white/80 text-sm mb-3 text-center">此刻你的状态</h3>
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {BREATHING_STATUS_OPTIONS.map((status) => (
+                        <button
+                          key={status.id}
+                          onClick={() => setBreathingStatus(status.id)}
+                          className={`px-3 py-2 rounded-xl backdrop-blur-md transition-all duration-300 ${
+                            breathingStatus === status.id ? 'scale-105' : 'hover:scale-105'
+                          }`}
+                          style={{
+                            background: breathingStatus === status.id 
+                              ? `${status.color || primaryColor}30` 
+                              : 'rgba(255, 255, 255, 0.05)',
+                            border: breathingStatus === status.id 
+                              ? `1px solid ${status.color || primaryColor}50` 
+                              : '1px solid rgba(255, 255, 255, 0.1)',
+                          }}
+                        >
+                          <div className="flex flex-col items-center gap-1">
+                            {status.emoji ? (
+                              <span className="text-lg">{status.emoji}</span>
+                            ) : (
+                              (() => {
+                                const Icon = ICON_MAP[status.icon];
+                                return Icon ? (
+                                  <Icon 
+                                    className="w-5 h-5" 
+                                    style={{ 
+                                      color: breathingStatus === status.id 
+                                        ? (status.color || primaryColor) 
+                                        : 'rgba(255,255,255,0.5)' 
+                                    }} 
+                                  />
+                                ) : null;
+                              })()
+                            )}
+                            <span className="text-white/90 text-xs">{status.label}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              // 未进入前的准备界面
+              <>
+                {/* 标题区域 */}
+                <div className="text-center mb-8" style={{ animation: 'fadeInUp 0.5s ease-out' }}>
+                  <div className="inline-flex items-center gap-2 mb-4">
+                    <div 
+                      className="w-16 h-16 rounded-full flex items-center justify-center"
+                      style={{
+                        background: 'radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%)',
+                        animation: 'breathing 4s ease-in-out infinite',
+                      }}
+                    >
+                      <Globe className="w-8 h-8" style={{ color: '#3b82f6' }} />
+                    </div>
+                  </div>
+                  <h2 className="text-white text-xl font-light mb-2">世界呼吸时刻</h2>
+                  <p className="text-white/40 text-xs mt-2">与世界各地的人一起静默</p>
+                </div>
+
+                {/* 呼吸地球动画 */}
+                <div className="flex justify-center mb-8">
+                  <div className="relative">
+                    {/* 外层光晕 */}
+                    <div 
+                      className="absolute inset-0 rounded-full opacity-30"
+                      style={{
+                        background: 'radial-gradient(circle, rgba(59, 130, 246, 0.4) 0%, transparent 70%)',
+                        animation: 'glowPulse 4s ease-in-out infinite',
+                        transform: 'scale(1.5)',
+                      }}
+                    />
+                    {/* 中层光晕 */}
+                    <div 
+                      className="absolute inset-0 rounded-full opacity-50"
+                      style={{
+                        background: 'radial-gradient(circle, rgba(59, 130, 246, 0.5) 0%, transparent 70%)',
+                        animation: 'glowPulse 4s ease-in-out infinite 0.5s',
+                        transform: 'scale(1.2)',
+                      }}
+                    />
+                    {/* 地球主体 */}
+                    <div 
+                      className="relative w-32 h-32 rounded-full"
+                      style={{
+                        background: 'radial-gradient(circle at 30% 30%, #60a5fa 0%, #3b82f6 40%, #1d4ed8 70%, #1e3a8a 100%)',
+                        animation: 'earthBreathing 4s ease-in-out infinite',
+                        boxShadow: '0 0 40px rgba(59, 130, 246, 0.3)',
+                      }}
+                    >
+                      {/* 地球上的光点 */}
+                      {[...Array(8)].map((_, i) => (
+                        <div
+                          key={i}
+                          className="absolute w-1.5 h-1.5 rounded-full bg-white/80"
+                          style={{
+                            left: `${20 + Math.random() * 60}%`,
+                            top: `${20 + Math.random() * 60}%`,
+                            animation: `floatParticle ${2 + Math.random() * 2}s ease-in-out infinite`,
+                            animationDelay: `${Math.random() * 2}s`,
+                          }}
+                        />
+                      ))}
+                    </div>
+                    {/* 浮动粒子 */}
+                    {[...Array(12)].map((_, i) => (
+                      <div
+                        key={`particle-${i}`}
+                        className="absolute w-1 h-1 rounded-full bg-blue-300/60"
+                        style={{
+                          left: `${Math.random() * 100}%`,
+                          top: `${Math.random() * 100}%`,
+                          animation: `floatParticle ${3 + Math.random() * 2}s ease-in-out infinite`,
+                          animationDelay: `${Math.random() * 3}s`,
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <p className="text-center text-white/50 text-sm italic mb-8" style={{ animation: 'fadeInUp 0.5s ease-out' }}>
+                  Every light is someone awake tonight.
+                </p>
+
+                {/* 主题未发布时的等待界面 */}
+                {!breathingTheme ? (
+                  <div 
+                    className="mb-8 p-6 rounded-2xl backdrop-blur-md text-center"
+                    style={{
+                      background: 'rgba(59, 130, 246, 0.1)',
+                      border: '1px solid rgba(59, 130, 246, 0.2)',
+                    }}
+                  >
+                    <p className="text-white/60 text-sm mb-4">主题暂未发布，请等待</p>
+                    <p className="text-white text-lg mb-4">
+                      🌍 {participantCount} 人正在等待
+                    </p>
+                    <button
+                      onClick={handleEarthClick}
+                      className="text-blue-400 hover:text-blue-300 text-sm transition-colors"
+                    >
+                      点击查看各洲分布
                     </button>
+
+                    {/* 洲列表 */}
+                    {showContinentList && (
+                      <div className="mt-4 space-y-2 animate-fadeIn">
+                        <button
+                          onClick={() => setShowContinentList(false)}
+                          className="text-white/40 hover:text-white/60 text-xs transition-colors"
+                        >
+                          点击收起
+                        </button>
+                        {Object.entries(CONTINENTS_DATA).map(([continent, data]) => (
+                          <button
+                            key={continent}
+                            onClick={() => handleContinentClick(continent)}
+                            className="w-full p-3 rounded-xl backdrop-blur-md transition-all duration-300 hover:bg-white/10"
+                            style={{
+                              background: 'rgba(59, 130, 246, 0.05)',
+                              border: '1px solid rgba(59, 130, 246, 0.1)',
+                            }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <Globe className="w-4 h-4" style={{ color: '#3b82f6' }} />
+                                <span className="text-white/80 text-sm">{continent}</span>
+                              </div>
+                              <span className="text-white/50 text-sm">
+                                {waitingCounts[continent] ? Object.values(waitingCounts[continent]).reduce((a, b) => a + b, 0) : 0} 人
+                              </span>
+                            </div>
+                          </button>
+                        ))}
+
+                        {/* 国家列表 */}
+                        {selectedContinent && (
+                          <div className="mt-2 pl-4 space-y-1">
+                            <button
+                              onClick={handleBackToContinents}
+                              className="flex items-center gap-1 text-white/40 hover:text-white/60 text-xs mb-2 transition-colors"
+                            >
+                              <ArrowLeft className="w-3 h-3" />
+                              返回
+                            </button>
+                            {CONTINENTS_DATA[selectedContinent as keyof typeof CONTINENTS_DATA].countries.map((country) => (
+                              <div
+                                key={country.name}
+                                className="flex items-center justify-between p-2 rounded-lg"
+                                style={{
+                                  background: 'rgba(59, 130, 246, 0.03)',
+                                }}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm">{country.flag}</span>
+                                  <span className="text-white/70 text-xs">{country.name}</span>
+                                </div>
+                                <span className="text-white/40 text-xs">
+                                  {waitingCounts[selectedContinent]?.[country.name] || 0} 人
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center gap-2">
-                    <Upload className="w-6 h-6 text-white/40" />
-                    <span className="text-white/50 text-sm">点击上传 MP3 / WAV / AAC</span>
-                  </div>
+                  // 主题已发布时的显示
+                  <>
+                    {/* 今日主题 */}
+                    <div 
+                      className="mb-8 p-5 rounded-2xl backdrop-blur-md text-center"
+                      style={{
+                        background: 'rgba(59, 130, 246, 0.1)',
+                        border: '1px solid rgba(59, 130, 246, 0.2)',
+                        boxShadow: '0 0 30px rgba(59, 130, 246, 0.1)',
+                      }}
+                    >
+                      <p className="text-white/60 text-xs mb-2">今晚主题</p>
+                      <p className="text-white text-lg font-light">{breathingTheme}</p>
+                    </div>
+
+                    {/* 实时状态 */}
+                    <div className="mb-8 text-center">
+                      <p className="text-white/80 text-lg mb-1">
+                        🌍 {participantCount} people are quietly present now
+                      </p>
+                      <p className="text-white/50 text-sm italic">
+                        The world is breathing quietly together.
+                      </p>
+                    </div>
+
+                    {/* 状态选择 */}
+                    <div className="mb-8">
+                      <h2 className="text-white/80 text-sm mb-4 text-center">此刻你的状态</h2>
+                      <div className="flex flex-wrap justify-center gap-3">
+                        {BREATHING_STATUS_OPTIONS.map((status) => (
+                          <button
+                            key={status.id}
+                            onClick={() => setBreathingStatus(status.id)}
+                            className={`relative px-4 py-3 rounded-2xl backdrop-blur-md transition-all duration-300 ${
+                              breathingStatus === status.id
+                                ? 'bg-white/15 shadow-lg scale-105'
+                                : 'bg-white/5 hover:bg-white/10'
+                            }`}
+                            style={{
+                              border: breathingStatus === status.id ? `1px solid ${status.color}80` : '1px solid rgba(255, 255, 255, 0.1)',
+                              boxShadow: breathingStatus === status.id ? `0 0 20px ${status.color}30` : 'none',
+                            }}
+                          >
+                            <div className="flex flex-col items-center gap-1">
+                              {status.emoji ? (
+                                <span className="text-lg">{status.emoji}</span>
+                              ) : (
+                                (() => {
+                                  const Icon = ICON_MAP[status.icon];
+                                  return Icon ? (
+                                    <Icon 
+                                      className="w-6 h-6" 
+                                      style={{ 
+                                        color: selectedBreathingStatus === status.id 
+                                          ? (status.color || primaryColor) 
+                                          : 'rgba(255,255,255,0.5)' 
+                                      }} 
+                                    />
+                                  ) : null;
+                                })()
+                              )}
+                              <span className="text-white/90 text-xs">{status.label}</span>
+                            </div>
+                            {breathingStatus === status.id && (
+                              <div 
+                                className="absolute inset-0 rounded-2xl animate-pulse" 
+                                style={{ border: `1px solid ${status.color}50` }}
+                              />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
                 )}
-              </button>
-            </div>
 
-            {/* 错误提示 */}
-            {error && (
-              <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm text-center">
-                {error}
-              </div>
-            )}
-
-            {/* 进入按钮 */}
-            <button
-              onClick={handleEnterBreathing}
-              disabled={creating}
-              className="w-full py-5 rounded-2xl backdrop-blur-md text-white font-medium transition-all duration-300 relative overflow-hidden"
-              style={{
-                background: creating
-                  ? 'rgba(59, 130, 246, 0.3)'
-                  : 'linear-gradient(135deg, rgba(59, 130, 246, 0.4) 0%, rgba(37, 99, 235, 0.4) 100%)',
-                border: '1px solid rgba(59, 130, 246, 0.4)',
-                boxShadow: creating ? 'none' : '0 0 30px rgba(59, 130, 246, 0.3)',
-              }}
-            >
-              {creating ? (
-                <div className="flex items-center justify-center gap-3">
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>正在进入...</span>
-                </div>
-              ) : (
-                <span className="relative z-10">进入世界呼吸时刻</span>
-              )}
-              {!creating && (
-                <div
-                  className="absolute inset-0 opacity-30"
+                {/* 进入按钮 */}
+                <button
+                  onClick={handleEnterBreathing}
+                  className="w-full py-5 rounded-2xl backdrop-blur-md text-white font-medium transition-all duration-300 relative overflow-hidden"
                   style={{
-                    background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
-                    animation: 'shimmer 3s infinite',
+                    background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.4) 0%, rgba(37, 99, 235, 0.4) 100%)',
+                    border: '1px solid rgba(59, 130, 246, 0.4)',
+                    boxShadow: '0 0 30px rgba(59, 130, 246, 0.3)',
                   }}
-                />
-              )}
-            </button>
+                >
+                  <span className="relative z-10">进入世界呼吸时刻</span>
+                  <div
+                    className="absolute inset-0 opacity-30"
+                    style={{
+                      background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
+                      animation: 'shimmer 3s infinite',
+                    }}
+                  />
+                </button>
 
-            {/* 底部提示 */}
-            <div className="mt-16 text-center">
-              <p className="text-white/40 text-sm italic" style={{ animation: 'fadeInUp 1s ease-out 0.5s both' }}>
-                Tonight, the world slowed down together.
-              </p>
-            </div>
+                {/* 底部提示 */}
+                <div className="mt-16 text-center">
+                  <p className="text-white/40 text-sm italic" style={{ animation: 'fadeInUp 1s ease-out 0.5s both' }}>
+                    Tonight, the world slowed down together.
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -1211,10 +1477,9 @@ export default function Gongjing() {
             {/* 标题区域 */}
             <div className="text-center mb-8" style={{ animation: 'fadeInUp 0.5s ease-out' }}>
               <div className="inline-flex items-center gap-2 mb-4">
-                <span className="text-4xl">🌙</span>
+                <MessageCircle className="w-8 h-8" style={{ color: primaryColor }} />
               </div>
               <h2 className="text-white text-xl font-light mb-2">树洞回声</h2>
-              <p className="text-white/50 text-sm italic">Echo Cave</p>
               <p className="text-amber-400/70 text-xs mt-2" style={{ animation: 'fadeInUp 0.5s ease-out 0.2s both' }}>
                 让人被温柔倾听
               </p>
@@ -1243,14 +1508,53 @@ export default function Gongjing() {
                 border: '1px solid rgba(245, 158, 11, 0.15)',
               }}
             >
+              {/* 匿名/公开选择 */}
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <span className="text-white/50 text-sm">发布身份</span>
+                <div 
+                  className="flex rounded-full p-1"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(245, 158, 11, 0.15)',
+                  }}
+                >
+                  <button
+                    onClick={() => setIsAnonymous(true)}
+                    className={`px-4 py-1.5 rounded-full text-sm transition-all duration-300 ${
+                      isAnonymous ? 'text-white' : 'text-white/50'
+                    }`}
+                    style={{
+                      background: isAnonymous ? `${primaryColor}30` : 'transparent',
+                      border: isAnonymous ? `1px solid ${primaryColor}50` : '1px solid transparent',
+                    }}
+                  >
+                    匿名
+                  </button>
+                  <button
+                    onClick={() => setIsAnonymous(false)}
+                    className={`px-4 py-1.5 rounded-full text-sm transition-all duration-300 ${
+                      !isAnonymous ? 'text-white' : 'text-white/50'
+                    }`}
+                    style={{
+                      background: !isAnonymous ? `${primaryColor}30` : 'transparent',
+                      border: !isAnonymous ? `1px solid ${primaryColor}50` : '1px solid transparent',
+                    }}
+                  >
+                    公开
+                  </button>
+                </div>
+              </div>
+
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-amber-400/80">🌙</span>
-                <span className="text-white/70 text-sm">Anonymous Soul</span>
+                <Moon className="w-4 h-4" style={{ color: primaryColor }} />
+                <span className="text-white/70 text-sm">
+                  {isAnonymous ? 'Anonymous Soul' : '你的昵称'}
+                </span>
               </div>
               <textarea
                 value={echoContent}
                 onChange={(e) => setEchoContent(e.target.value)}
-                placeholder="在这里说出你的心里话..."
+                placeholder={isAnonymous ? "在这里说出你的心里话..." : "以真实身份分享..."}
                 maxLength={200}
                 rows={3}
                 className="w-full bg-white/5 text-white placeholder-white/30 rounded-xl p-3 resize-none focus:outline-none focus:ring-1 transition-all"
@@ -1297,7 +1601,7 @@ export default function Gongjing() {
                 </div>
               ) : echoList.length === 0 ? (
                 <div className="text-center py-10">
-                  <span className="text-4xl mb-4 block">🌙</span>
+                  <Moon className="w-10 h-10 text-amber-400/30 mx-auto mb-4" style={{ color: primaryColor }} />
                   <p className="text-white/40 text-sm">暂无回声，成为第一个倾诉者</p>
                 </div>
               ) : (
@@ -1315,8 +1619,8 @@ export default function Gongjing() {
                     {/* 发布者信息 */}
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
-                        <span className="text-amber-400/80">🌙</span>
-                        <span className="text-white/60 text-sm">Anonymous Soul</span>
+                        <Moon className="w-4 h-4" style={{ color: primaryColor }} />
+                        <span className="text-white/60 text-sm">{getDisplayName(share)}</span>
                         <span className="text-white/30 text-xs">·</span>
                         <span className="text-white/30 text-xs">{formatTime(share.created_at)}</span>
                       </div>
@@ -1381,7 +1685,7 @@ export default function Gongjing() {
                             }}
                           >
                             <div className="flex items-center gap-2 mb-1">
-                              <span className="text-amber-400/60">🌿</span>
+                              <Sparkles className="w-3 h-3" style={{ color: primaryColor }} />
                               <span className="text-white/50 text-xs">Anonymous Soul</span>
                               <span className="text-white/20 text-xs">·</span>
                               <span className="text-white/20 text-xs">{formatTime(echo.created_at)}</span>
