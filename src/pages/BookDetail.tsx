@@ -127,26 +127,41 @@ const BookDetail: React.FC = () => {
   const chapterTransitionRef = useRef(false); // 用于防止章节切换过程中重复触发翻页
 
   // 滚动到高亮位置（带重试）
-  const scrollToHighlightWithRetry = (maxRetries: number = 15, interval: number = 200) => {
+  // 查找包含指定文字的段落并居中滚动（不依赖data-highlight属性，更可靠）
+  const scrollToText = (targetText: string, maxRetries: number = 20, interval: number = 200) => {
     let retries = 0;
+    
     const tryScroll = () => {
+      if (!targetText || !contentRef.current) return true;
+      
+      // 方法1：查找data-highlight属性
       const highlightEl = document.querySelector('[data-highlight="true"]');
       if (highlightEl) {
-        // 手动计算滚动位置，让高亮元素在容器中垂直居中
-        // scrollIntoView在overflow:auto容器中不可靠，必须手动计算
-        if (contentRef.current) {
-          const container = contentRef.current;
-          const containerRect = container.getBoundingClientRect();
-          const elementRect = highlightEl.getBoundingClientRect();
-          // 计算让元素在容器垂直居中所需的滚动位置
-          const scrollTarget = container.scrollTop + elementRect.top - containerRect.top - (containerRect.height / 2) + (elementRect.height / 2);
-          container.scrollTo({ top: Math.max(0, scrollTarget), behavior: 'smooth' });
-        } else {
-          // fallback: 如果contentRef不存在，用window级别滚动
-          highlightEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
+        const container = contentRef.current;
+        const containerRect = container.getBoundingClientRect();
+        const elementRect = highlightEl.getBoundingClientRect();
+        const scrollTarget = container.scrollTop + elementRect.top - containerRect.top - (containerRect.height / 2) + (elementRect.height / 2);
+        container.scrollTo({ top: Math.max(0, scrollTarget), behavior: 'smooth' });
         return true;
       }
+      
+      // 方法2：遍历所有段落，查找包含目标文字的元素
+      const container = contentRef.current;
+      const paragraphs = container.querySelectorAll('p');
+      for (const p of paragraphs) {
+        if (p.textContent && p.textContent.includes(targetText)) {
+          const containerRect = container.getBoundingClientRect();
+          const elementRect = p.getBoundingClientRect();
+          const scrollTarget = container.scrollTop + elementRect.top - containerRect.top - (containerRect.height / 2) + (elementRect.height / 2);
+          container.scrollTo({ top: Math.max(0, scrollTarget), behavior: 'smooth' });
+          // 同时给这个段落加一个临时高亮
+          p.style.backgroundColor = `${primaryColor}20`;
+          p.style.transition = 'background-color 0.3s';
+          setTimeout(() => { p.style.backgroundColor = ''; }, 5000);
+          return true;
+        }
+      }
+      
       return false;
     };
     
@@ -162,6 +177,9 @@ const BookDetail: React.FC = () => {
       attemptScroll();
     }
   };
+
+  // 保留旧名称作为别名
+  const scrollToHighlightWithRetry = scrollToText;
 
   const [book, setBook] = useState<Book | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
@@ -403,7 +421,7 @@ const BookDetail: React.FC = () => {
           // 轮询查找高亮元素并居中滚动
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-              scrollToHighlightWithRetry(12, 200);
+              scrollToText(decodedHighlight, 20, 200);
             });
           });
           
@@ -432,7 +450,7 @@ const BookDetail: React.FC = () => {
           // 轮询查找高亮元素并居中滚动
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-              scrollToHighlightWithRetry(12, 200);
+              scrollToText(decodedHighlight, 20, 200);
             });
           });
           
@@ -931,7 +949,7 @@ const BookDetail: React.FC = () => {
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
             setTimeout(() => {
-              scrollToHighlightWithRetry(12, 200);
+              scrollToText(result.matchedText, 20, 200);
             }, 100);
           });
         });
