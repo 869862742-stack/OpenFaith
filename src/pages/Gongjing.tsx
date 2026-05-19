@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, Music, Loader2, Moon, BookOpen, Heart, Brain, Hand, Sparkles } from 'lucide-react';
+import { ArrowLeft, Upload, Music, Loader2, Moon, BookOpen, Heart, Brain, Hand, Sparkles, Play } from 'lucide-react';
 
 // Service Role Key
 const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkaHdtZWl0dGdkb3Nta3h0cGFrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODEzMjQ5MiwiZXhwIjoyMDkzNzA4NDkyfQ.bPatiu7NXaE2k48aTkjAGQsba6NzXlIdq2k_gGLYLBE';
@@ -60,6 +60,9 @@ export default function Gongjing() {
   const [breathingMusicName, setBreathingMusicName] = useState<string>('');
   const [breathingTheme, setBreathingTheme] = useState<string>('');
   const [participantCount, setParticipantCount] = useState<number>(0);
+  // 管理员设置的背景音乐
+  const [adminMusicUrl, setAdminMusicUrl] = useState<string | null>(null);
+  const [adminMusicName, setAdminMusicName] = useState<string>('');
   
   // 通用状态
   const [creating, setCreating] = useState(false);
@@ -69,7 +72,7 @@ export default function Gongjing() {
   useEffect(() => {
     const loadBreathingData = async () => {
       try {
-        // 获取今日主题
+        // 获取今日主题和管理员设置的背景音乐
         const themeRes = await fetch(
           '/sb-api/rest/v1/breathing_moments?select=*&order=created_at.desc&limit=1',
           {
@@ -81,8 +84,15 @@ export default function Gongjing() {
         );
         if (themeRes.ok) {
           const themes = await themeRes.json();
-          if (themes && themes.length > 0 && themes[0].theme) {
-            setBreathingTheme(themes[0].theme);
+          if (themes && themes.length > 0) {
+            if (themes[0].theme) {
+              setBreathingTheme(themes[0].theme);
+            }
+            // 读取管理员设置的背景音乐
+            if (themes[0].music_url) {
+              setAdminMusicUrl(themes[0].music_url);
+              setAdminMusicName(themes[0].music_name || '背景音乐');
+            }
           }
         }
       } catch (err) {
@@ -321,16 +331,9 @@ export default function Gongjing() {
         return;
       }
 
-      let musicUrl: string | null = null;
-      
-      // 上传音乐（如果有）
-      if (breathingMusicFile) {
-        try {
-          musicUrl = await uploadMusic(breathingMusicFile, userId);
-        } catch (err) {
-          console.warn('音乐上传失败，继续创建房间:', err);
-        }
-      }
+      // 使用管理员设置的背景音乐（用户不能自定义）
+      const musicUrl = adminMusicUrl;
+      const musicName = adminMusicName;
 
       const roomCode = generateRoomCode();
       const expiresAt = new Date(Date.now() + breathingDuration * 60000).toISOString();
@@ -345,12 +348,21 @@ export default function Gongjing() {
         max_participants: 9999,  // 世界呼吸不限制人数
         current_participants: 1,
         music_url: musicUrl,
-        music_name: breathingMusicName || null,
+        music_name: musicName || null,
         duration: breathingDuration,
         expires_at: expiresAt,
         tags: [breathingStatus, 'world_breathing'],
         theme: breathingTheme || null,  // 今日主题
         created_at: new Date().toISOString(),
+        custom_audio_url: musicUrl,  // 添加自定义音频URL字段
+        audio_tracks: musicUrl ? [{
+          id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          name: musicName || '背景音乐',
+          url: musicUrl,
+          duration: 0,
+          lyrics: '',
+          uploaded_at: new Date().toISOString(),
+        }] : [],
       };
 
       const res = await fetch('/sb-api/rest/v1/rooms', {
@@ -782,43 +794,33 @@ export default function Gongjing() {
               </div>
             </div>
 
-            {/* 音乐上传（可选） */}
-            <div className="mb-10">
-              <h2 className="text-white/80 text-sm mb-4 text-center">背景音乐（可选）</h2>
-              <input
-                ref={breathingFileInputRef}
-                type="file"
-                accept="audio/*"
-                onChange={handleBreathingFileChange}
-                className="hidden"
-              />
-              <button
-                onClick={() => breathingFileInputRef.current?.click()}
-                className="w-full p-6 rounded-2xl backdrop-blur-md transition-all duration-300 hover:bg-white/10"
+            {/* 管理员设置的背景音乐指示器 */}
+            {adminMusicUrl && (
+              <div className="mb-8 p-4 rounded-2xl backdrop-blur-md text-center"
                 style={{
-                  backgroundColor: breathingMusicFile ? 'rgba(59, 130, 246, 0.1)' : 'rgba(255, 255, 255, 0.05)',
-                  border: breathingMusicFile ? '1px solid rgba(59, 130, 246, 0.3)' : '1px dashed rgba(255, 255, 255, 0.2)',
+                  background: 'rgba(59, 130, 246, 0.1)',
+                  border: '1px solid rgba(59, 130, 246, 0.2)',
                 }}
               >
-                {breathingMusicFile ? (
-                  <div className="flex items-center justify-center gap-3">
-                    <Music className="w-5 h-5 text-blue-400" />
-                    <span className="text-white/90 text-sm truncate max-w-xs">{breathingMusicName}</span>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); removeMusic('breathing'); }}
-                      className="text-white/50 hover:text-white ml-2"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-2">
-                    <Upload className="w-6 h-6 text-white/40" />
-                    <span className="text-white/50 text-sm">点击上传 MP3 / WAV / AAC</span>
-                  </div>
-                )}
-              </button>
-            </div>
+                <div className="flex items-center justify-center gap-3">
+                  <Music className="w-5 h-5 text-blue-400" />
+                  <span className="text-white/80 text-sm">
+                    今晚背景音乐：{adminMusicName || '背景音乐'}
+                  </span>
+                  <Play className="w-4 h-4 text-blue-400 cursor-pointer hover:text-blue-300" onClick={() => {
+                    const audio = document.getElementById('breathing-admin-music') as HTMLAudioElement;
+                    if (audio) {
+                      if (audio.paused) {
+                        audio.play();
+                      } else {
+                        audio.pause();
+                      }
+                    }
+                  }} />
+                </div>
+                <audio id="breathing-admin-music" src={adminMusicUrl} className="hidden" />
+              </div>
+            )}
 
             {/* 错误提示 */}
             {error && (

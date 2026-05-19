@@ -11,6 +11,7 @@ import {
   Tag,
   BookOpen,
   Globe,
+  Globe2,
   ShieldCheck,
   Headphones,
   Trophy,
@@ -37,6 +38,7 @@ const menuItems = [
   { id: 'note-requests', label: '笔记发布申请', icon: FileText, path: '/admin/note-requests' },
   { id: 'ranking', label: '排行榜', icon: Trophy, path: '/admin/ranking' },
   { id: 'banned-words', label: '违规词库', icon: Ban, path: '/admin/banned-words' },
+  { id: 'gongjing', label: '共境管理', icon: Globe2, path: '/admin/gongjing' },
 ];
 
 interface AdminLayoutProps {
