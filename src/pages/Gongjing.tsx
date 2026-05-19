@@ -2237,20 +2237,7 @@ export default function Gongjing() {
               </button>
 
               {/* 创建圆桌（暂时隐藏，后续开放） */}
-              {/* 
-              <button
-                onClick={() => {/* TODO: 打开创建圆桌表单 */}}
-                className="w-full py-4 rounded-2xl backdrop-blur-md text-white font-medium transition-all duration-300 flex items-center justify-center gap-2"
-                style={{
-                  background: `linear-gradient(135deg, ${primaryColor}40 0%, ${primaryColor}20 100%)`,
-                  border: `1px solid ${primaryColor}50`,
-                  boxShadow: `0 0 20px ${primaryColor}20`,
-                }}
-              >
-                <MessagesSquare className="w-5 h-5" />
-                <span>创建圆桌</span>
-              </button>
-              */}
+              {/* 创建圆桌按钮暂时隐藏，后续开放 */}
             </div>
 
             {/* 底部提示 */}
