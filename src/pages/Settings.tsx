@@ -29,6 +29,7 @@ function SettingsContent() {
   ];
 
   const handleLogout = useCallback(() => {
+    if (!window.confirm('确定要退出登录吗？')) return;
     const performLogout = async () => {
       try {
         await supabase.auth.signOut();
@@ -47,7 +48,8 @@ function SettingsContent() {
       }
       // 重置 auth store
       useAuthStore.getState().logout();
-      navigate('/login');
+      window.location.hash = '#/login';
+      window.location.reload();
     };
     performLogout();
   }, [navigate]);
